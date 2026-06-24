@@ -2476,7 +2476,7 @@ body.modal-open {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background: rgba(236, 252, 203, 0.97);
+  background: rgba(200, 230, 160, 0.97);
   border: none;
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
