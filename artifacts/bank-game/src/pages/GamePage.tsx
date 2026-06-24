@@ -163,6 +163,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const { balances, game } = state;
   const totalBalance = balances.active;
 
+  const apples = 0;
+  const pluralApples = (n: number) => {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 19) return "яблок";
+    if (mod10 === 1) return "яблоко";
+    if (mod10 >= 2 && mod10 <= 4) return "яблока";
+    return "яблок";
+  };
+
   useEffect(() => {
     const cur = game.playerLevel ?? 1;
     if (cur > prevLevelRef.current) {
@@ -582,6 +591,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
               <span>{formatTreeGrowth(displayGrowthMM)}</span>
               <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
+            </div>
+            <div className="progress-row progress-row-apples">
+              <span className="progress-row-icon" style={{ fontSize: 13 }}>🍎</span>
+              <span>{apples} {pluralApples(apples)}</span>
+              <button className="growth-info-btn growth-info-btn-plus">+</button>
             </div>
           </div>
           <AnimatePresence>

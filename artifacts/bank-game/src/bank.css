@@ -600,6 +600,11 @@ body {
   background: rgba(160, 175, 140, 0.55);
 }
 
+.growth-info-btn-plus {
+  font-size: 14px;
+  font-weight: 400;
+}
+
 .tree-stage-compact {
   display: flex;
   flex-direction: column;
