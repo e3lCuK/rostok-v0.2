@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, HelpCircle, X, Shovel, Lock } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import GameAreaBg from "@/components/GameAreaBg";
@@ -75,8 +75,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
-  const [showHelp, setShowHelp] = useState(false);
-  const [showTreeInfo, setShowTreeInfo] = useState(false);
   const [showXpHistory, setShowXpHistory] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -94,7 +92,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     localStorage.setItem("streak_widget_date", todayStr);
     setShowStreakWidget(false);
   }
-  const helpPulsing = false;
   useEffect(() => {
     if (!showXpHistory || xpModalTab !== "rating") return;
     setLeaderboardLoading(true);
@@ -107,14 +104,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [sessionScores, setSessionScores] = useState<{ water: number; sun: number; fert: number; xp: number; base: number; bonus: number; mm: number } | null>(null);
   const [historyHighlight, setHistoryHighlight] = useState(false);
 
-  useEffect(() => {
-    if (showHelp) {
-      document.body.classList.add("modal-open");
-    } else {
-      document.body.classList.remove("modal-open");
-    }
-    return () => document.body.classList.remove("modal-open");
-  }, [showHelp]);
   const floaterRef = useRef(0);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -597,20 +586,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </AnimatePresence>
         </div>
 
-        <button
-          className={`help-icon${helpPulsing ? " help-icon-pulse" : ""}`}
-          onClick={() => {
-            setShowHelp(true);
-          }}
-          aria-label="Справка"
-        >
-          <HelpCircle size={20} />
-        </button>
-
         <div className="growth-label-wrap">
-          <button className="tree-growth-label tree-growth-label-btn" onClick={() => setShowTreeInfo(true)}>
+          <span className="tree-growth-label">
             {formatTreeGrowth(displayGrowthMM)}
-          </button>
+          </span>
           <AnimatePresence>
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
               <motion.div
@@ -1066,155 +1045,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                   </div>
                 )
               )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showTreeInfo && (
-          <motion.div
-            className="help-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setShowTreeInfo(false)}
-          >
-            <motion.div
-              className="help-modal"
-              initial={{ y: 32, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 32, opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="help-modal-header">
-                <h3 className="help-modal-title">🌳 Этапы роста дерева</h3>
-                <button className="help-modal-close" onClick={() => setShowTreeInfo(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="tree-stages-list">
-                {TREE_STAGE_DATA.map((stage, i) => {
-                  const isCurrent = getTreeStage(displayGrowthMM) === i;
-                  const nextFrom = TREE_STAGE_DATA[i + 1]?.from ?? null;
-                  const isDone = nextFrom !== null && displayGrowthMM >= nextFrom;
-                  const hasProgress = isCurrent && nextFrom !== null;
-                  const progressPct = hasProgress
-                    ? Math.min(100, ((displayGrowthMM - stage.from) / (nextFrom - stage.from)) * 100)
-                    : 0;
-                  return (
-                    <div key={i} className={`tree-stage-row${isCurrent ? " tree-stage-row-current" : ""}${!isCurrent && isDone ? " tree-stage-row-done" : ""}`}>
-                      <span className="tree-stage-emoji">{stage.emoji}</span>
-                      <div className="tree-stage-info">
-                        <p className="tree-stage-name">{TREE_STAGE_NAMES[i]}</p>
-                        <p className="tree-stage-range">
-                          {stage.fromFmt}{stage.toFmt ? ` — ${stage.toFmt}` : " и выше"}
-                        </p>
-                        {hasProgress && (
-                          <div className="tree-stage-progress-wrap">
-                            <div
-                              className="tree-stage-progress-bar"
-                              style={{ width: `${progressPct.toFixed(1)}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      {isCurrent && <span className="tree-stage-badge">Сейчас</span>}
-                      {!isCurrent && isDone && <span className="tree-stage-badge tree-stage-badge-done">✓</span>}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <p className="tree-stage-hint">1 ₽ активного дохода = 1 мм роста</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showHelp && (
-          <motion.div
-            className="help-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setShowHelp(false)}
-          >
-            <motion.div
-              className="help-modal"
-              initial={{ y: 32, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 32, opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="help-modal-header">
-                <h3 className="help-modal-title">Активный вклад</h3>
-                <button className="help-modal-close" onClick={() => setShowHelp(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="help-sections">
-                <div className="help-section">
-                  <span className="help-section-icon">🌱</span>
-                  <div>
-                    <p className="help-section-heading">Рост дерева</p>
-                    <ul className="help-section-list">
-                      <li>1 ₽ дохода = 1 мм роста</li>
-                      <li>Рост идёт только от активного дохода</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="help-section">
-                  <span className="help-section-icon">⚡</span>
-                  <div>
-                    <p className="help-section-heading">Сессии</p>
-                    <ul className="help-section-list">
-                      <li>Доступны каждые 8 часов</li>
-                      <li>3 активности за сессию: Вода, Свет, Удобрение</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="help-section">
-                  <span className="help-section-icon">🎮</span>
-                  <div>
-                    <p className="help-section-heading">Мини-игры</p>
-                    <ul className="help-section-list">
-                      <li>Каждая активность — своя игра</li>
-                      <li>Результат в % влияет на бонус</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="help-section">
-                  <span className="help-section-icon">💰</span>
-                  <div>
-                    <p className="help-section-heading">Доход</p>
-                    <ul className="help-section-list">
-                      <li>Базовый: 12% годовых</li>
-                      <li>Бонус: до +3% за результат игр</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="help-section">
-                  <span className="help-section-icon">🌳</span>
-                  <div>
-                    <p className="help-section-heading">Уровни</p>
-                    <ul className="help-section-list">
-                      <li>Опыт — результат трёх мини-игр</li>
-                      <li>Опыт начисляется за каждую сессию</li>
-                      <li>Чем лучше сыграли — тем больше опыта</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
