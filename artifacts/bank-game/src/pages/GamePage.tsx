@@ -571,9 +571,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         ))}
 
         <div className="growth-label-wrap">
-          <button className="tree-growth-label tree-growth-label-btn" onClick={() => setShowTreeInfo(true)}>
-            {formatTreeGrowth(displayGrowthMM)}
-          </button>
+          <div className="growth-label-row">
+            <span className="tree-growth-label">{formatTreeGrowth(displayGrowthMM)}</span>
+            <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
+          </div>
           <AnimatePresence>
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
               <motion.div
