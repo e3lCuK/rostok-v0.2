@@ -2442,7 +2442,7 @@ body.modal-open {
 .session-total {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(100, 160, 40, 0.55);
   font-weight: 600;
   font-size: 14px;
   display: flex;
