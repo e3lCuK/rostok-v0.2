@@ -46,8 +46,8 @@ export default function GameAreaBg() {
           </g>
         </g>
 
-        {/* Ground group — at very bottom (~570-600 SVG = ~684-720px on 720px screen) */}
-        <g>
+        {/* Ground group — just above bottom nav (nav top ≈ 570 SVG; strip top ≈ 552) */}
+        <g transform="translate(0,-25)">
           {/* Ground strip */}
           <ellipse cx="170" cy="595" rx="175" ry="18" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}
