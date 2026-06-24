@@ -1,10 +1,9 @@
 import {
   UserState,
   formatRub,
-  calcStandardDaily,
   SESSIONS_PER_DAY,
 } from "@/lib/engine";
-import { TrendingUp, Zap, Lock, ChevronRight } from "lucide-react";
+import { Zap, ChevronRight } from "lucide-react";
 
 interface Props {
   state: UserState;
@@ -12,62 +11,15 @@ interface Props {
 }
 
 export default function SavingsPage({ state, onTabChange }: Props) {
-  const { standard, active, standardEarned, activeEarned } = state.balances;
+  const { active, activeEarned } = state.balances;
 
-  const standardAnnual = standard * 0.12;
   const activeAnnual = active * 0.15;
-  const stdDaily = calcStandardDaily(standard);
   const dailyMax = active * 0.15 / 365;
   const sessionMax = dailyMax / SESSIONS_PER_DAY;
 
   return (
     <div className="savings-page">
       <h2 className="page-title">Мои вклады</h2>
-
-      <div className="deposit-card deposit-card-standard">
-        <div className="deposit-header">
-          <div className="deposit-icon-wrap deposit-icon-blue">
-            <Lock size={20} />
-          </div>
-          <div>
-            <p className="deposit-name">Стандартный вклад</p>
-            <span className="deposit-badge deposit-badge-blue">12,0% годовых</span>
-          </div>
-          <TrendingUp size={18} className="deposit-trend" />
-        </div>
-
-        <div className="deposit-balance-row">
-          <div>
-            <p className="deposit-balance-label">Баланс</p>
-            <p className="deposit-balance">{formatRub(standard)}</p>
-          </div>
-          <div className="text-right">
-            <p className="deposit-balance-label">Заработано</p>
-            <p className="deposit-earned">+{formatRub(standardEarned)}</p>
-          </div>
-        </div>
-
-        <div className="deposit-divider" />
-
-        <div className="deposit-stats">
-          <div className="deposit-stat">
-            <p className="deposit-stat-label">Годовой доход</p>
-            <p className="deposit-stat-value">{formatRub(standardAnnual)}</p>
-          </div>
-          <div className="deposit-stat">
-            <p className="deposit-stat-label">В день</p>
-            <p className="deposit-stat-value">{formatRub(stdDaily)}</p>
-          </div>
-          <div className="deposit-stat">
-            <p className="deposit-stat-label">Режим</p>
-            <p className="deposit-stat-value">Авто</p>
-          </div>
-        </div>
-
-        <div className="deposit-info-box deposit-info-box-blue">
-          <p>Пассивный доход начисляется автоматически каждые<br />24 часа. Никаких действий не требуется.</p>
-        </div>
-      </div>
 
       <div className="deposit-card deposit-card-green" onClick={() => onTabChange("active")}>
         <div className="deposit-header">

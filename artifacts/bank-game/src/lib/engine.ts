@@ -18,9 +18,7 @@ export const DEFAULT_CAPITAL = 100_000;
 // ---- Canonical user state shape ----
 export interface UserState {
   balances: {
-    standard: number;
     active: number;
-    standardEarned: number;
     activeEarned: number;
     totalDaysEarned: number;
     startDate: number;
@@ -45,7 +43,7 @@ export interface UserState {
   history: {
     date: string;
     amount: number;
-    type: "standard" | "active" | "base" | "bonus";
+    type: "active" | "base" | "bonus";
   }[];
 }
 
@@ -54,11 +52,6 @@ export interface XpHistoryEntry {
   n: number;      // session number within day (1, 2, 3…)
   pct: number;    // average skill percent 0–100
   xp: number;     // XP gained
-}
-
-// ---- Income formulas ----
-export function calcStandardDaily(standardBalance: number): number {
-  return standardBalance * 0.12 / 365;
 }
 
 // ---- Capital part based on total balance ----
@@ -181,36 +174,4 @@ export function formatCapital(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("ru-RU")} млн ₽`;
   if (n >= 1_000) return `${(n / 1_000).toLocaleString("ru-RU")} тыс. ₽`;
   return formatRub(n);
-}
-
-// ---- Offline accrual (local) — used as optimistic update ----
-export function applyOfflineAccrual(state: UserState): { state: UserState; accrued: number } {
-  const now = Date.now();
-  const { startDate, totalDaysEarned, standard: standardBalance } = state.balances;
-  const daysSinceStart = (now - startDate) / 86_400_000;
-  const daysToAccrue = Math.floor(daysSinceStart) - totalDaysEarned;
-  if (daysToAccrue <= 0) return { state, accrued: 0 };
-
-  const daily = calcStandardDaily(standardBalance);
-  const income = daily * daysToAccrue;
-
-  const newHistory = Array.from({ length: daysToAccrue }, (_, i) => ({
-    date: new Date(startDate + (totalDaysEarned + i + 1) * 86_400_000).toLocaleDateString("ru-RU"),
-    amount: daily,
-    type: "standard" as "standard",
-  }));
-
-  return {
-    accrued: income,
-    state: {
-      ...state,
-      balances: {
-        ...state.balances,
-        standard: standardBalance + income,
-        standardEarned: state.balances.standardEarned + income,
-        totalDaysEarned: totalDaysEarned + daysToAccrue,
-      },
-      history: [...state.history, ...newHistory].slice(-30),
-    },
-  };
 }

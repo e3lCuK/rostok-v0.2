@@ -55,9 +55,7 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
     return res.json({
       exists: true,
       balances: {
-        standard: parseFloat(acc.standard_balance),
         active: parseFloat(acc.active_balance),
-        standardEarned: parseFloat(acc.standard_earned),
         activeEarned: parseFloat(acc.active_earned),
         totalDaysEarned: acc.total_days_earned,
         startDate: parseInt(acc.start_date),
@@ -103,7 +101,6 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
     return res.status(400).json({ error: "Invalid starting capital" });
   }
 
-  const half = capital / 2;
   const now = Date.now();
 
   try {
@@ -114,8 +111,8 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
 
     await pool.query(
       `INSERT INTO accounts(user_id, standard_balance, active_balance, standard_earned, active_earned, total_days_earned, start_date, starting_capital)
-       VALUES($1, $2, $3, 0, 0, 0, $4, $5)`,
-      [userId, half, half, now, capital],
+       VALUES($1, 0, $2, 0, 0, 0, $3, $4)`,
+      [userId, capital, now, capital],
     );
     await pool.query(
       `INSERT INTO game_state(user_id, last_session_time, session_in_progress, current_session_water, current_session_sun, current_session_fertilizer, pending_base_reward, pending_bonus_reward)
@@ -130,51 +127,9 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
   }
 });
 
-// POST /api/game/accrue — accrue daily passive income
-router.post("/game/accrue", requireAuth, async (req: any, res) => {
-  const userId = req.userId;
-  try {
-    const accRow = await pool.query("SELECT * FROM accounts WHERE user_id = $1", [userId]);
-    if (accRow.rows.length === 0) return res.status(404).json({ error: "Account not found" });
-
-    const acc = accRow.rows[0];
-    const startDate = parseInt(acc.start_date);
-    const now = Date.now();
-    const daysSinceStart = (now - startDate) / 86_400_000;
-    const daysToAccrue = Math.floor(daysSinceStart) - acc.total_days_earned;
-
-    if (daysToAccrue <= 0) return res.json({ accrued: 0 });
-
-    const stdBalance = parseFloat(acc.standard_balance);
-    const stdDaily = stdBalance * 0.12 / 365;
-    const stdIncome = stdDaily * daysToAccrue;
-
-    const history = Array.from({ length: daysToAccrue }, (_, i) => ({
-      date: new Date(startDate + (acc.total_days_earned + i + 1) * 86_400_000).toLocaleDateString("ru-RU"),
-      amount: stdDaily,
-    }));
-
-    await pool.query(
-      `UPDATE accounts SET
-        standard_balance = standard_balance + $1,
-        standard_earned = standard_earned + $1,
-        total_days_earned = total_days_earned + $2
-       WHERE user_id = $3`,
-      [stdIncome, daysToAccrue, userId],
-    );
-
-    for (const h of history) {
-      await pool.query(
-        "INSERT INTO income_history(user_id, amount, type, earned_date) VALUES($1, $2, 'standard', $3)",
-        [userId, h.amount, h.date],
-      );
-    }
-
-    return res.json({ accrued: stdIncome, days: daysToAccrue });
-  } catch (err) {
-    req.log.error({ err }, "Error accruing income");
-    return res.status(500).json({ error: "Internal server error" });
-  }
+// POST /api/game/accrue — no-op: standard deposit removed, all income via active sessions
+router.post("/game/accrue", requireAuth, async (_req: any, res) => {
+  return res.json({ accrued: 0, days: 0 });
 });
 
 // POST /api/game/session/start — begin a session
@@ -284,8 +239,7 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
 
     if (allDone) {
       const activeBalance = parseFloat(acc.active_balance);
-      const standardBalance = parseFloat(acc.standard_balance);
-      const totalBalance = activeBalance + standardBalance;
+      const totalBalance = activeBalance;
       const now = Date.now();
 
       // Streak logic — one increment per calendar day (UTC), using last_streak_date

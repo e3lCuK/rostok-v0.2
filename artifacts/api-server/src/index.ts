@@ -65,6 +65,15 @@ async function runMigrations() {
     WHERE starting_capital = 0
       AND (standard_balance + active_balance) > 0
   `);
+  // Consolidate standard_balance into active_balance (remove split-account logic)
+  await pool.query(`
+    UPDATE accounts
+    SET active_balance = active_balance + standard_balance,
+        active_earned  = active_earned  + standard_earned,
+        standard_balance = 0,
+        standard_earned  = 0
+    WHERE standard_balance > 0
+  `);
   logger.info("DB migrations applied");
 }
 

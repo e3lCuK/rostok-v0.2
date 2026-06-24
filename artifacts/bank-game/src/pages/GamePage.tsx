@@ -170,7 +170,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   }, [showCompletionStage]);
 
   const { balances, game } = state;
-  const totalBalance = balances.standard + balances.active;
+  const totalBalance = balances.active;
 
   useEffect(() => {
     const cur = game.playerLevel ?? 1;

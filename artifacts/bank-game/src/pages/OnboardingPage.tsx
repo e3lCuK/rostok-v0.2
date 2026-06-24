@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { DEFAULT_CAPITAL, formatCapital, calcStandardDaily } from "@/lib/engine";
+import { DEFAULT_CAPITAL, formatCapital } from "@/lib/engine";
 
 interface Props {
   onComplete: (capital: number) => Promise<void>;
@@ -14,9 +14,7 @@ export default function OnboardingPage({ onComplete }: Props) {
   const [infoOpen, setInfoOpen] = useState(false);
   const isSubmitting = useRef(false);
 
-  const half = DEFAULT_CAPITAL / 2;
-  const dailyStd = calcStandardDaily(half);
-  const dailyAct = half * 0.15 / 365;
+  const dailyAct = DEFAULT_CAPITAL * 0.15 / 365;
   const isSelected = selected === DEFAULT_CAPITAL;
 
   async function handleStart() {
@@ -42,7 +40,7 @@ export default function OnboardingPage({ onComplete }: Props) {
       <div className="onboarding-header">
         <span className="onboarding-icon">🌱</span>
         <h1 className="onboarding-title">Открыть учебный счёт</h1>
-        <p className="onboarding-sub">Капитал делится поровну между стандартным и активным вкладами</p>
+        <p className="onboarding-sub">Все средства идут в активный вклад под 15% годовых</p>
       </div>
 
       <div className="onboarding-info">
@@ -68,10 +66,9 @@ export default function OnboardingPage({ onComplete }: Props) {
               style={{ overflow: "hidden" }}
             >
               <p className="onboarding-info-text">
-                Вкладывать ничего не нужно — это учебный счёт. Дерево растёт вместе с активным доходом.
+                Вкладывать ничего не нужно — это учебный счёт. Играйте в мини-игры каждые 8 часов, чтобы получать доход и растить дерево.
               </p>
               <div className="onboarding-rates">
-                <span className="onboarding-rate-badge">Стандартный вклад — <strong>12%</strong> годовых</span>
                 <span className="onboarding-rate-badge">Активный вклад — <strong>15%</strong> годовых</span>
               </div>
             </motion.div>
@@ -87,17 +84,13 @@ export default function OnboardingPage({ onComplete }: Props) {
         >
           <div className="capital-option-header">
             <div>
-              <p className="capital-option-label">Стандартный</p>
+              <p className="capital-option-label">Стартовый капитал</p>
               <p className="capital-option-amount">{formatCapital(DEFAULT_CAPITAL)}</p>
             </div>
             <div className={`capital-option-radio${isSelected ? " capital-option-radio-active" : ""}`} />
           </div>
-          <p className="capital-option-desc">50 000 ₽ стандартный + 50 000 ₽ активный</p>
+          <p className="capital-option-desc">Весь капитал — в активный вклад</p>
           <div className="capital-option-stats">
-            <div className="capital-stat">
-              <p className="capital-stat-label">В день (стан.)</p>
-              <p className="capital-stat-value">до {dailyStd.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
-            </div>
             <div className="capital-stat">
               <p className="capital-stat-label">В день (акт.)</p>
               <p className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>

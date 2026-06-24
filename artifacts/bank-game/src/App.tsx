@@ -1,14 +1,13 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Home, PiggyBank, TrendingUp, Zap, Settings, LogOut, Pencil, Mail, Lock, Check, X } from "lucide-react";
+import { Home, PiggyBank, Zap, Settings, LogOut, Pencil, Mail, Lock, Check, X } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { APP_NAME, APP_VERSION, UserState, applyOfflineAccrual } from "@/lib/engine";
+import { APP_NAME, APP_VERSION, UserState } from "@/lib/engine";
 import HomePage from "@/pages/HomePage";
 import SavingsPage from "@/pages/SavingsPage";
-import StandardPage from "@/pages/StandardPage";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
@@ -16,12 +15,11 @@ import DebugPanel from "@/components/DebugPanel";
 import "@/bank.css";
 
 // ---- Tab bar ----
-type Tab = "home" | "savings" | "standard" | "active";
+type Tab = "home" | "savings" | "active";
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
-  { id: "home",     label: "Главная",     icon: Home },
-  { id: "savings",  label: "Вклады",      icon: PiggyBank },
-  { id: "standard", label: "Стандартный", icon: TrendingUp },
-  { id: "active",   label: "Активный",    icon: Zap },
+  { id: "home",    label: "Главная", icon: Home },
+  { id: "savings", label: "Вклады",  icon: PiggyBank },
+  { id: "active",  label: "Активный", icon: Zap },
 ];
 
 type SettingsPanel = "nick" | "email" | "password" | null;
@@ -189,11 +187,9 @@ function AppShell() {
   const [state, setState] = useState<UserState | null>(null);
   const [onboarding, setOnboarding] = useState(false);
   const [notifHome, setNotifHome] = useState(false);
-  const [notifStandard, setNotifStandard] = useState(false);
   const [notifActive, setNotifActive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const prevActiveHistoryLenRef = useRef(0);
-  const prevStdHistoryLenRef = useRef(0);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -216,16 +212,13 @@ function AppShell() {
         setLoading(false);
         return;
       }
-      let userState: UserState = {
+      const userState: UserState = {
         balances: data.balances!,
         game: { ...data.game!, xpHistory: data.game!.xpHistory ?? [] },
-        history: data.history!,
+        history: (data.history ?? []).filter(
+          h => h.type === "active" || h.type === "base" || h.type === "bonus"
+        ) as UserState["history"],
       };
-      const { state: accrued } = applyOfflineAccrual(userState);
-      if (accrued !== userState) {
-        api.accrue().catch(() => {});
-        userState = accrued;
-      }
       setState(userState);
     } catch {
       // silent retry
@@ -246,34 +239,24 @@ function AppShell() {
       }
       throw err;
     }
-    setNotifHome(false); setNotifActive(false); setNotifStandard(false);
+    setNotifHome(false); setNotifActive(false);
     setOnboarding(false);
     setTab("home");
     await loadState();
   }
 
-  function clearPair(t: Tab) {
-    if (t === "standard") { setNotifStandard(false); }
-  }
   function handleStateChange(next: UserState) { setState(next); }
-  function handleTabChange(t: Tab) { clearPair(t); setTab(t); }
 
   useEffect(() => {
     if (!state) return;
     const activeTotal = state.history.filter(h => h.type === "base" || h.type === "bonus").length;
-    const stdTotal    = state.history.filter(h => h.type === "standard").length;
 
     if (activeTotal > prevActiveHistoryLenRef.current) {
       if (tab !== "home") setNotifHome(true);
       setNotifActive(true);
     }
-    if (stdTotal > prevStdHistoryLenRef.current) {
-      if (tab !== "home") setNotifHome(true);
-      if (tab !== "standard") setNotifStandard(true);
-    }
 
     prevActiveHistoryLenRef.current = activeTotal;
-    prevStdHistoryLenRef.current    = stdTotal;
   }, [state?.history.length]);
 
   if (loading) {
@@ -353,10 +336,15 @@ function AppShell() {
             transition={{ duration: 0.18 }}
             className="bank-page"
           >
-            {tab === "home"     && <HomePage state={state} notif={notifHome} onClearNotif={() => { setNotifHome(false); setNotifActive(false); setNotifStandard(false); }} />}
-            {tab === "savings"  && <SavingsPage state={state} onTabChange={handleTabChange} />}
-            {tab === "standard" && <StandardPage state={state} notif={notifStandard} onClearNotif={() => { setNotifStandard(false); setNotifHome(false); }} />}
-            {tab === "active"   && (
+            {tab === "home" && (
+              <HomePage
+                state={state}
+                notif={notifHome}
+                onClearNotif={() => { setNotifHome(false); setNotifActive(false); }}
+              />
+            )}
+            {tab === "savings" && <SavingsPage state={state} onTabChange={(t) => setTab(t as Tab)} />}
+            {tab === "active" && (
               <GamePage
                 state={state}
                 onStateChange={handleStateChange}
@@ -370,12 +358,12 @@ function AppShell() {
 
       <nav className="bank-nav">
         {TABS.map(({ id, label, icon: Icon }) => {
-          const hasNotif = (id === "home" && notifHome && tab !== "home") || (id === "standard" && notifStandard) || (id === "active" && notifActive);
+          const hasNotif = (id === "home" && notifHome && tab !== "home") || (id === "active" && notifActive);
           return (
             <button
               key={id}
               className={`bank-nav-btn ${tab === id ? "bank-nav-btn-active" : ""}`}
-              onClick={() => { clearPair(id); setTab(id); }}
+              onClick={() => setTab(id)}
             >
               <span className="bank-nav-icon-wrap">
                 <Icon size={22} strokeWidth={tab === id ? 2.2 : 1.6} />
@@ -392,9 +380,8 @@ function AppShell() {
           state={state}
           onStateChange={handleStateChange}
           onResetAccount={() => {
-            setNotifHome(false); setNotifActive(false); setNotifStandard(false);
+            setNotifHome(false); setNotifActive(false);
             prevActiveHistoryLenRef.current = 0;
-            prevStdHistoryLenRef.current = 0;
             setState(null); setOnboarding(true);
           }}
           onSignOut={logout}
