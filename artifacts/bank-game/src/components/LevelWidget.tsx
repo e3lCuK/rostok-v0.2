@@ -64,7 +64,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
           <text
             x="30" y="30"
             textAnchor="middle" dominantBaseline="central"
-            fontSize="22" fontWeight="900"
+            fontSize="26" fontWeight="900"
             fill={COLOR}
             style={{ fontFamily: "inherit" }}
           >
