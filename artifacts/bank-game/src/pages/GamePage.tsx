@@ -670,7 +670,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         </div>
 
         <div className="game-left-widgets">
-          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
           <AnimatePresence>
             {showXpPopup && sessionScores && (
               <motion.div
@@ -884,6 +883,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
             <Trophy size={18} />
           </button>
+          <div className="game-bottom-nav-divider" />
+          <div className="game-bottom-nav-btn game-bottom-nav-level">
+            <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
+          </div>
           <div className="game-bottom-nav-divider" />
           <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
             <ShoppingCart size={18} />

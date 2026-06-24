@@ -167,6 +167,18 @@ body {
 }
 .game-bottom-nav-btn:hover { color: #166534; }
 
+.game-bottom-nav-level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.game-bottom-nav-level .lvl-badge-wrap {
+  transform: scale(0.62);
+  transform-origin: center center;
+}
+
 .game-bottom-nav-btn-disabled {
   cursor: default;
   pointer-events: none;
