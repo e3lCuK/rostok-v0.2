@@ -581,7 +581,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
         <div className="game-area-top-strip" />
-        <span className="game-beta-floating">Бета {APP_VERSION}</span>
+        <span className="game-beta-floating">{APP_VERSION}</span>
         <div className="game-session-status">
           <div className="game-top-controls">
             <div ref={settingsRef} className="game-gear-wrap">
