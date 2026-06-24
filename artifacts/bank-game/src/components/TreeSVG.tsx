@@ -6,11 +6,11 @@ interface TreeSVGProps {
 }
 
 const STAGE_DIMS: [number, number][] = [
-  [82,  148],
-  [90,  148],
-  [98,  148],
-  [106, 148],
-  [114, 148],
+  [82,  82],
+  [95,  110],
+  [110, 132],
+  [126, 156],
+  [144, 182],
 ];
 
 export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
