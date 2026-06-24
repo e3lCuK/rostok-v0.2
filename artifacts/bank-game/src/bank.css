@@ -105,6 +105,10 @@ body {
   padding-bottom: 80px;
 }
 
+.bank-main-full {
+  padding-bottom: 0;
+}
+
 .bank-page {
   padding: 16px;
   display: flex;
