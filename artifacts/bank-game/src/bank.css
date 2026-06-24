@@ -575,6 +575,43 @@ body {
   pointer-events: none;
 }
 
+.game-session-status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 14px;
+  gap: 3px;
+  z-index: 16;
+  pointer-events: none;
+}
+
+.game-session-detail {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.game-session-detail .session-timer {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #166534;
+  gap: 4px;
+}
+.game-session-detail .session-timer svg { color: #4d7c0f; }
+
+.game-session-hint {
+  font-size: 0.65rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
 .game-area-bg-wrap {
   position: absolute;
   inset: 0;

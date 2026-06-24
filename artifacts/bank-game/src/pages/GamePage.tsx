@@ -553,41 +553,31 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
   return (
     <div className="game-page">
-      {/* Session status card */}
-      <div className="session-counter-card">
-        <div className="session-counter-left">
-          <p className="session-counter-label">Статус сессии</p>
-          <div className={`session-status-badge ${showCompletionStage && !showRewards ? "session-status-ready" : locked ? "session-status-locked" : "session-status-ready"}`}>
-            {game.sessionInProgress || (showCompletionStage && !showRewards) ? "В процессе" : locked ? "Перезарядка" : "Готова"}
-          </div>
-        </div>
-
-        <div className="session-counter-right">
-          {showCompletionStage && !showRewards ? (
-            <p className="session-ready-text">Осталось: 0 действия</p>
-          ) : locked && msLeft !== null && msLeft > 0 ? (
-            <>
-              <p className="session-timer-label">Следующая через</p>
-              <div className="session-timer">
-                <Clock size={14} />
-                <span>{formatTimer(msLeft)}</span>
-              </div>
-            </>
-          ) : !game.sessionInProgress ? (
-            <p className="session-ready-text" style={{ color: storedSessions > 1 ? '#dc2626' : undefined }}>
-              Сессий к получению: {storedSessions}
-            </p>
-          ) : (
-            <p className="session-ready-text">Осталось: {actionsLeft} действия</p>
-          )}
-        </div>
-
-        <p className="session-earn-hint">до {formatRub(sessionMax)} за сессию</p>
-      </div>
-
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
         <div className="game-area-top-strip" />
+        <div className="game-session-status">
+          <div className={`session-status-badge ${showCompletionStage && !showRewards ? "session-status-ready" : locked ? "session-status-locked" : "session-status-ready"}`}>
+            {game.sessionInProgress || (showCompletionStage && !showRewards) ? "В процессе" : locked ? "Перезарядка" : "Готова"}
+          </div>
+          <div className="game-session-detail">
+            {showCompletionStage && !showRewards ? (
+              <span>Осталось: 0</span>
+            ) : locked && msLeft !== null && msLeft > 0 ? (
+              <div className="session-timer">
+                <Clock size={12} />
+                <span>{formatTimer(msLeft)}</span>
+              </div>
+            ) : !game.sessionInProgress ? (
+              <span style={{ color: storedSessions > 1 ? '#dc2626' : undefined }}>
+                ×{storedSessions} сессии
+              </span>
+            ) : (
+              <span>Осталось: {actionsLeft}</span>
+            )}
+          </div>
+          <span className="game-session-hint">до {formatRub(sessionMax)}</span>
+        </div>
         <GameAreaBg groundY={-117} skyOffset={12} />
 
         {floaters.map(fl => (
