@@ -46,7 +46,7 @@ export default function GameAreaBg() {
         </g>
 
         {/* Ground group — at very bottom */}
-        <g>
+        <g transform="translate(0,18)">
           {/* Ground strip */}
           <ellipse cx="170" cy="295" rx="175" ry="18" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}
