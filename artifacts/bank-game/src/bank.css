@@ -591,13 +591,14 @@ body {
 .game-session-status {
   position: absolute;
   top: 0;
+  left: calc(50% + 58px);
   right: 0;
   height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 14px;
+  padding: 0 8px;
   gap: 4px;
   z-index: 16;
   pointer-events: none;
@@ -618,7 +619,7 @@ body {
   font-size: 0.82rem;
   font-weight: 700;
   color: #166534;
-  gap: 6px;
+  gap: 10px;
 }
 .game-session-detail .session-timer svg { color: #4d7c0f; }
 
