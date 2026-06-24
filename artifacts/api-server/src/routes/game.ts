@@ -566,69 +566,6 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
   }
 });
 
-// GET /api/game/daily-reward
-router.get("/game/daily-reward", requireAuth, async (req: any, res) => {
-  const userId = req.userId;
-  try {
-    const { rows } = await pool.query(
-      "SELECT last_daily_claim_date, daily_claim_streak FROM game_state WHERE user_id = $1",
-      [userId]
-    );
-    if (!rows.length) return res.json({ claimedToday: false, streak: 0, dayIndex: 0 });
-    const g = rows[0];
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const lastClaimDate: string | null = g.last_daily_claim_date ?? null;
-    const streak: number = g.daily_claim_streak || 0;
-    if (!lastClaimDate) return res.json({ claimedToday: false, streak: 0, dayIndex: 0 });
-    const claimedToday = lastClaimDate === todayStr;
-    const diffDays = Math.floor(
-      (new Date(todayStr + "T00:00:00Z").getTime() - new Date(lastClaimDate + "T00:00:00Z").getTime()) / 86400000
-    );
-    if (diffDays > 1) return res.json({ claimedToday: false, streak: 0, dayIndex: 0 });
-    if (claimedToday) return res.json({ claimedToday: true, streak, dayIndex: (streak - 1) % 7 });
-    return res.json({ claimedToday: false, streak, dayIndex: streak % 7 });
-  } catch (err) {
-    req.log.error({ err }, "Error fetching daily reward");
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// POST /api/game/daily-reward/claim
-router.post("/game/daily-reward/claim", requireAuth, async (req: any, res) => {
-  const userId = req.userId;
-  try {
-    const { rows } = await pool.query(
-      "SELECT last_daily_claim_date, daily_claim_streak, player_xp FROM game_state WHERE user_id = $1",
-      [userId]
-    );
-    if (!rows.length) return res.status(400).json({ error: "No game state" });
-    const g = rows[0];
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const lastClaimDate: string | null = g.last_daily_claim_date ?? null;
-    if (lastClaimDate === todayStr) return res.status(400).json({ error: "Already claimed today" });
-    let currentStreak: number = g.daily_claim_streak || 0;
-    if (lastClaimDate) {
-      const diffDays = Math.floor(
-        (new Date(todayStr + "T00:00:00Z").getTime() - new Date(lastClaimDate + "T00:00:00Z").getTime()) / 86400000
-      );
-      if (diffDays > 1) currentStreak = 0;
-    }
-    const dayIndex = currentStreak % 7;
-    const DAILY_XP = [10, 20, 35, 50, 75, 100, 200];
-    const xpGained = DAILY_XP[dayIndex];
-    const newStreak = currentStreak + 1;
-    const newXp = (g.player_xp || 0) + xpGained;
-    await pool.query(
-      `UPDATE game_state SET last_daily_claim_date = $1, daily_claim_streak = $2, player_xp = $3, updated_at = NOW() WHERE user_id = $4`,
-      [todayStr, newStreak, newXp, userId]
-    );
-    return res.json({ xpGained, newStreak, dayIndex });
-  } catch (err) {
-    req.log.error({ err }, "Error claiming daily reward");
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
 // DELETE /api/game/debug/reset-all — wipe game data only (keep user + session)
 router.delete("/game/debug/reset-all", requireAuth, async (req: any, res) => {
   const userId = req.userId;
