@@ -997,7 +997,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                     <button className="xp-nick-pencil" onClick={() => { setNickVal(user?.nickname ?? user?.username ?? ""); setEditingNick(true); }} title="Изменить ник">
                       <Pencil size={13} />
                     </button>
-                    <span className="xp-nick-tree-icon">🌳</span>
                     <span className="xp-history-modal-nick">{user?.nickname ?? user?.username}</span>
                   </div>
                 )}
