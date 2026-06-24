@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getLevelProgress } from "@/lib/levels";
 
 interface Props {
   totalXP: number;
@@ -9,17 +8,24 @@ interface Props {
   onClick?: () => void;
 }
 
-export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) {
-  const progress = getLevelProgress(totalXP);
+function LeafSvg({ flip, flipY }: { flip?: boolean; flipY?: boolean }) {
+  return (
+    <svg
+      width="9" height="11" viewBox="0 0 9 11" fill="none"
+      style={{ transform: `${flip ? "scaleX(-1)" : ""} ${flipY ? "scaleY(-1)" : ""}` }}
+    >
+      <path
+        d="M4.5 1C4.5 1 1 3.2 1 6C1 8 2.5 9.5 4.5 9.5C6.5 9.5 8 8 8 6C8 3.2 4.5 1 4.5 1Z"
+        fill="#4ade80" opacity="0.75"
+      />
+      <line x1="4.5" y1="9.5" x2="4.5" y2="4" stroke="#22c55e" strokeWidth="0.9" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+export default function LevelWidget({ level, xpGain, onClick }: Props) {
   const [showGain, setShowGain] = useState(false);
   const [gainVal, setGainVal] = useState(0);
-  const [barPct, setBarPct] = useState(() =>
-    progress.xpNeeded ? Math.min(100, (progress.xpInLevel / progress.xpNeeded) * 100) : 100
-  );
-  const barTarget = progress.xpNeeded
-    ? Math.min(100, (progress.xpInLevel / progress.xpNeeded) * 100)
-    : 100;
-  const barAnimRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (xpGain) {
@@ -31,35 +37,41 @@ export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) 
     return undefined;
   }, [xpGain]);
 
-  useEffect(() => {
-    if (barAnimRef.current) clearTimeout(barAnimRef.current);
-    barAnimRef.current = setTimeout(() => setBarPct(barTarget), 80);
-    return () => { if (barAnimRef.current) clearTimeout(barAnimRef.current); };
-  }, [barTarget]);
-
   return (
-    <div className="level-widget-wrap">
+    <div className="lvl-badge-wrap" onClick={onClick}>
       <motion.div
-        className={`level-widget${onClick ? " level-widget-clickable" : ""}`}
-        onClick={onClick}
+        className="lvl-badge"
         animate={showGain
-          ? { scale: [1, 1.1, 1], boxShadow: ["0 0 0px rgba(134,239,172,0)", "0 0 14px rgba(134,239,172,0.8)", "0 0 0px rgba(134,239,172,0)"] }
-          : { scale: 1, boxShadow: "0 0 0px rgba(134,239,172,0)" }
+          ? {
+              scale: [1, 1.18, 1],
+              filter: [
+                "drop-shadow(0 0 4px rgba(74,222,128,0.4))",
+                "drop-shadow(0 0 14px rgba(74,222,128,0.9))",
+                "drop-shadow(0 0 4px rgba(74,222,128,0.4))",
+              ],
+            }
+          : {
+              scale: 1,
+              filter: "drop-shadow(0 0 4px rgba(74,222,128,0.38))",
+            }
         }
-        transition={{ duration: 0.55, ease: "easeOut" }}
+        transition={{ duration: 0.75, ease: "easeOut" }}
       >
-        <div className="level-widget-top">
-          <span className="level-widget-icon">◆</span>
-          <span className="level-widget-lvl">Ур.{level}</span>
+        <div className="lvl-leaves-top">
+          <LeafSvg />
+          <LeafSvg flip />
         </div>
-        <span className="level-widget-xp">
-          {progress.isMax ? "MAX" : `${progress.xpInLevel} / ${progress.xpNeeded} опыт`}
-        </span>
-        <div className="level-widget-bar-track">
-          <div
-            className="level-widget-bar-fill"
-            style={{ width: `${barPct}%`, transition: "width 0.5s ease" }}
-          />
+
+        <div className="lvl-diamond">
+          <div className="lvl-content">
+            <span className="lvl-number">{level}</span>
+            <span className="lvl-label">УРОВЕНЬ</span>
+          </div>
+        </div>
+
+        <div className="lvl-leaves-bottom">
+          <LeafSvg flipY />
+          <LeafSvg flip flipY />
         </div>
       </motion.div>
 
@@ -67,13 +79,13 @@ export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) 
         {showGain && (
           <motion.div
             key={gainVal}
-            className="level-widget-gain"
+            className="lvl-gain-popup"
             initial={{ opacity: 1, y: 0, x: "-50%" }}
-            animate={{ opacity: 0, y: -32, x: "-50%" }}
+            animate={{ opacity: 0, y: -28, x: "-50%" }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
           >
-            +{gainVal} опыт
+            +{gainVal} оп.
           </motion.div>
         )}
       </AnimatePresence>

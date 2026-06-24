@@ -580,59 +580,63 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </div>
         ))}
 
-        <div className="growth-label-wrap">
-          <div className="progress-widget">
-            <div className="progress-row progress-row-deposit">
-              <span className="progress-row-icon"><Wallet size={13} strokeWidth={1.5} /></span>
-              <span>{formatRub(balances.active)}</span>
-              <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
-            </div>
-            <div className="progress-row">
-              <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
-              <span>{formatTreeGrowth(displayGrowthMM)}</span>
-              <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
-            </div>
-            <div className="progress-row progress-row-apples">
-              <span className="progress-row-icon">
-                <svg width="13" height="15" viewBox="0 0 13 15" fill="none" stroke="#166534" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6.5 4C6.5 4 7 2 9 1" />
-                  <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" />
-                </svg>
-              </span>
-              <span>{apples} {pluralApples(apples)}</span>
-              <button className="growth-info-btn growth-info-btn-plus">+</button>
-            </div>
+        <div className="game-top-bar">
+          <div className="game-top-level">
+            <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowXpHistory(true)} />
+            <AnimatePresence>
+              {showXpPopup && sessionScores && (
+                <motion.div
+                  className="reward-popup reward-popup-xp"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                >
+                  +{sessionScores.xp} оп.
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <AnimatePresence>
-            {showMmPopup && sessionScores && sessionScores.mm > 0 && (
-              <motion.div
-                className="reward-popup reward-popup-mm"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-              >
-                +{sessionScores.mm} мм.
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
-        <div className="game-left-widgets">
-          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowXpHistory(true)} />
-          <AnimatePresence>
-            {showXpPopup && sessionScores && (
-              <motion.div
-                className="reward-popup reward-popup-xp"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-              >
-                +{sessionScores.xp} оп.
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="game-top-center">
+            <div className="growth-label-wrap">
+              <div className="progress-widget">
+                <div className="progress-row progress-row-deposit">
+                  <span className="progress-row-icon"><Wallet size={13} strokeWidth={1.5} /></span>
+                  <span>{formatRub(balances.active)}</span>
+                  <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
+                </div>
+                <div className="progress-row">
+                  <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
+                  <span>{formatTreeGrowth(displayGrowthMM)}</span>
+                  <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
+                </div>
+                <div className="progress-row progress-row-apples">
+                  <span className="progress-row-icon">
+                    <svg width="13" height="15" viewBox="0 0 13 15" fill="none" stroke="#166534" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6.5 4C6.5 4 7 2 9 1" />
+                      <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" />
+                    </svg>
+                  </span>
+                  <span>{apples} {pluralApples(apples)}</span>
+                  <button className="growth-info-btn growth-info-btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+            <AnimatePresence>
+              {showMmPopup && sessionScores && sessionScores.mm > 0 && (
+                <motion.div
+                  className="reward-popup reward-popup-mm"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                >
+                  +{sessionScores.mm} мм.
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <AnimatePresence>

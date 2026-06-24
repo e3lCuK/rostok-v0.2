@@ -1035,14 +1035,125 @@ body.modal-open {
   z-index: 15;
 }
 
+.game-top-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  z-index: 15;
+  pointer-events: none;
+}
+.game-top-bar > * { pointer-events: auto; }
+
+.game-top-level {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.game-top-center {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .growth-label-wrap {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+/* ── Diamond Level Badge ─────────────────────────────────── */
+.lvl-badge-wrap {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lvl-badge {
+  width: 64px;
+  height: 86px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.lvl-leaves-top {
+  display: flex;
+  gap: 2px;
+  margin-bottom: -4px;
+  z-index: 2;
+  position: relative;
+}
+
+.lvl-leaves-bottom {
+  display: flex;
+  gap: 2px;
+  margin-top: -4px;
+  z-index: 2;
+  position: relative;
+}
+
+.lvl-diamond {
+  width: 52px;
+  height: 52px;
+  transform: rotate(45deg);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #bbf7d0 0%, #4ade80 38%, #16a34a 72%, #14532d 100%);
+  border: 2.5px solid #86efac;
+  box-shadow:
+    0 0 16px rgba(74, 222, 128, 0.42),
+    0 2px 8px rgba(0, 0, 0, 0.18),
+    inset 0 2px 6px rgba(255, 255, 255, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.lvl-content {
+  transform: rotate(-45deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  gap: 3px;
+}
+
+.lvl-number {
+  font-size: 21px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 60, 20, 0.55), 0 0 2px rgba(0,0,0,0.3);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.lvl-label {
+  font-size: 5px;
+  font-weight: 800;
+  color: #dcfce7;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.92;
+}
+
+.lvl-gain-popup {
   position: absolute;
-  top: 10px;
-  left: 12px;
-  z-index: 15;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: #16a34a;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .reward-popup {
