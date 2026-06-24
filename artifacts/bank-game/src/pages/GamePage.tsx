@@ -623,7 +623,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             )}
           </div>
         </div>
-        <GameAreaBg groundY={-40} skyOffset={80} />
+        <GameAreaBg />
 
         {floaters.map(fl => (
           <div key={fl.id} className="game-floater" style={{ left: fl.x, top: fl.y }}>

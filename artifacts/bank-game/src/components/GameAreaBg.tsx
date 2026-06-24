@@ -1,51 +1,40 @@
-interface Props {
-  groundY?: number;
-  skyOffset?: number;
-}
-
-export default function GameAreaBg({ groundY = -115, skyOffset = 0 }: Props) {
+export default function GameAreaBg() {
   return (
     <div className="game-area-bg-wrap">
       <svg className="game-area-bg" viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 
-        {/* Clouds */}
-        <g transform={`translate(0,${skyOffset})`}>
-          <g opacity="0.55" className="bg-cloud-left">
-            <ellipse cx="55" cy="68" rx="22" ry="13" fill="#fff" />
-            <ellipse cx="39" cy="74" rx="14" ry="10" fill="#fff" />
-            <ellipse cx="72" cy="74" rx="13" ry="9" fill="#fff" />
-          </g>
-        </g>
-        <g transform={`translate(0,${skyOffset})`}>
-          <g opacity="0.45" className="bg-cloud-right">
-            <ellipse cx="282" cy="56" rx="18" ry="10" fill="#fff" />
-            <ellipse cx="268" cy="61" rx="11" ry="8" fill="#fff" />
-            <ellipse cx="296" cy="61" rx="10" ry="7" fill="#fff" />
-          </g>
+        {/* Sun — below activity buttons, right side */}
+        <g opacity="0.35" className="bg-sun">
+          <circle cx="298" cy="118" r="9" fill="#fde68a" />
+          <line x1="284" y1="118" x2="279" y2="118" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="288" y1="128" x2="285" y2="133" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="298" y1="130" x2="298" y2="136" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="308" y1="128" x2="311" y2="133" stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
-        {/* Birds */}
-        <g transform={`translate(0,${skyOffset})`}>
-          <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
-            <path d="M152 58 Q155 54 158 58" />
-            <path d="M163 51 Q166 47 169 51" />
-            <path d="M178 60 Q181 56 184 60" />
-          </g>
+        {/* Left cloud — slightly below sun */}
+        <g opacity="0.55" className="bg-cloud-left">
+          <ellipse cx="55" cy="140" rx="22" ry="13" fill="#fff" />
+          <ellipse cx="39" cy="146" rx="14" ry="10" fill="#fff" />
+          <ellipse cx="72" cy="146" rx="13" ry="9" fill="#fff" />
         </g>
 
-        {/* Sun — top-right */}
-        <g transform={`translate(0,${skyOffset})`}>
-          <g opacity="0.35" className="bg-sun">
-            <circle cx="298" cy="18" r="9" fill="#fde68a" />
-            <line x1="284" y1="18" x2="279" y2="18" stroke="#f59e0b" strokeWidth="1.5" />
-            <line x1="288" y1="28" x2="285" y2="33" stroke="#f59e0b" strokeWidth="1.5" />
-            <line x1="298" y1="30" x2="298" y2="36" stroke="#f59e0b" strokeWidth="1.5" />
-            <line x1="308" y1="28" x2="311" y2="33" stroke="#f59e0b" strokeWidth="1.5" />
-          </g>
+        {/* Right cloud */}
+        <g opacity="0.45" className="bg-cloud-right">
+          <ellipse cx="282" cy="132" rx="18" ry="10" fill="#fff" />
+          <ellipse cx="268" cy="137" rx="11" ry="8" fill="#fff" />
+          <ellipse cx="296" cy="137" rx="10" ry="7" fill="#fff" />
         </g>
 
-        {/* Butterfly */}
-        <g transform={`translate(250,${115 + skyOffset})`}>
+        {/* Birds — near clouds */}
+        <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
+          <path d="M152 134 Q155 130 158 134" />
+          <path d="M163 127 Q166 123 169 127" />
+          <path d="M178 136 Q181 132 184 136" />
+        </g>
+
+        {/* Butterfly — mid-field above ground */}
+        <g transform="translate(250,215)">
           <g className="bg-butterfly">
             <path d="M0,0 Q-10,-12 -18,-4 Q-10,4 0,0" fill="#fb923c" />
             <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0" fill="#fb923c" />
@@ -56,8 +45,8 @@ export default function GameAreaBg({ groundY = -115, skyOffset = 0 }: Props) {
           </g>
         </g>
 
-        {/* Ground group */}
-        <g transform={`translate(0,${groundY})`}>
+        {/* Ground group — at very bottom */}
+        <g>
           {/* Ground strip */}
           <ellipse cx="170" cy="295" rx="175" ry="18" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}

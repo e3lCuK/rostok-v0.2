@@ -992,10 +992,15 @@ body {
 }
 
 .game-tree-wrap {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  z-index: 5;
 }
 
 .progress-widget {
@@ -1098,9 +1103,6 @@ body {
 }
 
 /* ── Activity animations ─────────────────────────── */
-.game-tree-wrap {
-  position: relative;
-}
 
 .tree-anim-layer {
   position: absolute;
@@ -2197,7 +2199,7 @@ body.modal-open {
 /* Action buttons */
 .session-actions-wrap {
   position: absolute;
-  top: 90px;
+  top: 100px;
   left: 0;
   right: 0;
   z-index: 15;
