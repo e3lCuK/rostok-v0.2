@@ -1302,6 +1302,10 @@ body.modal-open {
   flex-direction: column;
 }
 
+.xp-level-modal {
+  height: auto;
+}
+
 .xp-level-progress {
   margin-bottom: 14px;
   padding-bottom: 14px;
@@ -1310,6 +1314,11 @@ body.modal-open {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.xp-level-progress-only {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 .xp-level-progress-header {
   display: flex;

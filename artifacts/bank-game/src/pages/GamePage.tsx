@@ -1046,22 +1046,48 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             onClick={() => setShowLevelModal(false)}
           >
             <motion.div
-              className="help-modal xp-history-modal"
+              className="help-modal xp-history-modal xp-level-modal"
               initial={{ y: 32, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 32, opacity: 0 }}
               transition={{ duration: 0.22 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="help-modal-header">
-                <h3 className="help-modal-title">Прогресс опыта</h3>
+              <div className="xp-history-modal-topbar">
+                {editingNick ? (
+                  <div className="xp-nick-edit-row">
+                    <input
+                      className="xp-nick-input"
+                      value={nickVal}
+                      onChange={e => { setNickVal(e.target.value); setNickErr(""); }}
+                      placeholder="Новый ник"
+                      maxLength={50}
+                      autoFocus
+                      onKeyDown={e => { if (e.key === "Enter") saveNick(); if (e.key === "Escape") setEditingNick(false); }}
+                    />
+                    <button className="xp-nick-confirm" onClick={saveNick} disabled={nickBusy || !nickVal.trim()}>
+                      <Check size={13} />
+                    </button>
+                    <button className="xp-nick-cancel" onClick={() => { setEditingNick(false); setNickErr(""); }}>
+                      <X size={13} />
+                    </button>
+                    {nickErr && <span className="xp-nick-error">{nickErr}</span>}
+                  </div>
+                ) : (
+                  <div className="xp-nick-row">
+                    <button className="xp-nick-pencil" onClick={() => { setNickVal(user?.nickname ?? user?.username ?? ""); setEditingNick(true); }} title="Изменить ник">
+                      <Pencil size={13} />
+                    </button>
+                    <span className="xp-history-modal-nick">{user?.nickname ?? user?.username}</span>
+                  </div>
+                )}
                 <button className="help-modal-close" onClick={() => setShowLevelModal(false)}>✕</button>
               </div>
               {(() => {
                 const prog = getLevelProgress(game.playerXP ?? 0);
                 const pct = prog.isMax ? 100 : prog.xpNeeded ? Math.min(100, Math.round(prog.xpInLevel / prog.xpNeeded * 100)) : 100;
                 return (
-                  <div className="xp-level-progress">
+                  <div className="xp-level-progress xp-level-progress-only">
                     <div className="xp-level-progress-header">
                       <span className="xp-level-name">{prog.name}</span>
                       <span className="xp-level-num">Уровень {prog.level}</span>
