@@ -1057,7 +1057,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                           ) : lbTab === "xp" ? (
                             <>
                               <span className="xp-lb-xp">{p.xp} оп.</span>
-                              {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
                             </>
                           ) : (
                             <span className="xp-lb-xp">{formatLbGrowth(p.treeGrowthMM)}</span>
