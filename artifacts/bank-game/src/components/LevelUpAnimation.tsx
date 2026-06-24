@@ -57,7 +57,7 @@ export default function LevelUpAnimation({ newLevel, onComplete }: Props) {
           transition={{ duration: 0.8, repeat: 1, ease: "easeInOut" }}
         />
         <span className="levelup-icon">🌳</span>
-        <span className="levelup-title">Новый уровень!</span>
+        <span className="levelup-title">Новое достижение!</span>
         <span className="levelup-number">УРОВЕНЬ {newLevel}</span>
       </motion.div>
     </motion.div>
