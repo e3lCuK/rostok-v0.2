@@ -3721,3 +3721,145 @@ canvas {
   transition: transform 0.12s ease;
 }
 
+
+/* ============================
+   DAILY REWARD MODAL
+==============================*/
+.daily-reward-modal {
+  position: relative;
+  background: #ecfccb;
+  border-radius: 18px;
+  padding: 20px 16px 16px;
+  width: 310px;
+  box-shadow: 0 8px 32px rgba(22, 101, 52, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.daily-reward-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4d7c0f;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+.daily-reward-close:hover { opacity: 1; }
+
+.daily-reward-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.daily-reward-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+
+.daily-reward-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px 5px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.55);
+  border: 1.5px solid rgba(100,160,40,0.18);
+  min-width: 0;
+}
+
+.daily-reward-day.day-claimed {
+  background: rgba(134, 239, 172, 0.55);
+  border-color: rgba(100,160,40,0.4);
+}
+
+.daily-reward-day.day-current {
+  background: #bbf7d0;
+  border-color: #4ade80;
+  box-shadow: 0 0 0 2px rgba(74,222,128,0.35);
+}
+
+.daily-reward-day.day-future {
+  opacity: 0.45;
+}
+
+.daily-reward-day .day-num {
+  font-size: 7px;
+  font-weight: 600;
+  color: #4d7c0f;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.daily-reward-day .day-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.daily-reward-day .day-xp {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.daily-reward-day .day-check {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 8px;
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.daily-reward-claim-btn {
+  width: 100%;
+  padding: 9px 0;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.daily-reward-claim-btn:hover { background: #15803d; }
+.daily-reward-claim-btn:disabled { opacity: 0.6; cursor: default; }
+
+.daily-reward-msg {
+  font-size: 12px;
+  color: #4d7c0f;
+  font-weight: 600;
+  text-align: center;
+}
+.daily-reward-msg-ok { color: #166534; }
+
+/* Bell notification dot */
+.settings-bell-btn {
+  position: relative;
+}
+.settings-bell-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+}

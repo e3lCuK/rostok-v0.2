@@ -1,10 +1,16 @@
 import { useState } from "react";
-import { Mail, Lock, Check, X, LogOut } from "lucide-react";
+import { Mail, Lock, Check, X, LogOut, Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 type SettingsPanel = "email" | "password" | null;
 
-export default function SettingsWidget({ onClose }: { onClose: () => void }) {
+interface SettingsWidgetProps {
+  onClose: () => void;
+  onOpenDailyReward: () => void;
+  dailyAvailable: boolean;
+}
+
+export default function SettingsWidget({ onClose, onOpenDailyReward, dailyAvailable }: SettingsWidgetProps) {
   const { logout, updateEmail, changePassword } = useAuth();
   const [panel, setPanel] = useState<SettingsPanel>(null);
 
@@ -100,6 +106,10 @@ export default function SettingsWidget({ onClose }: { onClose: () => void }) {
   return (
     <div className="settings-widget">
       <div className="settings-icon-row">
+        <button className="settings-action-btn settings-bell-btn" onClick={onOpenDailyReward} title="Ежедневные награды">
+          <Bell size={14} />
+          {dailyAvailable && <span className="settings-bell-dot" />}
+        </button>
         <button className="settings-action-btn" onClick={() => setPanel("email")} title="Почта">
           <Mail size={14} />
         </button>

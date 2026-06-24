@@ -146,6 +146,12 @@ export const api = {
 
   getLeaderboard: () =>
     request<{ players: LeaderboardPlayer[] }>("/game/leaderboard"),
+
+  getDailyReward: () =>
+    request<{ claimedToday: boolean; streak: number; dayIndex: number }>("/game/daily-reward"),
+
+  claimDailyReward: () =>
+    request<{ xpGained: number; newStreak: number; dayIndex: number }>("/game/daily-reward/claim", { method: "POST" }),
 };
 
 export interface LeaderboardPlayer {
