@@ -72,10 +72,6 @@ export default function AuthPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">
-          <span className="auth-logo-icon">🌳</span>
-          <span className="auth-logo-text">Банк</span>
-        </div>
 
         {mode !== "forgot" && mode !== "reset" && (
           <div className="auth-tabs">
