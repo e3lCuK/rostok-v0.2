@@ -1382,7 +1382,8 @@ body.modal-open {
 }
 .xp-nick-pencil:hover { background: #d9f99d; color: #365314; }
 
-.xp-nick-edit {
+.xp-nick-edit,
+.xp-nick-edit-row {
   display: flex;
   align-items: center;
   gap: 4px;

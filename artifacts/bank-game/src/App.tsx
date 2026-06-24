@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Settings, LogOut, Pencil, Mail, Lock, Check, X } from "lucide-react";
+import { Settings, LogOut, Mail, Lock, Check, X } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { AuthProvider, useAuth } from "@/lib/auth";
@@ -12,17 +12,12 @@ import AuthPage from "@/pages/AuthPage";
 import DebugPanel from "@/components/DebugPanel";
 import "@/bank.css";
 
-type SettingsPanel = "nick" | "email" | "password" | null;
+type SettingsPanel = "email" | "password" | null;
 
 // ---- Settings widget ----
 function SettingsWidget({ onClose }: { onClose: () => void }) {
-  const { user, logout, updateNickname, updateEmail, changePassword } = useAuth();
+  const { user, logout, updateEmail, changePassword } = useAuth();
   const [panel, setPanel] = useState<SettingsPanel>(null);
-
-  const [nickVal, setNickVal] = useState(user?.nickname ?? "");
-  const [nickErr, setNickErr] = useState("");
-  const [nickOk, setNickOk] = useState(false);
-  const [nickBusy, setNickBusy] = useState(false);
 
   const [emailVal, setEmailVal] = useState(user?.email ?? "");
   const [emailErr, setEmailErr] = useState("");
@@ -37,18 +32,8 @@ function SettingsWidget({ onClose }: { onClose: () => void }) {
 
   function togglePanel(p: SettingsPanel) {
     setPanel(prev => prev === p ? null : p);
-    setNickErr(""); setEmailErr(""); setPwErr("");
-    setNickOk(false); setEmailOk(false); setPwOk(false);
-  }
-
-  async function saveNick() {
-    if (nickBusy || !nickVal.trim()) return;
-    setNickBusy(true); setNickErr(""); setNickOk(false);
-    try {
-      await updateNickname(nickVal.trim());
-      setNickOk(true);
-    } catch (e: any) { setNickErr(e.message ?? "Ошибка"); }
-    finally { setNickBusy(false); }
+    setEmailErr(""); setPwErr("");
+    setEmailOk(false); setPwOk(false);
   }
 
   async function saveEmail() {
@@ -75,10 +60,6 @@ function SettingsWidget({ onClose }: { onClose: () => void }) {
   return (
     <div className="settings-widget">
       <div className="settings-icon-row">
-        <button className={`settings-action-btn${panel === "nick" ? " settings-action-active" : ""}`} onClick={() => togglePanel("nick")} title="Сменить ник">
-          <Pencil size={18} />
-          <span>Ник</span>
-        </button>
         <button className={`settings-action-btn${panel === "email" ? " settings-action-active" : ""}`} onClick={() => togglePanel("email")} title="Почта">
           <Mail size={18} />
           <span>Почта</span>
@@ -92,28 +73,6 @@ function SettingsWidget({ onClose }: { onClose: () => void }) {
           <span>Выход</span>
         </button>
       </div>
-
-      {panel === "nick" && (
-        <div className="settings-form">
-          <input
-            className="settings-input"
-            value={nickVal}
-            onChange={e => { setNickVal(e.target.value); setNickErr(""); setNickOk(false); }}
-            placeholder="Новый ник"
-            maxLength={50}
-            autoFocus
-            onKeyDown={e => e.key === "Enter" && saveNick()}
-          />
-          {nickErr && <p className="settings-err">{nickErr}</p>}
-          {nickOk && <p className="settings-ok">Ник обновлён ✓</p>}
-          <div className="settings-form-btns">
-            <button className="settings-save-btn" onClick={saveNick} disabled={nickBusy}>
-              {nickBusy ? "..." : <><Check size={14} /> Сохранить</>}
-            </button>
-            <button className="settings-cancel-btn" onClick={() => setPanel(null)}><X size={14} /></button>
-          </div>
-        </div>
-      )}
 
       {panel === "email" && (
         <div className="settings-form">

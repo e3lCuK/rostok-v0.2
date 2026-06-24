@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -67,6 +67,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [fadeActivities, setFadeActivities] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false); // collapsed by default
   const [historyNotif, setHistoryNotif] = useState(notif ?? false);
+  const [editingNick, setEditingNick] = useState(false);
+  const [nickVal, setNickVal] = useState(user?.nickname ?? user?.username ?? "");
+  const [nickErr, setNickErr] = useState("");
+  const [nickBusy, setNickBusy] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ level: number } | null>(null);
   const [xpGainAmount, setXpGainAmount] = useState<number | null>(null);
   const [showXpPopup, setShowXpPopup] = useState(false);
@@ -103,6 +107,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       .catch(() => {})
       .finally(() => setLeaderboardLoading(false));
   }, [showXpHistory, xpModalTab]);
+
+  async function saveNick() {
+    if (nickBusy || !nickVal.trim()) return;
+    setNickBusy(true); setNickErr("");
+    try {
+      await updateNickname(nickVal.trim());
+      setEditingNick(false);
+    } catch (e: any) { setNickErr(e.message ?? "Ошибка"); }
+    finally { setNickBusy(false); }
+  }
 
   const [sessionScores, setSessionScores] = useState<{ water: number; sun: number; fert: number; xp: number; base: number; bonus: number; mm: number } | null>(null);
   const [historyHighlight, setHistoryHighlight] = useState(false);
@@ -959,10 +973,34 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               onClick={e => e.stopPropagation()}
             >
               <div className="xp-history-modal-topbar">
-                <div className="xp-nick-row">
-                  <span className="xp-nick-tree-icon">🌳</span>
-                  <span className="xp-history-modal-nick">{user?.nickname ?? user?.username}</span>
-                </div>
+                {editingNick ? (
+                  <div className="xp-nick-edit-row">
+                    <input
+                      className="xp-nick-input"
+                      value={nickVal}
+                      onChange={e => { setNickVal(e.target.value); setNickErr(""); }}
+                      placeholder="Новый ник"
+                      maxLength={50}
+                      autoFocus
+                      onKeyDown={e => { if (e.key === "Enter") saveNick(); if (e.key === "Escape") setEditingNick(false); }}
+                    />
+                    <button className="xp-nick-confirm" onClick={saveNick} disabled={nickBusy || !nickVal.trim()}>
+                      <Check size={13} />
+                    </button>
+                    <button className="xp-nick-cancel" onClick={() => { setEditingNick(false); setNickErr(""); }}>
+                      <X size={13} />
+                    </button>
+                    {nickErr && <span className="xp-nick-error">{nickErr}</span>}
+                  </div>
+                ) : (
+                  <div className="xp-nick-row">
+                    <button className="xp-nick-pencil" onClick={() => { setNickVal(user?.nickname ?? user?.username ?? ""); setEditingNick(true); }} title="Изменить ник">
+                      <Pencil size={13} />
+                    </button>
+                    <span className="xp-nick-tree-icon">🌳</span>
+                    <span className="xp-history-modal-nick">{user?.nickname ?? user?.username}</span>
+                  </div>
+                )}
                 <button className="help-modal-close" onClick={() => setShowXpHistory(false)}>✕</button>
               </div>
 
