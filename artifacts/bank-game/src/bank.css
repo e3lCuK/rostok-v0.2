@@ -146,7 +146,7 @@ body {
   left: 0;
   right: 0;
   background: #ecfccb;
-  border-top: 1px solid rgba(100,160,40,0.18);
+  border-top: 1px solid rgba(100,160,40,0.45);
   display: flex;
   align-items: center;
   padding: 4px 0;
@@ -175,7 +175,7 @@ body {
 .game-bottom-nav-divider {
   width: 1px;
   height: 20px;
-  background: rgba(100, 160, 40, 0.22);
+  background: rgba(100, 160, 40, 0.5);
   flex-shrink: 0;
 }
 
@@ -622,6 +622,7 @@ body {
   height: 90px;
   background: #ecfccb;
   border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 1px solid rgba(100,160,40,0.45);
   z-index: 1;
   pointer-events: none;
 }
