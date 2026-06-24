@@ -1009,6 +1009,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: 140px;
 }
 
 .progress-row {
