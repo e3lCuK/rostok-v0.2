@@ -1043,13 +1043,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                         </span>
                         <div className="xp-lb-info">
                           <span className="xp-lb-nick">{p.nickname}{p.isMe ? " (я)" : ""}</span>
-                          <span className="xp-lb-meta">
-                            {lbTab === "sessions"
-                              ? `Ур.${p.level} · ${p.xp} оп.`
-                              : lbTab === "xp"
-                              ? `Ур.${p.level} · ${p.streakDays > 0 ? `🔥${p.streakDays}д` : "нет стрика"}`
-                              : `Ур.${p.level} · ${p.xp} оп.`}
-                          </span>
+                          <span className="xp-lb-meta">Ур.{p.level}</span>
                         </div>
                         <div className="xp-lb-right">
                           {lbTab === "sessions" ? (
