@@ -1168,7 +1168,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                 })}
               </div>
 
-              <p className="tree-stage-hint">1 ₽ активного дохода = 1 мм роста</p>
+              <p className="tree-stage-hint">1 мм роста = 1 ₽ дохода</p>
             </motion.div>
           </motion.div>
         )}

@@ -891,7 +891,7 @@ body {
   color: #6b7280;
   margin: 0;
   padding-top: 4px;
-  border-top: 1px solid #d9f99d;
+  border-top: 1px solid rgba(100, 160, 40, 0.55);
 }
 
 @keyframes bg-cloud-drift-left {
