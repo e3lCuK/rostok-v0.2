@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, ShoppingCart } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -95,7 +95,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     const noPending = (state.game.pendingBaseReward ?? 0) === 0 && (state.game.pendingBonusReward ?? 0) === 0;
     return seen !== todayStr && notMidSession && noPending;
   });
-  const [xpModalTab, setXpModalTab] = useState<"history" | "rating">("history");
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
@@ -105,13 +104,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     setShowStreakWidget(false);
   }
   useEffect(() => {
-    if (!showXpHistory || xpModalTab !== "rating") return;
+    if (!showXpHistory) return;
     setLeaderboardLoading(true);
     api.getLeaderboard()
       .then(r => setLeaderboard(r.players))
       .catch(() => {})
       .finally(() => setLeaderboardLoading(false));
-  }, [showXpHistory, xpModalTab]);
+  }, [showXpHistory]);
 
   useEffect(() => {
     if (!showSettings) return;
@@ -577,6 +576,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     : 0;
 
   return (
+    <>
     <div className="game-page">
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
@@ -670,7 +670,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         </div>
 
         <div className="game-left-widgets">
-          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowXpHistory(true)} />
+          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} />
           <AnimatePresence>
             {showXpPopup && sessionScores && (
               <motion.div
@@ -1045,60 +1045,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                 );
               })()}
 
-              <div className="xp-modal-tabs">
-                <button
-                  className={`xp-modal-tab${xpModalTab === "history" ? " xp-modal-tab-active" : ""}`}
-                  onClick={() => setXpModalTab("history")}
-                >История</button>
-                <button
-                  className={`xp-modal-tab${xpModalTab === "rating" ? " xp-modal-tab-active" : ""}`}
-                  onClick={() => setXpModalTab("rating")}
-                >Рейтинг</button>
-              </div>
-
-
-              {xpModalTab === "history" && (
-                (game.xpHistory ?? []).length === 0 ? (
-                  <p className="xp-history-empty">Пока нет сессий</p>
-                ) : (
-                  <div className="xp-history-list">
-                    {(game.xpHistory ?? []).map((e, i) => {
-                      const [y, m, d] = e.date.split("-");
-                      return (
-                        <div key={i} className={`xp-history-row${i === 0 && historyHighlight ? " xp-history-row-new" : ""}`}>
-                          <span className="xp-history-date">{d}.{m}.{y.slice(2)} <span className="xp-history-n">#{e.n}</span></span>
-                          <span className="xp-history-xp">+{e.xp} опыт</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )
-              )}
-
-              {xpModalTab === "rating" && (
-                leaderboardLoading ? (
-                  <p className="xp-history-empty">Загрузка...</p>
-                ) : leaderboard.length === 0 ? (
-                  <p className="xp-history-empty">Пока нет игроков</p>
-                ) : (
-                  <div className="xp-leaderboard-list">
-                    {leaderboard.map((p) => (
-                      <div key={p.rank} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
-                        <span className={`xp-lb-rank${p.rank <= 3 ? ` xp-lb-rank-top${p.rank}` : ""}`}>
-                          {p.rank <= 3 ? ["🥇","🥈","🥉"][p.rank - 1] : `#${p.rank}`}
-                        </span>
-                        <div className="xp-lb-info">
-                          <span className="xp-lb-nick">{p.nickname}{p.isMe ? " (я)" : ""}</span>
-                          <span className="xp-lb-meta">Ур.{p.level} · {p.streakDays > 0 ? `🔥${p.streakDays}д` : "нет стрика"}</span>
-                        </div>
-                        <div className="xp-lb-right">
-                          <span className="xp-lb-xp">{p.xp} оп.</span>
-                          {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
-                        </div>
+              {leaderboardLoading ? (
+                <p className="xp-history-empty">Загрузка...</p>
+              ) : leaderboard.length === 0 ? (
+                <p className="xp-history-empty">Пока нет игроков</p>
+              ) : (
+                <div className="xp-leaderboard-list">
+                  {leaderboard.map((p) => (
+                    <div key={p.rank} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
+                      <span className={`xp-lb-rank${p.rank <= 3 ? ` xp-lb-rank-top${p.rank}` : ""}`}>
+                        {p.rank <= 3 ? ["🥇","🥈","🥉"][p.rank - 1] : `#${p.rank}`}
+                      </span>
+                      <div className="xp-lb-info">
+                        <span className="xp-lb-nick">{p.nickname}{p.isMe ? " (я)" : ""}</span>
+                        <span className="xp-lb-meta">Ур.{p.level} · {p.streakDays > 0 ? `🔥${p.streakDays}д` : "нет стрика"}</span>
                       </div>
-                    ))}
-                  </div>
-                )
+                      <div className="xp-lb-right">
+                        <span className="xp-lb-xp">{p.xp} оп.</span>
+                        {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </motion.div>
           </motion.div>
@@ -1237,5 +1205,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         )}
       </AnimatePresence>
     </div>
+
+      <nav className="game-bottom-nav">
+        <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
+          <Trophy size={18} />
+        </button>
+        <div className="game-bottom-nav-divider" />
+        <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+          <ShoppingCart size={18} />
+        </button>
+      </nav>
+    </>
   );
 }
