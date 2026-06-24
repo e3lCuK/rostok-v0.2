@@ -141,12 +141,18 @@ body {
 }
 
 .game-bottom-nav {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255,255,255,0.72);
+  border-top: 1px solid rgba(100,160,40,0.18);
+  border-radius: 0 0 var(--radius) var(--radius);
   display: flex;
   align-items: center;
-  padding: 4px 0 calc(env(safe-area-inset-bottom, 0px) + 4px);
-  flex-shrink: 0;
+  padding: 4px 0;
+  z-index: 20;
+  backdrop-filter: blur(4px);
 }
 
 .game-bottom-nav-btn {
@@ -587,7 +593,7 @@ body {
 .game-area {
   background: linear-gradient(160deg, #d4edaa 0%, #b8de74 40%, #f5e87c 100%);
   border-radius: var(--radius);
-  padding: 16px 20px 20px;
+  padding: 16px 20px 50px;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -876,6 +876,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               )}
             </AnimatePresence>
         )}
+
+        <nav className="game-bottom-nav">
+          <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
+            <Trophy size={18} />
+          </button>
+          <div className="game-bottom-nav-divider" />
+          <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+            <ShoppingCart size={18} />
+          </button>
+        </nav>
       </div>
 
       {false && showCompletionStage && !showRewards && (
@@ -1203,15 +1213,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </motion.div>
         )}
       </AnimatePresence>
-      <nav className="game-bottom-nav">
-        <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
-          <Trophy size={18} />
-        </button>
-        <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
-          <ShoppingCart size={18} />
-        </button>
-      </nav>
     </div>
   );
 }
