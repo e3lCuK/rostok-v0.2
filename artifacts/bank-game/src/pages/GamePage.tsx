@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import GameAreaBg from "@/components/GameAreaBg";
@@ -572,7 +572,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
         <div className="growth-label-wrap">
           <div className="tree-growth-label">
-            <span style={{ fontSize: 13 }}>🌱</span>
+            <TreePine size={14} strokeWidth={2} />
             <span>{formatTreeGrowth(displayGrowthMM)}</span>
             <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
           </div>
