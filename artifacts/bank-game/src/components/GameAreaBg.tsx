@@ -13,25 +13,25 @@ export default function GameAreaBg() {
           <line x1="308" y1="140" x2="311" y2="145" stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
-        {/* Left cloud — slightly below sun */}
+        {/* Left cloud */}
         <g opacity="0.55" className="bg-cloud-left">
-          <ellipse cx="55" cy="158" rx="22" ry="13" fill="#fff" />
-          <ellipse cx="39" cy="164" rx="14" ry="10" fill="#fff" />
-          <ellipse cx="72" cy="164" rx="13" ry="9" fill="#fff" />
+          <ellipse cx="55" cy="188" rx="22" ry="13" fill="#fff" />
+          <ellipse cx="39" cy="194" rx="14" ry="10" fill="#fff" />
+          <ellipse cx="72" cy="194" rx="13" ry="9" fill="#fff" />
         </g>
 
         {/* Right cloud */}
         <g opacity="0.45" className="bg-cloud-right">
-          <ellipse cx="282" cy="150" rx="18" ry="10" fill="#fff" />
-          <ellipse cx="268" cy="155" rx="11" ry="8" fill="#fff" />
-          <ellipse cx="296" cy="155" rx="10" ry="7" fill="#fff" />
+          <ellipse cx="282" cy="180" rx="18" ry="10" fill="#fff" />
+          <ellipse cx="268" cy="185" rx="11" ry="8" fill="#fff" />
+          <ellipse cx="296" cy="185" rx="10" ry="7" fill="#fff" />
         </g>
 
         {/* Birds */}
         <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
-          <path d="M152 150 Q155 146 158 150" />
-          <path d="M163 143 Q166 139 169 143" />
-          <path d="M178 152 Q181 148 184 152" />
+          <path d="M152 180 Q155 176 158 180" />
+          <path d="M163 173 Q166 169 169 173" />
+          <path d="M178 182 Q181 178 184 182" />
         </g>
 
         {/* Butterfly — mid-field */}
