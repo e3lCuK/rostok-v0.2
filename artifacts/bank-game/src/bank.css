@@ -2535,8 +2535,8 @@ body.modal-open {
 
 .settings-widget {
   position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  top: 0;
+  right: calc(100% + 4px);
   background: rgba(200, 230, 160, 0.97);
   border: none;
   border-radius: 8px;
