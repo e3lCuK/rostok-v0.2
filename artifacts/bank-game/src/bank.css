@@ -2547,6 +2547,7 @@ body.modal-open {
 
 .settings-icon-row {
   display: flex;
+  flex-direction: column;
   gap: 3px;
 }
 
