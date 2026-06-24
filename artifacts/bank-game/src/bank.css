@@ -873,6 +873,9 @@ body {
 .progress-row > span {
   flex: 1;
   min-width: 0;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .tree-growth-label {

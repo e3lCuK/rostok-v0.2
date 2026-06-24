@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Banknote, Coins, CircleDollarSign, Wallet, WalletCards, CreditCard, HandCoins, PiggyBank, Landmark } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import GameAreaBg from "@/components/GameAreaBg";
@@ -574,26 +574,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         <div className="growth-label-wrap">
           <div className="progress-widget">
             <div className="progress-row">
-              <TreePine size={13} strokeWidth={1.5} fill="currentColor" />
+              <TreePine size={13} strokeWidth={1.5} />
               <span>{formatTreeGrowth(displayGrowthMM)}</span>
               <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
             </div>
-            <div className="progress-row progress-row-deposit" style={{ flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
-              {([
-                ["Banknote", <Banknote size={13}/>],
-                ["Coins", <Coins size={13}/>],
-                ["CircleDollarSign", <CircleDollarSign size={13}/>],
-                ["Wallet", <Wallet size={13}/>],
-                ["WalletCards", <WalletCards size={13}/>],
-                ["CreditCard", <CreditCard size={13}/>],
-                ["HandCoins", <HandCoins size={13}/>],
-                ["PiggyBank", <PiggyBank size={13}/>],
-                ["Landmark", <Landmark size={13}/>],
-              ] as const).map(([name, icon]) => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  {icon}<span style={{ fontSize: 10 }}>{name}</span>
-                </div>
-              ))}
+            <div className="progress-row progress-row-deposit">
+              <Wallet size={13} strokeWidth={1.5} />
+              <span>{formatRub(balances.active)}</span>
+              <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
             </div>
           </div>
           <AnimatePresence>
@@ -843,49 +831,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </motion.button>
         </div>
       )}
-
-      {/* Session history */}
-      <div className="history-card">
-        <div className="history-title-row" onClick={() => { setHistoryOpen(!historyOpen); if (!historyOpen) { setHistoryNotif(false); onClearNotif?.(); } }}>
-          <h3 className="history-title">
-            История начислений
-            {historyNotif && <span className="history-notif-dot" />}
-          </h3>
-          <span className="history-chevron">{historyOpen ? "▼" : "▶"}</span>
-        </div>
-        {historyOpen && (
-          sessionHistory.length === 0 ? (
-            <p className="history-empty">Начисления появятся после первой сессии</p>
-          ) : (
-            <div className="history-items-scroll">
-              {sessionHistory.map((s, idx) => {
-                const pct = s.base > 0 ? (s.total / s.base) * 12 : 12;
-                return (
-                  <div key={idx} className="session-item">
-                    <p className="session-title">{s.date}</p>
-                    {s.base > 0 && (
-                      <div className="session-row">
-                        <span>База</span>
-                        <span>+{formatRub(s.base)}</span>
-                      </div>
-                    )}
-                    {s.bonus > 0 && (
-                      <div className="session-row session-row-bonus">
-                        <span>Бонус</span>
-                        <span>+{formatRub(s.bonus)}</span>
-                      </div>
-                    )}
-                    <div className="session-total">
-                      <span>Итого</span>
-                      <span>+{formatRub(s.total)} · {formatPercent(pct)} год.</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )
-        )}
-      </div>
 
       {/* Streak widget — first visit today */}
       <AnimatePresence>
