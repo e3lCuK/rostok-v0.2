@@ -2142,7 +2142,8 @@ body.modal-open {
 .session-item {
   padding: 12px;
   border-radius: 12px;
-  background: #f9fafb;
+  background: #ecfccb;
+  border: 1.5px solid #d9f99d;
   margin-bottom: 8px;
 }
 
@@ -2192,8 +2193,9 @@ body.modal-open {
 
 /* ── Deposit info modal ──────────────────────────────── */
 .deposit-modal-summary {
-  background: var(--surface2, #f3f4f6);
-  border-radius: 8px;
+  background: #ecfccb;
+  border: 1.5px solid #d9f99d;
+  border-radius: 12px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
