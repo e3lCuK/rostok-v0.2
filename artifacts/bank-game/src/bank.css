@@ -578,20 +578,13 @@ body {
   display: block;
 }
 
-/* ── Tree growth label row ─────────────────────────── */
-.growth-label-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-}
-
+/* ── Growth info button ─────────────────────────── */
 .growth-info-btn {
   width: 18px;
   height: 18px;
-  border: 1.5px solid #166534;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.72);
+  border: none;
+  border-radius: 3px;
+  background: rgba(180, 190, 160, 0.45);
   color: #166534;
   font-size: 11px;
   font-weight: 700;
@@ -604,7 +597,7 @@ body {
   line-height: 1;
 }
 .growth-info-btn:active {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(160, 175, 140, 0.55);
 }
 
 .tree-stage-compact {
@@ -853,13 +846,15 @@ body {
 .tree-growth-label {
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.72);
-  padding: 5px 14px;
-  border-radius: 999px;
+  padding: 5px 6px 5px 12px;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   color: #166534;
   z-index: 10;
-  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .game-tree-stage {
