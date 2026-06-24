@@ -576,7 +576,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               <span>Осталось: {actionsLeft}</span>
             )}
           </div>
-          <span className="game-session-hint">до {formatRub(sessionMax)}</span>
         </div>
         <GameAreaBg groundY={-117} skyOffset={12} />
 
