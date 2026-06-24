@@ -3331,8 +3331,8 @@ canvas {
 }
 
 .session-status-ready {
-  background: var(--green-light);
-  color: var(--green);
+  background: none;
+  color: #166534;
 }
 
 .session-status-locked {
