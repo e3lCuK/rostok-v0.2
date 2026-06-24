@@ -1199,7 +1199,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
               <div className="deposit-modal-summary">
                 <div className="deposit-modal-row">
-                  <span className="deposit-modal-label">Активный вклад</span>
+                  <span className="deposit-modal-label">Накопительный счет</span>
                   <span className="deposit-modal-value">{formatRub(balances.active)}</span>
                 </div>
                 <div className="deposit-modal-row">
