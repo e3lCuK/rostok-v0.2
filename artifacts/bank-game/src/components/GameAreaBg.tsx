@@ -49,7 +49,7 @@ export default function GameAreaBg() {
         {/* Ground group — just above bottom nav (nav top ≈ 570 SVG; strip top ≈ 552) */}
         <g transform="translate(0,-25)">
           {/* Ground strip — rounded top corners, square bottom corners */}
-          <path d="M-5,625 L-5,592 Q-5,577 10,577 L330,577 Q350,577 350,592 L350,625 Z" fill="#8dc63f" opacity="0.35" />
+          <path d="M-5,625 L-5,595 Q170,577 350,595 L350,625 Z" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}
           <g fill="#5a9e1e" opacity="0.55">
             <ellipse cx="22" cy="572" rx="12" ry="7" />
