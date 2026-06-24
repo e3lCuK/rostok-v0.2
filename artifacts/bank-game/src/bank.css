@@ -175,7 +175,7 @@ body {
 .game-bottom-nav-divider {
   width: 1px;
   height: 20px;
-  background: rgba(100, 160, 40, 0.22);
+  background: rgba(100, 160, 40, 0.55);
   flex-shrink: 0;
 }
 
