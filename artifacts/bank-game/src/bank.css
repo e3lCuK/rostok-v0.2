@@ -1805,7 +1805,7 @@ body.modal-open {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: rgba(134, 239, 172, 0.95);
+  background: #ecfccb;
   border-radius: 20px;
   padding: 18px 28px 16px;
   box-shadow: 0 8px 32px rgba(22, 101, 52, 0.35);
