@@ -601,8 +601,45 @@ body {
   padding: 0 8px;
   gap: 4px;
   z-index: 16;
-  pointer-events: none;
 }
+
+.game-top-controls {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.game-beta-badge {
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: rgba(120, 120, 120, 0.5);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.game-gear-wrap {
+  position: relative;
+}
+
+.game-gear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: rgba(100, 130, 70, 0.5);
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.game-gear-btn:hover { color: #4d7c0f; background: rgba(200, 240, 150, 0.4); }
 
 .game-session-detail {
   font-size: 0.82rem;

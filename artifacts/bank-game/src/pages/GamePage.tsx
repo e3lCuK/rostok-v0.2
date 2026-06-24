@@ -20,11 +20,13 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
+import SettingsWidget from "@/components/SettingsWidget";
+import { APP_VERSION } from "@/lib/engine";
 
 interface Props {
   state: UserState;
@@ -71,6 +73,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [nickVal, setNickVal] = useState(user?.nickname ?? user?.username ?? "");
   const [nickErr, setNickErr] = useState("");
   const [nickBusy, setNickBusy] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [levelUpData, setLevelUpData] = useState<{ level: number } | null>(null);
   const [xpGainAmount, setXpGainAmount] = useState<number | null>(null);
   const [showXpPopup, setShowXpPopup] = useState(false);
@@ -107,6 +111,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       .catch(() => {})
       .finally(() => setLeaderboardLoading(false));
   }, [showXpHistory, xpModalTab]);
+
+  useEffect(() => {
+    if (!showSettings) return;
+    function handleClick(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setShowSettings(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showSettings]);
 
   async function saveNick() {
     if (nickBusy || !nickVal.trim()) return;
@@ -557,6 +572,27 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       <div className="game-area" ref={gameAreaRef}>
         <div className="game-area-top-strip" />
         <div className="game-session-status">
+          <div className="game-top-controls">
+            <span className="game-beta-badge">Бета {APP_VERSION}</span>
+            <div ref={settingsRef} className="game-gear-wrap">
+              <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
+                <Settings size={14} />
+              </button>
+              <AnimatePresence>
+                {showSettings && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ position: "absolute", right: 0, top: "100%", zIndex: 100 }}
+                  >
+                    <SettingsWidget onClose={() => setShowSettings(false)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
           <div className={`session-status-badge ${showCompletionStage && !showRewards ? "session-status-ready" : locked ? "session-status-locked" : "session-status-ready"}`}>
             {game.sessionInProgress || (showCompletionStage && !showRewards) ? "В процессе" : locked ? "Перезарядка" : "Готова"}
           </div>

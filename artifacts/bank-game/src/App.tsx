@@ -1,132 +1,14 @@
-import { useEffect, useCallback, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useCallback, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Settings, LogOut, Mail, Lock, Check, X } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { APP_NAME, APP_VERSION, UserState } from "@/lib/engine";
+import { UserState } from "@/lib/engine";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
 import DebugPanel from "@/components/DebugPanel";
 import "@/bank.css";
-
-type SettingsPanel = "email" | "password" | null;
-
-// ---- Settings widget ----
-function SettingsWidget({ onClose }: { onClose: () => void }) {
-  const { user, logout, updateEmail, changePassword } = useAuth();
-  const [panel, setPanel] = useState<SettingsPanel>(null);
-
-  const [emailVal, setEmailVal] = useState(user?.email ?? "");
-  const [emailErr, setEmailErr] = useState("");
-  const [emailOk, setEmailOk] = useState(false);
-  const [emailBusy, setEmailBusy] = useState(false);
-
-  const [curPw, setCurPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [pwErr, setPwErr] = useState("");
-  const [pwOk, setPwOk] = useState(false);
-  const [pwBusy, setPwBusy] = useState(false);
-
-  function togglePanel(p: SettingsPanel) {
-    setPanel(prev => prev === p ? null : p);
-    setEmailErr(""); setPwErr("");
-    setEmailOk(false); setPwOk(false);
-  }
-
-  async function saveEmail() {
-    if (emailBusy) return;
-    setEmailBusy(true); setEmailErr(""); setEmailOk(false);
-    try {
-      await updateEmail(emailVal.trim());
-      setEmailOk(true);
-    } catch (e: any) { setEmailErr(e.message ?? "Ошибка"); }
-    finally { setEmailBusy(false); }
-  }
-
-  async function savePw() {
-    if (pwBusy || !curPw || !newPw) return;
-    setPwBusy(true); setPwErr(""); setPwOk(false);
-    try {
-      await changePassword(curPw, newPw);
-      setPwOk(true);
-      setCurPw(""); setNewPw("");
-    } catch (e: any) { setPwErr(e.message ?? "Ошибка"); }
-    finally { setPwBusy(false); }
-  }
-
-  return (
-    <div className="settings-widget">
-      <div className="settings-icon-row">
-        <button className={`settings-action-btn${panel === "email" ? " settings-action-active" : ""}`} onClick={() => togglePanel("email")} title="Почта">
-          <Mail size={18} />
-          <span>Почта</span>
-        </button>
-        <button className={`settings-action-btn${panel === "password" ? " settings-action-active" : ""}`} onClick={() => togglePanel("password")} title="Пароль">
-          <Lock size={18} />
-          <span>Пароль</span>
-        </button>
-        <button className="settings-action-btn settings-action-logout" onClick={() => logout()} title="Выйти">
-          <LogOut size={18} />
-          <span>Выход</span>
-        </button>
-      </div>
-
-      {panel === "email" && (
-        <div className="settings-form">
-          <input
-            className="settings-input"
-            type="email"
-            value={emailVal as string}
-            onChange={e => { setEmailVal(e.target.value); setEmailErr(""); setEmailOk(false); }}
-            placeholder="email@example.com"
-            autoFocus
-            onKeyDown={e => e.key === "Enter" && saveEmail()}
-          />
-          {emailErr && <p className="settings-err">{emailErr}</p>}
-          {emailOk && <p className="settings-ok">Почта сохранена ✓</p>}
-          <div className="settings-form-btns">
-            <button className="settings-save-btn" onClick={saveEmail} disabled={emailBusy}>
-              {emailBusy ? "..." : <><Check size={14} /> Сохранить</>}
-            </button>
-            <button className="settings-cancel-btn" onClick={() => setPanel(null)}><X size={14} /></button>
-          </div>
-        </div>
-      )}
-
-      {panel === "password" && (
-        <div className="settings-form">
-          <input
-            className="settings-input"
-            type="password"
-            value={curPw}
-            onChange={e => { setCurPw(e.target.value); setPwErr(""); setPwOk(false); }}
-            placeholder="Текущий пароль"
-            autoFocus
-          />
-          <input
-            className="settings-input"
-            type="password"
-            value={newPw}
-            onChange={e => { setNewPw(e.target.value); setPwErr(""); setPwOk(false); }}
-            placeholder="Новый пароль (мин. 6)"
-            onKeyDown={e => e.key === "Enter" && savePw()}
-          />
-          {pwErr && <p className="settings-err">{pwErr}</p>}
-          {pwOk && <p className="settings-ok">Пароль изменён ✓</p>}
-          <div className="settings-form-btns">
-            <button className="settings-save-btn" onClick={savePw} disabled={pwBusy}>
-              {pwBusy ? "..." : <><Check size={14} /> Сохранить</>}
-            </button>
-            <button className="settings-cancel-btn" onClick={() => setPanel(null)}><X size={14} /></button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ---- Main app shell (authenticated) ----
 function AppShell() {
@@ -134,19 +16,6 @@ function AppShell() {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState<UserState | null>(null);
   const [onboarding, setOnboarding] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showSettings) return;
-    function handleClick(e: MouseEvent) {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setShowSettings(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [showSettings]);
 
   const loadState = useCallback(async () => {
     try {
@@ -222,41 +91,6 @@ function AppShell() {
   return (
     <div className="bank-app">
       <div className="status-bar" />
-      <header className="bank-header">
-        <div className="bank-header-inner">
-          <div className="bank-logo">
-            <span className="bank-logo-icon">🌳</span>
-            <span className="bank-logo-text">{APP_NAME}</span>
-          </div>
-          <div className="bank-header-right">
-            <div className="bank-header-badge">Бета {APP_VERSION}</div>
-            {user && (
-              <div className="settings-wrap" ref={settingsRef}>
-                <button
-                  className={`bank-header-signout${showSettings ? " bank-header-signout-active" : ""}`}
-                  onClick={() => setShowSettings(s => !s)}
-                  title="Настройки"
-                >
-                  <Settings size={16} />
-                </button>
-                <AnimatePresence>
-                  {showSettings && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <SettingsWidget onClose={() => setShowSettings(false)} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
       <main className="bank-main bank-main-full">
         <GamePage
           state={state}
