@@ -53,7 +53,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         }
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <svg width="60" height="64" viewBox="0 0 60 64" fill="none">
+        <svg width="72" height="77" viewBox="0 0 60 64" fill="none">
           {/* Open diamond frame: right-gap → right → top → left → left-gap */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
