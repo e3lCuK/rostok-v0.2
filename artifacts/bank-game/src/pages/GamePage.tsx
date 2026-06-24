@@ -573,15 +573,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
         <div className="growth-label-wrap">
           <div className="progress-widget">
-            <div className="progress-row">
-              <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
-              <span>{formatTreeGrowth(displayGrowthMM)}</span>
-              <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
-            </div>
             <div className="progress-row progress-row-deposit">
               <span className="progress-row-icon"><Wallet size={13} strokeWidth={1.5} /></span>
               <span>{formatRub(balances.active)}</span>
               <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
+            </div>
+            <div className="progress-row">
+              <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
+              <span>{formatTreeGrowth(displayGrowthMM)}</span>
+              <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
             </div>
           </div>
           <AnimatePresence>
