@@ -541,7 +541,7 @@ body {
 /* ============================
    GAME PAGE
 ==============================*/
-.game-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: #ecfccb; padding: 8px; }
+.game-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: #ecfccb; padding: 8px 0; }
 
 /* Session counter */
 .session-counter-card {
@@ -590,7 +590,7 @@ body {
 /* Game area */
 .game-area {
   background: linear-gradient(160deg, #d4edaa 0%, #b8de74 40%, #f5e87c 100%);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 16px 20px 50px;
   display: flex;
   flex-direction: column;
