@@ -85,13 +85,28 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
   | Малый | starting_capital ≤ 50 000 | tree_growth_mm DESC |
   | Средний | starting_capital 50 001–500 000 | tree_growth_mm DESC |
   | Крупный | starting_capital > 500 000 | tree_growth_mm DESC |
-- Capital tabs show tree growth in mm/m instead of XP
+- Capital tabs show tree growth in mm/m (toFixed(1)) instead of XP
+- Leaderboard row shows nickname + «Ур.X» only (no fire emoji, no session XP delta)
+
+### Tree Visual System
+- 5 growth stages (0–4), each with a dedicated SVG and clipped `viewBox`
+- Container dimensions grow per stage: [82×74] → [82×90] → [115×118] → [130×143] → [148×166] px
+- SVGs use `preserveAspectRatio="xMidYMax meet"` — tree root anchored to container bottom
+- Game layout: `.game-tree-wrap` is `position:absolute; bottom:56px` — root stays at nav top level, canopy grows upward
+- `DailyRewardModal` removed; replaced by the streak widget (opened via bell button in SettingsWidget)
+
+### UI Components
+- **SettingsWidget** — leftmost button is a bell icon that opens the 5-day streak widget (`showStreakWidget`)
+- **LevelUpAnimation** — title «Новое достижение!», background `#ecfccb`, tree icon with `marginBottom:6px`
+- **Dividers** — consistent color `rgba(100, 160, 40, 0.55)` across all modals and panels
 
 ### Key Files
 - `artifacts/bank-game/src/lib/engine.ts` — all formulas, constants, state types
 - `artifacts/bank-game/src/lib/api.ts` — API client
 - `artifacts/bank-game/src/pages/GamePage.tsx` — main game UI
 - `artifacts/bank-game/src/pages/OnboardingPage.tsx` — starting capital selection
+- `artifacts/bank-game/src/components/TreeSVG.tsx` — tree stages, viewBox clipping, STAGE_DIMS
+- `artifacts/bank-game/src/components/SettingsWidget.tsx` — settings + bell/streak trigger
 - `artifacts/api-server/src/routes/game.ts` — all game API endpoints
 - `artifacts/api-server/src/index.ts` — server entry + DB migrations (`runMigrations()`)
 
