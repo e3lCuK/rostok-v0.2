@@ -1051,7 +1051,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                         </div>
                         <div className="xp-lb-right">
                           {lbTab === "sessions" ? (
-                            <span className="xp-lb-xp">{p.streakDays > 0 ? `🔥${p.streakDays} дн.` : "—"}</span>
+                            <span className="xp-lb-xp">{p.streakDays > 0 ? `🔥${p.streakDays} дн.` : "0"}</span>
                           ) : lbTab === "xp" ? (
                             <>
                               <span className="xp-lb-xp">{p.xp} оп.</span>
