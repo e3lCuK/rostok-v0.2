@@ -2625,7 +2625,7 @@ body.modal-open {
 .settings-close-sm:hover { background: rgba(160, 175, 140, 0.55); }
 
 .settings-input {
-  width: 120px;
+  width: 100px;
   height: 22px;
   padding: 0 6px;
   border: 1px solid #d1d5db;
