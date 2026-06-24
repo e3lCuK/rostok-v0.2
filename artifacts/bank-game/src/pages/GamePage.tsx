@@ -1051,14 +1051,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                         </div>
                         <div className="xp-lb-right">
                           {lbTab === "sessions" ? (
-                            <span className="xp-lb-xp">{p.streakDays > 0 ? `🔥${p.streakDays} дн.` : "0"}</span>
+                            <span className="xp-lb-xp">{p.streakDays > 0 ? `🔥${p.streakDays} с.` : "0 с."}</span>
                           ) : lbTab === "xp" ? (
                             <>
                               <span className="xp-lb-xp">{p.xp} оп.</span>
                               {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
                             </>
                           ) : (
-                            <span className="xp-lb-xp">{formatTreeGrowth(p.treeGrowthMM)}</span>
+                            <span className="xp-lb-xp">{p.treeGrowthMM} мм.</span>
                           )}
                         </div>
                       </div>
