@@ -862,9 +862,17 @@ body {
   white-space: nowrap;
 }
 
+.progress-row:first-child {
+  padding-left: 18px;
+}
+
 .progress-row-deposit {
-  border-top: 1px solid rgba(166, 187, 140, 0.35);
   color: #1e5046;
+}
+
+.progress-row > span {
+  flex: 1;
+  min-width: 0;
 }
 
 .tree-growth-label {
