@@ -1043,7 +1043,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               onClick={e => e.stopPropagation()}
             >
               <div className="help-modal-header">
-                <h3 className="help-modal-title">🌳 Прогресс</h3>
+                <h3 className="help-modal-title">🌳 Стадии роста дерева</h3>
                 <button className="help-modal-close" onClick={() => setShowTreeInfo(false)}>
                   <X size={18} />
                 </button>
