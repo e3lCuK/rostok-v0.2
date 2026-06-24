@@ -930,7 +930,7 @@ body {
 .bg-cloud-left  { animation: bg-cloud-drift-left  24s ease-in-out infinite; transform-origin: center; }
 .bg-cloud-right { animation: bg-cloud-drift-right 32s ease-in-out infinite; transform-origin: center; }
 .bg-birds       { animation: bg-birds-float         5s  ease-in-out infinite; transform-origin: center; }
-.bg-sun         { animation: bg-sun-pulse            4s  ease-in-out infinite; transform-origin: 298px 18px; }
+.bg-sun         { animation: bg-sun-pulse            4s  ease-in-out infinite; transform-origin: 298px 130px; }
 .bg-butterfly   { animation: bg-butterfly-float      5s  ease-in-out infinite; transform-origin: center; }
 
 @keyframes bg-bush-sway {
