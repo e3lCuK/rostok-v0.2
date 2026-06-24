@@ -98,6 +98,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   });
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [lbTab, setLbTab] = useState<"sessions" | "xp" | "growth">("xp");
 
   function dismissStreakWidget() {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -1009,29 +1010,62 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                 <button className="help-modal-close" onClick={() => setShowXpHistory(false)}>✕</button>
               </div>
 
+              <div className="xp-modal-tabs">
+                {(["sessions", "xp", "growth"] as const).map(tab => (
+                  <button
+                    key={tab}
+                    className={`xp-modal-tab${lbTab === tab ? " xp-modal-tab-active" : ""}`}
+                    onClick={() => setLbTab(tab)}
+                  >
+                    {tab === "sessions" ? "Сессий" : tab === "xp" ? "Опыта" : "Роста"}
+                  </button>
+                ))}
+              </div>
+
               {leaderboardLoading ? (
                 <p className="xp-history-empty">Загрузка...</p>
               ) : leaderboard.length === 0 ? (
                 <p className="xp-history-empty">Пока нет игроков</p>
-              ) : (
-                <div className="xp-leaderboard-list">
-                  {leaderboard.map((p) => (
-                    <div key={p.rank} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
-                      <span className={`xp-lb-rank${p.rank <= 3 ? ` xp-lb-rank-top${p.rank}` : ""}`}>
-                        {p.rank <= 3 ? ["🥇","🥈","🥉"][p.rank - 1] : `#${p.rank}`}
-                      </span>
-                      <div className="xp-lb-info">
-                        <span className="xp-lb-nick">{p.nickname}{p.isMe ? " (я)" : ""}</span>
-                        <span className="xp-lb-meta">Ур.{p.level} · {p.streakDays > 0 ? `🔥${p.streakDays}д` : "нет стрика"}</span>
+              ) : (() => {
+                const sorted = [...leaderboard].sort((a, b) =>
+                  lbTab === "sessions" ? b.streakDays - a.streakDays :
+                  lbTab === "growth"   ? b.treeGrowthMM - a.treeGrowthMM :
+                                        b.xp - a.xp
+                );
+                return (
+                  <div className="xp-leaderboard-list">
+                    {sorted.map((p, i) => (
+                      <div key={p.nickname} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
+                        <span className={`xp-lb-rank${i < 3 ? ` xp-lb-rank-top${i + 1}` : ""}`}>
+                          {i < 3 ? ["🥇","🥈","🥉"][i] : `#${i + 1}`}
+                        </span>
+                        <div className="xp-lb-info">
+                          <span className="xp-lb-nick">{p.nickname}{p.isMe ? " (я)" : ""}</span>
+                          <span className="xp-lb-meta">
+                            {lbTab === "sessions"
+                              ? `Ур.${p.level} · ${p.xp} оп.`
+                              : lbTab === "xp"
+                              ? `Ур.${p.level} · ${p.streakDays > 0 ? `🔥${p.streakDays}д` : "нет стрика"}`
+                              : `Ур.${p.level} · ${p.xp} оп.`}
+                          </span>
+                        </div>
+                        <div className="xp-lb-right">
+                          {lbTab === "sessions" ? (
+                            <span className="xp-lb-xp">{p.streakDays > 0 ? `🔥${p.streakDays} дн.` : "—"}</span>
+                          ) : lbTab === "xp" ? (
+                            <>
+                              <span className="xp-lb-xp">{p.xp} оп.</span>
+                              {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
+                            </>
+                          ) : (
+                            <span className="xp-lb-xp">{formatTreeGrowth(p.treeGrowthMM)}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="xp-lb-right">
-                        <span className="xp-lb-xp">{p.xp} оп.</span>
-                        {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </motion.div>
           </motion.div>
         )}

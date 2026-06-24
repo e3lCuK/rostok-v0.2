@@ -1367,7 +1367,7 @@ body.modal-open {
   align-items: center;
   gap: 4px;
   margin-bottom: 14px;
-  border-bottom: 1px solid #d9f99d;
+  border-bottom: 1px solid rgba(100, 160, 40, 0.55);
   padding-bottom: 10px;
   flex-shrink: 0;
 }
