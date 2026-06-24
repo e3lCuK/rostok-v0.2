@@ -591,11 +591,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               <AnimatePresence>
                 {showSettings && (
                   <motion.div
-                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    initial={{ opacity: 0, x: 6, scale: 0.97 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 6, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    style={{ position: "absolute", right: 0, top: "100%", zIndex: 100 }}
+                    style={{ position: "absolute", right: "calc(100% + 4px)", top: 0, zIndex: 100 }}
                   >
                     <SettingsWidget onClose={() => setShowSettings(false)} />
                   </motion.div>
