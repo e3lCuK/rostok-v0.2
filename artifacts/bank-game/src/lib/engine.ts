@@ -157,6 +157,18 @@ export function formatTreeGrowth(mm: number): string {
   return `${(mm / 1000).toFixed(2)} м`;
 }
 
+export function formatLbSessions(n: number): string {
+  if (n === 0) return "0 с.";
+  if (n < 3) return `🔥${n} с.`;
+  return `🔥${Math.floor(n / 3)} сут.`;
+}
+
+export function formatLbGrowth(mm: number): string {
+  if (mm < 10) return `${mm} мм.`;
+  if (mm < 1000) return `${Math.floor(mm / 10)} см.`;
+  return `${(mm / 1000).toFixed(1)} м.`;
+}
+
 // ---- Formatters ----
 export function formatRub(n: number): string {
   return n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₽";

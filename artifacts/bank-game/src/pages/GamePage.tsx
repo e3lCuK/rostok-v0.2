@@ -4,6 +4,8 @@ import {
   UserState,
   formatRub,
   formatTimer,
+  formatLbSessions,
+  formatLbGrowth,
   formatTreeGrowth,
   applyTreeGrowth,
   isSessionLocked,
@@ -1051,14 +1053,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                         </div>
                         <div className="xp-lb-right">
                           {lbTab === "sessions" ? (
-                            <span className="xp-lb-xp">{p.streakDays > 0 ? `🔥${p.streakDays} с.` : "0 с."}</span>
+                            <span className="xp-lb-xp">{formatLbSessions(p.streakDays)}</span>
                           ) : lbTab === "xp" ? (
                             <>
                               <span className="xp-lb-xp">{p.xp} оп.</span>
                               {p.lastSessionXp > 0 && <span className="xp-lb-last">+{p.lastSessionXp}</span>}
                             </>
                           ) : (
-                            <span className="xp-lb-xp">{p.treeGrowthMM} мм.</span>
+                            <span className="xp-lb-xp">{formatLbGrowth(p.treeGrowthMM)}</span>
                           )}
                         </div>
                       </div>
