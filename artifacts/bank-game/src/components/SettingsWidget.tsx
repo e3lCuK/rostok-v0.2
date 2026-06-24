@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Lock, Check, X } from "lucide-react";
+import { Mail, Lock, Check, X, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 type SettingsPanel = "email" | "password" | null;
@@ -55,7 +55,7 @@ export default function SettingsWidget({ onClose }: { onClose: () => void }) {
           <Lock size={14} />
         </button>
         <button className="settings-action-btn settings-action-logout" onClick={() => logout()} title="Выйти">
-          <X size={14} />
+          <LogOut size={14} />
         </button>
       </div>
 
