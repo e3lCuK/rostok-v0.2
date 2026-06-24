@@ -2625,11 +2625,12 @@ body.modal-open {
 .settings-close-sm:hover { background: rgba(160, 175, 140, 0.55); }
 
 .settings-input {
-  width: 130px;
-  padding: 3px 6px;
+  width: 120px;
+  height: 22px;
+  padding: 0 6px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
