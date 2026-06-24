@@ -1149,6 +1149,52 @@ body.modal-open {
   flex-direction: column;
 }
 
+.xp-level-progress {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #d9f99d;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.xp-level-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.xp-level-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #166534;
+}
+.xp-level-num {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+.xp-level-bar-track {
+  width: 100%;
+  height: 8px;
+  background: #d9f99d;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.xp-level-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #65a30d, #84cc16);
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+.xp-level-points {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #4d7c0f;
+  font-weight: 600;
+}
+
 .xp-modal-tabs {
   display: flex;
   align-items: center;

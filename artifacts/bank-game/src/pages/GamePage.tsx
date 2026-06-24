@@ -23,6 +23,7 @@ import FertilizerMatchGame from "@/components/FertilizerMatchGame";
 import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
+import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 
 interface Props {
@@ -964,6 +965,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                 </div>
                 <button className="help-modal-close" onClick={() => setShowXpHistory(false)}>✕</button>
               </div>
+
+              {(() => {
+                const prog = getLevelProgress(game.playerXP ?? 0);
+                const pct = prog.isMax ? 100 : prog.xpNeeded ? Math.min(100, Math.round(prog.xpInLevel / prog.xpNeeded * 100)) : 100;
+                return (
+                  <div className="xp-level-progress">
+                    <div className="xp-level-progress-header">
+                      <span className="xp-level-name">{prog.name}</span>
+                      <span className="xp-level-num">Уровень {prog.level}</span>
+                    </div>
+                    <div className="xp-level-bar-track">
+                      <div className="xp-level-bar-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="xp-level-points">
+                      {prog.isMax
+                        ? <span>{prog.xpInLevel} опыт · MAX</span>
+                        : <><span>{prog.xpInLevel} / {prog.xpNeeded} опыт</span><span>{pct}%</span></>
+                      }
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="xp-modal-tabs">
                 <button
