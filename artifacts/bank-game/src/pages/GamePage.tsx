@@ -571,9 +571,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
         <div className="game-area-top-strip" />
+        <span className="game-beta-floating">Бета {APP_VERSION}</span>
         <div className="game-session-status">
           <div className="game-top-controls">
-            <span className="game-beta-badge">Бета {APP_VERSION}</span>
             <div ref={settingsRef} className="game-gear-wrap">
               <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
                 <Settings size={14} />
