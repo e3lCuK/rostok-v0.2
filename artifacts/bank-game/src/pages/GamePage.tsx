@@ -570,23 +570,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </div>
         ))}
 
-        <div className="game-left-widgets">
-          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowXpHistory(true)} />
-          <AnimatePresence>
-            {showXpPopup && sessionScores && (
-              <motion.div
-                className="reward-popup reward-popup-xp"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-              >
-                +{sessionScores.xp} оп.
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
         <div className="growth-label-wrap">
           <button className="tree-growth-label tree-growth-label-btn" onClick={() => setShowTreeInfo(true)}>
             {formatTreeGrowth(displayGrowthMM)}
@@ -601,6 +584,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                 transition={{ duration: 0.35, ease: "easeOut" }}
               >
                 +{sessionScores.mm} мм.
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="game-left-widgets">
+          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowXpHistory(true)} />
+          <AnimatePresence>
+            {showXpPopup && sessionScores && (
+              <motion.div
+                className="reward-popup reward-popup-xp"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              >
+                +{sessionScores.xp} оп.
               </motion.div>
             )}
           </AnimatePresence>
