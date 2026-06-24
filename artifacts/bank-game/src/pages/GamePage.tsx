@@ -75,6 +75,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [nickBusy, setNickBusy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const autoClaimedOnLoadRef = useRef(false);
   const [levelUpData, setLevelUpData] = useState<{ level: number } | null>(null);
   const [xpGainAmount, setXpGainAmount] = useState<number | null>(null);
   const [showXpPopup, setShowXpPopup] = useState(false);
@@ -176,6 +177,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       setFadeActivities(false);
     }
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
+
+  useEffect(() => {
+    if (!autoClaimedOnLoadRef.current && hasPendingInit && notInSessionInit) {
+      autoClaimedOnLoadRef.current = true;
+      setTimeout(() => handleClaimAll(), 600);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!showCompletionStage) {
@@ -387,11 +396,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       setShowActivityGhost(true);
     }, 800);
 
-    // Step 4 — ghost buttons exit, income buttons appear
+    // Step 4 — ghost buttons exit, auto-claim rewards
     setTimeout(() => {
       setHistoryHighlight(true);
       setTimeout(() => setHistoryHighlight(false), 2800);
       setShowRewards(true);
+      handleClaimAll();
     }, 2200);
   }
 
@@ -875,22 +885,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         </button>
       )}
 
-      {/* Reward claim area — shown after session complete */}
-      {showRewards && (pendingBase > 0 || pendingBonus > 0) && (
-        <div className="collect-area">
-          <motion.button
-            className="collect-btn collect-btn-all"
-            onClick={handleClaimAll}
-            disabled={claiming}
-            whileTap={{ scale: 0.95 }}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          >
-            Доход за сессию ×{pendingStoredSessions}&nbsp;&nbsp;+{formatRub(pendingBase + pendingBonus)}
-          </motion.button>
-        </div>
-      )}
 
       {/* Streak widget — first visit today */}
       <AnimatePresence>
