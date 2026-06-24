@@ -3336,8 +3336,8 @@ canvas {
 }
 
 .session-status-locked {
-  background: #fee2e2;
-  color: #ef4444;
+  background: none;
+  color: #166534;
 }
 
 
