@@ -53,35 +53,34 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         }
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+        <svg width="60" height="64" viewBox="0 0 60 64" fill="none">
           {/* Open diamond frame: right-gap → right → top → left → left-gap */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
             stroke={COLOR} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
           />
 
-          {/* "УРОВЕНЬ" — top edge at y=5, same as diamond top vertex */}
-          <text
-            x="30" y="5"
-            textAnchor="middle"
-            dominantBaseline="hanging"
-            fontSize="6" fontWeight="700"
-            fill={COLOR}
-            letterSpacing="1.8"
-            style={{ fontFamily: "inherit" }}
-          >
-            УРОВЕНЬ
-          </text>
-
           {/* Level number — centered in diamond */}
           <text
-            x="30" y="32"
+            x="30" y="30"
             textAnchor="middle" dominantBaseline="central"
             fontSize="22" fontWeight="900"
             fill={COLOR}
             style={{ fontFamily: "inherit" }}
           >
             {level}
+          </text>
+
+          {/* "УРОВЕНЬ" — below the diamond, in the open gap */}
+          <text
+            x="30" y="57"
+            textAnchor="middle" dominantBaseline="central"
+            fontSize="6" fontWeight="700"
+            fill={COLOR}
+            letterSpacing="1.8"
+            style={{ fontFamily: "inherit" }}
+          >
+            УРОВЕНЬ
           </text>
         </svg>
       </motion.div>
