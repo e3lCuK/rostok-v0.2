@@ -2195,13 +2195,24 @@ body.modal-open {
 }
 
 /* Action buttons */
+.session-actions-wrap {
+  position: absolute;
+  top: 90px;
+  left: 0;
+  right: 0;
+  z-index: 15;
+  display: flex;
+  justify-content: center;
+  padding: 8px 20px 0;
+}
+
 .session-actions {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   width: auto;
-  margin-top: 36px;
+  margin-top: 0;
   border-radius: 16px;
   transition: box-shadow 0.3s ease;
 }
@@ -2211,7 +2222,7 @@ body.modal-open {
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  margin-top: 36px;
+  margin-top: 0;
   color: #9ca3af;
   font-size: 0.78rem;
   font-weight: 600;

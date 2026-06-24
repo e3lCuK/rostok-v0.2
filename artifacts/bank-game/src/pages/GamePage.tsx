@@ -623,7 +623,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             )}
           </div>
         </div>
-        <GameAreaBg groundY={-117} skyOffset={12} />
+        <GameAreaBg groundY={-40} skyOffset={80} />
 
         {floaters.map(fl => (
           <div key={fl.id} className="game-floater" style={{ left: fl.x, top: fl.y }}>
@@ -736,6 +736,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         </div>
 
 
+        <div className="session-actions-wrap">
         {!game.sessionInProgress && !showCompletionStage ? (
           <AnimatePresence mode="wait">
             <motion.div
@@ -877,6 +878,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               )}
             </AnimatePresence>
         )}
+        </div>
 
         <nav className="game-bottom-nav">
           <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
