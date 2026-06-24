@@ -141,18 +141,12 @@ body {
 }
 
 .game-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   padding: 4px 0 calc(env(safe-area-inset-bottom, 0px) + 4px);
-  z-index: 50;
+  flex-shrink: 0;
 }
 
 .game-bottom-nav-btn {

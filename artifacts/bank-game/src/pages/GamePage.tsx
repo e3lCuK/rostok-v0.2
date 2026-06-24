@@ -576,7 +576,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     : 0;
 
   return (
-    <>
     <div className="game-page">
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
@@ -1204,8 +1203,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-
       <nav className="game-bottom-nav">
         <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
           <Trophy size={18} />
@@ -1215,6 +1212,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           <ShoppingCart size={18} />
         </button>
       </nav>
-    </>
+    </div>
   );
 }
