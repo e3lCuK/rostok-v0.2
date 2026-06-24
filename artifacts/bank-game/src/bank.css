@@ -573,8 +573,8 @@ body {
   z-index: 2;
   pointer-events: none;
 }
-.game-area::before { left: calc(50% - 40px); }
-.game-area::after  { left: calc(50% + 40px); }
+.game-area::before { left: calc(50% - 58px); }
+.game-area::after  { left: calc(50% + 58px); }
 
 .game-area-top-strip {
   position: absolute;
