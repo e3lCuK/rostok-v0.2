@@ -28,7 +28,6 @@ import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 import SettingsWidget from "@/components/SettingsWidget";
-import DailyRewardModal from "@/components/DailyRewardModal";
 import { APP_VERSION } from "@/lib/engine";
 
 interface Props {
@@ -102,12 +101,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [lbTab, setLbTab] = useState<"sessions" | "xp" | "growth">("sessions");
-  const [showDailyReward, setShowDailyReward] = useState(false);
-  const [dailyRewardStatus, setDailyRewardStatus] = useState<{ claimedToday: boolean; streak: number; dayIndex: number } | null>(null);
-
-  useEffect(() => {
-    api.getDailyReward().then(setDailyRewardStatus).catch(() => {});
-  }, []);
 
   function dismissStreakWidget() {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -609,8 +602,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                   >
                     <SettingsWidget
                       onClose={() => setShowSettings(false)}
-                      onOpenDailyReward={() => { setShowSettings(false); setShowDailyReward(true); }}
-                      dailyAvailable={dailyRewardStatus !== null && !dailyRewardStatus.claimedToday}
+                      onOpenDailyReward={() => { setShowSettings(false); setShowStreakWidget(true); }}
+                      dailyAvailable={localStorage.getItem("streak_widget_date") !== new Date().toISOString().slice(0, 10)}
                     />
                   </motion.div>
                 )}
@@ -705,21 +698,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             <LevelUpAnimation
               newLevel={levelUpData.level}
               onComplete={() => setLevelUpData(null)}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showDailyReward && (
-            <DailyRewardModal
-              status={dailyRewardStatus}
-              onClose={() => setShowDailyReward(false)}
-              onClaim={(xpGained) => {
-                setDailyRewardStatus(s => s ? { ...s, claimedToday: true } : s);
-                setXpGainAmount(xpGained);
-                setShowXpPopup(true);
-                setTimeout(() => setShowXpPopup(false), 1400);
-              }}
             />
           )}
         </AnimatePresence>
