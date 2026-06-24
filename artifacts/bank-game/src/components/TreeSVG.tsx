@@ -5,7 +5,17 @@ interface TreeSVGProps {
   size?: number;
 }
 
+const STAGE_DIMS: [number, number][] = [
+  [82,  82],
+  [90, 102],
+  [98, 118],
+  [106, 134],
+  [114, 148],
+];
+
 export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
+  const [w, h] = size === 110 ? STAGE_DIMS[stage] : [size, size];
+
   const trees = [
     // Stage 0 — tiny sprout
     <svg key={0} viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
@@ -64,7 +74,7 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
         <ellipse cx="100" cy="34" rx="20" ry="18" fill="#7acc74" />
       </g>
     </svg>,
-    // Stage 4 — mighty tree (scaled down to fit ground, centered as sprout)
+    // Stage 4 — mighty tree
     <svg key={4} viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
       <g transform="translate(25, 56) scale(0.75)">
         <ellipse cx="100" cy="238" rx="88" ry="13" fill="#8B6340" opacity="0.38" />
@@ -90,8 +100,9 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>
   ];
+
   return (
-    <div style={{ width: size, height: size }}>
+    <div style={{ width: w, height: h }}>
       {trees[stage]}
     </div>
   );
