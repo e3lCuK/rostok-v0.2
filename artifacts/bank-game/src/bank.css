@@ -862,10 +862,6 @@ body {
   white-space: nowrap;
 }
 
-.progress-row:first-child {
-  padding-left: 18px;
-}
-
 .progress-row-deposit {
   color: #1e5046;
 }
