@@ -58,7 +58,7 @@ export default function LevelUpAnimation({ newLevel, onComplete }: Props) {
         />
         <span className="levelup-icon">🌳</span>
         <span className="levelup-title">Новый уровень!</span>
-        <span className="levelup-number">LVL {newLevel}</span>
+        <span className="levelup-number">УРОВЕНЬ {newLevel}</span>
       </motion.div>
     </motion.div>
   );
