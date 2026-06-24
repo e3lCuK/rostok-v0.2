@@ -587,6 +587,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
+        <div className="game-area-top-strip" />
         <GameAreaBg groundY={-117} skyOffset={12} />
 
         {floaters.map(fl => (

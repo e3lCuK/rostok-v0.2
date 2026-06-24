@@ -563,6 +563,18 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+.game-area-top-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: rgba(236, 252, 203, 0.55);
+  border-radius: var(--radius) var(--radius) 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
 .game-area-bg-wrap {
   position: absolute;
   inset: 0;
