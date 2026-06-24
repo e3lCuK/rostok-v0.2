@@ -16,9 +16,9 @@ function LeafSvg({ flip, flipY }: { flip?: boolean; flipY?: boolean }) {
     >
       <path
         d="M4.5 1C4.5 1 1 3.2 1 6C1 8 2.5 9.5 4.5 9.5C6.5 9.5 8 8 8 6C8 3.2 4.5 1 4.5 1Z"
-        fill="#4ade80" opacity="0.75"
+        fill="#8dc63f" opacity="0.8"
       />
-      <line x1="4.5" y1="9.5" x2="4.5" y2="4" stroke="#22c55e" strokeWidth="0.9" strokeLinecap="round"/>
+      <line x1="4.5" y1="9.5" x2="4.5" y2="4" stroke="#5a9e1e" strokeWidth="0.9" strokeLinecap="round"/>
     </svg>
   );
 }
