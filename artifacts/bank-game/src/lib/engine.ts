@@ -3,7 +3,7 @@
 //  UI must NOT compute anything; call these functions instead
 // ============================================================
 
-export const APP_VERSION = "в0.2";
+export const APP_VERSION = "beta v0.2";
 export const APP_NAME = "Банк";
 
 // ---- Constants ----
