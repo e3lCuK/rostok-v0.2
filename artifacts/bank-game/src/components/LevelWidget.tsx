@@ -11,15 +11,14 @@ interface Props {
 const COLOR = "#4d7c0f";
 const SW = 2;
 
-// Wide diamond: 120×58 SVG, cx=60, cy=22
-// Horizontal half-diagonal=56, vertical half-diagonal=18
-const TOP:   [number, number] = [60,  4];
-const RIGHT: [number, number] = [116, 22];
-const LEFT:  [number, number] = [4,   22];
-// Bottom would be (60,40). Gap: stop ~14px before meeting at bottom point.
-// Bottom-left direction unit ≈ (0.952, 0.306)
-const GAP_R: [number, number] = [73, 36]; // right-bottom side stops here
-const GAP_L: [number, number] = [47, 36]; // left-bottom side stops here
+// Square diamond: cx=30, cy=30, r=26 (equal diagonals → true rhombus)
+// SVG 60×72: diamond 4..56 vertically, label at y=65
+const TOP:   [number, number] = [30,  4];
+const RIGHT: [number, number] = [56, 30];
+const LEFT:  [number, number] = [4,  30];
+// Bottom=(30,56). Gap ~12px before bottom along 45° sides.
+const GAP_R: [number, number] = [38, 48]; // right-bottom side stops here
+const GAP_L: [number, number] = [22, 48]; // left-bottom side stops here
 
 function pt(p: [number, number]) { return p.join(","); }
 
@@ -54,15 +53,15 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         }
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <svg width="120" height="58" viewBox="0 0 120 58" fill="none">
+        <svg width="60" height="72" viewBox="0 0 60 72" fill="none">
           {/* Open diamond frame: right-gap → right → top → left → left-gap */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
             stroke={COLOR} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
           />
-          {/* Level number centered in diamond */}
+          {/* Level number — centered in diamond */}
           <text
-            x="60" y="23"
+            x="30" y="31"
             textAnchor="middle" dominantBaseline="central"
             fontSize="22" fontWeight="900"
             fill={COLOR}
@@ -70,13 +69,13 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
           >
             {level}
           </text>
-          {/* УРОВЕНЬ label — sits in the gap at bottom */}
+          {/* УРОВЕНЬ label — emerges from the open bottom gap */}
           <text
-            x="60" y="50"
+            x="30" y="62"
             textAnchor="middle" dominantBaseline="central"
-            fontSize="7" fontWeight="700"
+            fontSize="6" fontWeight="700"
             fill={COLOR}
-            letterSpacing="2"
+            letterSpacing="1.8"
             style={{ fontFamily: "inherit" }}
           >
             УРОВЕНЬ
