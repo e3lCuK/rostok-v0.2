@@ -1185,6 +1185,7 @@ body.modal-open {
   align-items: center;
   position: relative;
   z-index: 15;
+  margin-top: -10px;
 }
 
 .game-top-bar {
