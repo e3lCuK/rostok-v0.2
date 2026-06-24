@@ -577,51 +577,20 @@ router.post("/game/debug/add-xp", requireAuth, async (req: any, res) => {
   }
 });
 
-// GET /api/game/leaderboard — top players, type=xp|small|medium|large
+// GET /api/game/leaderboard — top players by XP
 router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
-  const type = (req.query.type as string) || "xp";
   const me = req.userId;
 
-  // Capital options: 20_000 / 200_000 / 2_000_000
-  const depositBounds: Record<string, [number, number]> = {
-    small:  [1,       50000],
-    medium: [50001,   500000],
-    large:  [500001,  999999999],
-  };
-
   try {
-    let queryText: string;
-    let queryParams: any[];
-
-    if (type === "xp") {
-      queryText = `
-        SELECT u.id::text AS user_id, u.nickname,
-               gs.player_xp, gs.player_level, gs.streak_days,
-               gs.tree_growth_mm, gs.xp_history
-        FROM game_state gs
-        JOIN users u ON u.id::text = gs.user_id
-        ORDER BY gs.player_xp DESC
-        LIMIT 100
-      `;
-      queryParams = [];
-    } else {
-      const [minDep, maxDep] = depositBounds[type] ?? [0, 999999999];
-      queryText = `
-        SELECT u.id::text AS user_id, u.nickname,
-               gs.player_xp, gs.player_level, gs.streak_days,
-               gs.tree_growth_mm, gs.xp_history
-        FROM game_state gs
-        JOIN users u ON u.id::text = gs.user_id
-        JOIN accounts a ON a.user_id = gs.user_id
-        WHERE a.starting_capital >= $1
-          AND a.starting_capital <= $2
-        ORDER BY gs.tree_growth_mm DESC
-        LIMIT 100
-      `;
-      queryParams = [minDep, maxDep];
-    }
-
-    const result = await pool.query(queryText, queryParams);
+    const result = await pool.query(`
+      SELECT u.id::text AS user_id, u.nickname,
+             gs.player_xp, gs.player_level, gs.streak_days,
+             gs.tree_growth_mm, gs.xp_history
+      FROM game_state gs
+      JOIN users u ON u.id::text = gs.user_id
+      ORDER BY gs.player_xp DESC
+      LIMIT 100
+    `);
     const rows = result.rows.map((r: any, i: number) => {
       const history: { xp: number; date: string; n: number }[] = r.xp_history ?? [];
       const lastSession = history.length > 0 ? history[0] : null;
