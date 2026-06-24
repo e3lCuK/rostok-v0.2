@@ -50,16 +50,13 @@ export default function SettingsWidget({ onClose }: { onClose: () => void }) {
     <div className="settings-widget">
       <div className="settings-icon-row">
         <button className={`settings-action-btn${panel === "email" ? " settings-action-active" : ""}`} onClick={() => togglePanel("email")} title="Почта">
-          <Mail size={18} />
-          <span>Почта</span>
+          <Mail size={14} />
         </button>
         <button className={`settings-action-btn${panel === "password" ? " settings-action-active" : ""}`} onClick={() => togglePanel("password")} title="Пароль">
-          <Lock size={18} />
-          <span>Пароль</span>
+          <Lock size={14} />
         </button>
         <button className="settings-action-btn settings-action-logout" onClick={() => logout()} title="Выйти">
-          <X size={18} />
-          <span>Выход</span>
+          <X size={14} />
         </button>
       </div>
 
