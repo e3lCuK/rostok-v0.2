@@ -569,7 +569,7 @@ body {
   left: 0;
   right: 0;
   height: 90px;
-  background: rgba(236, 252, 203, 0.55);
+  background: #ecfccb;
   border-radius: var(--radius) var(--radius) 0 0;
   z-index: 1;
   pointer-events: none;
@@ -861,7 +861,7 @@ body {
 }
 
 .progress-widget {
-  background: rgba(255, 255, 255, 0.72);
+  background: transparent;
   border-radius: 6px;
   overflow: hidden;
   display: flex;
