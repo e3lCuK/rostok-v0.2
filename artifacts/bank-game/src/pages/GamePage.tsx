@@ -585,6 +585,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         <p className="session-earn-hint">до {formatRub(sessionMax)} за сессию</p>
       </div>
 
+      <div className="game-section-divider" />
+
       {/* Tree + game area */}
       <div className="game-area" ref={gameAreaRef}>
         <GameAreaBg groundY={-117} skyOffset={12} />
