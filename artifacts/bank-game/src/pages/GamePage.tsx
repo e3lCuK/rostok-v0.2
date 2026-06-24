@@ -98,7 +98,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   });
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
-  const [lbTab, setLbTab] = useState<"sessions" | "xp" | "growth">("xp");
+  const [lbTab, setLbTab] = useState<"sessions" | "xp" | "growth">("sessions");
 
   function dismissStreakWidget() {
     const todayStr = new Date().toISOString().slice(0, 10);
