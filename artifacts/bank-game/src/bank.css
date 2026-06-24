@@ -3554,7 +3554,7 @@ canvas {
 .game-timer-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .game-timer-icon {
