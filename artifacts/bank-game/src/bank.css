@@ -1079,74 +1079,9 @@ body.modal-open {
 }
 
 .lvl-badge {
-  width: 64px;
-  height: 86px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.lvl-leaves-top {
-  display: flex;
-  gap: 2px;
-  margin-bottom: -4px;
-  z-index: 2;
-  position: relative;
-}
-
-.lvl-leaves-bottom {
-  display: flex;
-  gap: 2px;
-  margin-top: -4px;
-  z-index: 2;
-  position: relative;
-}
-
-.lvl-diamond {
-  width: 52px;
-  height: 52px;
-  transform: rotate(45deg);
-  border-radius: 11px;
-  background: linear-gradient(145deg, #d4edaa 0%, #a3c74a 38%, #5a9e1e 72%, #365314 100%);
-  border: 2.5px solid #8dc63f;
-  box-shadow:
-    0 0 14px rgba(90, 158, 30, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.22),
-    inset 0 2px 6px rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  z-index: 1;
-}
-
-.lvl-content {
-  transform: rotate(-45deg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
-  gap: 3px;
-}
-
-.lvl-number {
-  font-size: 21px;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 1px 6px rgba(30, 60, 0, 0.6), 0 0 2px rgba(0,0,0,0.3);
-  line-height: 1;
-  letter-spacing: -0.5px;
-}
-
-.lvl-label {
-  font-size: 5px;
-  font-weight: 800;
-  color: #d4edaa;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.92;
 }
 
 .lvl-gain-popup {
@@ -1155,7 +1090,7 @@ body.modal-open {
   left: 50%;
   font-size: 10px;
   font-weight: 700;
-  color: #16a34a;
+  color: #4d7c0f;
   white-space: nowrap;
   pointer-events: none;
 }

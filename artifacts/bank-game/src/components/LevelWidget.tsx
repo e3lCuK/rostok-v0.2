@@ -8,20 +8,19 @@ interface Props {
   onClick?: () => void;
 }
 
-function LeafSvg({ flip, flipY }: { flip?: boolean; flipY?: boolean }) {
-  return (
-    <svg
-      width="9" height="11" viewBox="0 0 9 11" fill="none"
-      style={{ transform: `${flip ? "scaleX(-1)" : ""} ${flipY ? "scaleY(-1)" : ""}` }}
-    >
-      <path
-        d="M4.5 1C4.5 1 1 3.2 1 6C1 8 2.5 9.5 4.5 9.5C6.5 9.5 8 8 8 6C8 3.2 4.5 1 4.5 1Z"
-        fill="#8dc63f" opacity="0.8"
-      />
-      <line x1="4.5" y1="9.5" x2="4.5" y2="4" stroke="#5a9e1e" strokeWidth="0.9" strokeLinecap="round"/>
-    </svg>
-  );
-}
+const COLOR = "#4d7c0f";
+const SW = 2;
+
+// Diamond: cx=32, cy=22, r=18 — leaves gap at bottom for label
+const TOP:   [number, number] = [32,  4];
+const RIGHT: [number, number] = [50, 22];
+const LEFT:  [number, number] = [14, 22];
+// Gap endpoints (bottom sides stop ~10px before meeting at bottom point 32,40)
+const GAP_D = 10 / Math.SQRT2; // ≈7.07
+const GAP_R: [number, number] = [32 + GAP_D, 40 - GAP_D]; // right side ends here
+const GAP_L: [number, number] = [32 - GAP_D, 40 - GAP_D]; // left side ends here
+
+function pt(p: [number, number]) { return p.join(","); }
 
 export default function LevelWidget({ level, xpGain, onClick }: Props) {
   const [showGain, setShowGain] = useState(false);
@@ -43,36 +42,45 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         className="lvl-badge"
         animate={showGain
           ? {
-              scale: [1, 1.18, 1],
+              scale: [1, 1.15, 1],
               filter: [
-                "drop-shadow(0 0 4px rgba(74,222,128,0.4))",
-                "drop-shadow(0 0 14px rgba(74,222,128,0.9))",
-                "drop-shadow(0 0 4px rgba(74,222,128,0.4))",
+                "drop-shadow(0 0 3px rgba(77,124,15,0.3))",
+                "drop-shadow(0 0 10px rgba(77,124,15,0.75))",
+                "drop-shadow(0 0 3px rgba(77,124,15,0.3))",
               ],
             }
-          : {
-              scale: 1,
-              filter: "drop-shadow(0 0 4px rgba(74,222,128,0.38))",
-            }
+          : { scale: 1, filter: "drop-shadow(0 0 3px rgba(77,124,15,0.28))" }
         }
-        transition={{ duration: 0.75, ease: "easeOut" }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <div className="lvl-leaves-top">
-          <LeafSvg />
-          <LeafSvg flip />
-        </div>
-
-        <div className="lvl-diamond">
-          <div className="lvl-content">
-            <span className="lvl-number">{level}</span>
-            <span className="lvl-label">УРОВЕНЬ</span>
-          </div>
-        </div>
-
-        <div className="lvl-leaves-bottom">
-          <LeafSvg flipY />
-          <LeafSvg flip flipY />
-        </div>
+        <svg width="64" height="56" viewBox="0 0 64 56" fill="none">
+          {/* Open diamond frame: right-gap → right → top → left → left-gap */}
+          <polyline
+            points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
+            stroke={COLOR} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
+          />
+          {/* Level number centered in diamond */}
+          <text
+            x="32" y="23"
+            textAnchor="middle" dominantBaseline="central"
+            fontSize="20" fontWeight="900"
+            fill={COLOR}
+            style={{ fontFamily: "inherit" }}
+          >
+            {level}
+          </text>
+          {/* УРОВЕНЬ label — sits in the gap at bottom */}
+          <text
+            x="32" y="47"
+            textAnchor="middle" dominantBaseline="central"
+            fontSize="6" fontWeight="700"
+            fill={COLOR}
+            letterSpacing="1.5"
+            style={{ fontFamily: "inherit" }}
+          >
+            УРОВЕНЬ
+          </text>
+        </svg>
       </motion.div>
 
       <AnimatePresence>
@@ -81,7 +89,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
             key={gainVal}
             className="lvl-gain-popup"
             initial={{ opacity: 1, y: 0, x: "-50%" }}
-            animate={{ opacity: 0, y: -28, x: "-50%" }}
+            animate={{ opacity: 0, y: -26, x: "-50%" }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
           >
