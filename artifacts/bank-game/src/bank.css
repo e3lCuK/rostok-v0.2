@@ -843,6 +843,30 @@ body {
   gap: 8px;
 }
 
+.progress-widget {
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #166534;
+  white-space: nowrap;
+}
+
+.progress-row-deposit {
+  border-top: 1px solid rgba(166, 187, 140, 0.35);
+  color: #1e5046;
+}
+
 .tree-growth-label {
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.72);
@@ -2143,6 +2167,32 @@ body.modal-open {
 .game-balance-label { font-size: 0.68rem; color: var(--text2); margin-bottom: 2px; }
 .game-balance-value { font-size: 1rem; font-weight: 800; color: var(--text); }
 .game-balance-earned { font-size: 0.88rem; font-weight: 700; color: var(--green); text-align: right; }
+
+/* ── Deposit info modal ──────────────────────────────── */
+.deposit-modal-summary {
+  background: var(--surface2, #f3f4f6);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.deposit-modal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.deposit-modal-label { font-size: 0.78rem; color: var(--text2); }
+.deposit-modal-value { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+.deposit-modal-earned { color: var(--green); }
+.deposit-modal-history {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 /* ============================
    MISC

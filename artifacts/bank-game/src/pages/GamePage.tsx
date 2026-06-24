@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Banknote } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import GameAreaBg from "@/components/GameAreaBg";
@@ -76,6 +76,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
   const [showTreeInfo, setShowTreeInfo] = useState(false);
+  const [showDepositInfo, setShowDepositInfo] = useState(false);
   const [showXpHistory, setShowXpHistory] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -571,10 +572,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         ))}
 
         <div className="growth-label-wrap">
-          <div className="tree-growth-label">
-            <TreePine size={14} strokeWidth={1.5} fill="currentColor" />
-            <span>{formatTreeGrowth(displayGrowthMM)}</span>
-            <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
+          <div className="progress-widget">
+            <div className="progress-row">
+              <TreePine size={13} strokeWidth={1.5} fill="currentColor" />
+              <span>{formatTreeGrowth(displayGrowthMM)}</span>
+              <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
+            </div>
+            <div className="progress-row progress-row-deposit">
+              <Banknote size={13} strokeWidth={1.5} />
+              <span>{formatRub(balances.active)}</span>
+              <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
+            </div>
           </div>
           <AnimatePresence>
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
@@ -824,18 +832,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         </div>
       )}
 
-      {/* Balance summary */}
-      <div className="game-balance-bar">
-        <div>
-          <p className="game-balance-label">Активный вклад</p>
-          <p className="game-balance-value">{formatRub(balances.active)}</p>
-        </div>
-        <div className="text-right">
-          <p className="game-balance-label">Заработано</p>
-          <p className="game-balance-earned">+{formatRub(balances.activeEarned)} · {formatPercent(avgPercent)}</p>
-        </div>
-      </div>
-
       {/* Session history */}
       <div className="history-card">
         <div className="history-title-row" onClick={() => { setHistoryOpen(!historyOpen); if (!historyOpen) { setHistoryNotif(false); onClearNotif?.(); } }}>
@@ -1071,7 +1067,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               onClick={e => e.stopPropagation()}
             >
               <div className="help-modal-header">
-                <h3 className="help-modal-title">🌳 Этапы роста дерева</h3>
+                <h3 className="help-modal-title">🌳 Прогресс</h3>
                 <button className="help-modal-close" onClick={() => setShowTreeInfo(false)}>
                   <X size={18} />
                 </button>
@@ -1111,6 +1107,75 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               </div>
 
               <p className="tree-stage-hint">1 ₽ активного дохода = 1 мм роста</p>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showDepositInfo && (
+          <motion.div
+            className="help-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowDepositInfo(false)}
+          >
+            <motion.div
+              className="help-modal"
+              initial={{ y: 32, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 32, opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="help-modal-header">
+                <h3 className="help-modal-title">💰 История начислений</h3>
+                <button className="help-modal-close" onClick={() => setShowDepositInfo(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="deposit-modal-summary">
+                <div className="deposit-modal-row">
+                  <span className="deposit-modal-label">Активный вклад</span>
+                  <span className="deposit-modal-value">{formatRub(balances.active)}</span>
+                </div>
+                <div className="deposit-modal-row">
+                  <span className="deposit-modal-label">Заработано всего</span>
+                  <span className="deposit-modal-value deposit-modal-earned">+{formatRub(balances.activeEarned)}</span>
+                </div>
+              </div>
+
+              {sessionHistory.length === 0 ? (
+                <p className="history-empty" style={{ padding: "16px 0 8px" }}>Начисления появятся после первой сессии</p>
+              ) : (
+                <div className="deposit-modal-history">
+                  {sessionHistory.map((s, idx) => {
+                    const pct = s.base > 0 ? (s.total / s.base) * 12 : 12;
+                    return (
+                      <div key={idx} className="session-item">
+                        <p className="session-title">{s.date}</p>
+                        {s.base > 0 && (
+                          <div className="session-row">
+                            <span>База</span>
+                            <span>+{formatRub(s.base)}</span>
+                          </div>
+                        )}
+                        {s.bonus > 0 && (
+                          <div className="session-row session-row-bonus">
+                            <span>Бонус</span>
+                            <span>+{formatRub(s.bonus)}</span>
+                          </div>
+                        )}
+                        <div className="session-total">
+                          <span>Итого</span>
+                          <span>+{formatRub(s.total)} · {formatPercent(pct)} год.</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
