@@ -873,7 +873,7 @@ body {
 .progress-row > span {
   flex: 1;
   min-width: 0;
-  text-align: right;
+  text-align: left;
   font-size: 12px;
   font-weight: 500;
 }

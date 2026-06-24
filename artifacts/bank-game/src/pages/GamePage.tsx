@@ -574,7 +574,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         <div className="growth-label-wrap">
           <div className="progress-widget">
             <div className="progress-row">
-              <TreePine size={13} strokeWidth={1.5} />
+              <TreePine size={16} strokeWidth={1.5} />
               <span>{formatTreeGrowth(displayGrowthMM)}</span>
               <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
             </div>
