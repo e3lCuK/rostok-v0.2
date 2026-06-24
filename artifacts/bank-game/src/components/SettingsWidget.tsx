@@ -18,10 +18,10 @@ export default function SettingsWidget({ onClose }: { onClose: () => void }) {
   const [pwOk, setPwOk] = useState(false);
   const [pwBusy, setPwBusy] = useState(false);
 
-  function togglePanel(p: SettingsPanel) {
-    setPanel(prev => prev === p ? null : p);
-    setEmailErr(""); setPwErr("");
-    setEmailOk(false); setPwOk(false);
+  function close() {
+    setPanel(null);
+    setEmailVal(""); setEmailErr(""); setEmailOk(false);
+    setNewPw(""); setPwErr(""); setPwOk(false);
   }
 
   async function saveEmail() {
@@ -45,61 +45,71 @@ export default function SettingsWidget({ onClose }: { onClose: () => void }) {
     finally { setPwBusy(false); }
   }
 
+  if (panel === "email") {
+    return (
+      <div className="settings-widget">
+        <div className="settings-icon-row">
+          <input
+            className="settings-input"
+            type="email"
+            value={emailVal}
+            onChange={e => { setEmailVal(e.target.value); setEmailErr(""); setEmailOk(false); }}
+            placeholder="email@example.com"
+            autoFocus
+            onKeyDown={e => e.key === "Enter" && saveEmail()}
+          />
+          <button className="settings-save-sm" onClick={saveEmail} disabled={emailBusy} title="Сохранить">
+            {emailBusy ? "…" : <Check size={12} />}
+          </button>
+          <button className="settings-save-sm settings-close-sm" onClick={close} title="Закрыть">
+            <X size={12} />
+          </button>
+        </div>
+        {emailErr && <p className="settings-err">{emailErr}</p>}
+        {emailOk && <p className="settings-ok">Сохранено ✓</p>}
+      </div>
+    );
+  }
+
+  if (panel === "password") {
+    return (
+      <div className="settings-widget">
+        <div className="settings-icon-row">
+          <input
+            className="settings-input"
+            type="password"
+            value={newPw}
+            onChange={e => { setNewPw(e.target.value); setPwErr(""); setPwOk(false); }}
+            placeholder="Новый пароль"
+            autoFocus
+            onKeyDown={e => e.key === "Enter" && savePw()}
+          />
+          <button className="settings-save-sm" onClick={savePw} disabled={pwBusy} title="Сохранить">
+            {pwBusy ? "…" : <Check size={12} />}
+          </button>
+          <button className="settings-save-sm settings-close-sm" onClick={close} title="Закрыть">
+            <X size={12} />
+          </button>
+        </div>
+        {pwErr && <p className="settings-err">{pwErr}</p>}
+        {pwOk && <p className="settings-ok">Сохранено ✓</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="settings-widget">
       <div className="settings-icon-row">
-        <button className={`settings-action-btn${panel === "email" ? " settings-action-active" : ""}`} onClick={() => togglePanel("email")} title="Почта">
+        <button className="settings-action-btn" onClick={() => setPanel("email")} title="Почта">
           <Mail size={14} />
         </button>
-        <button className={`settings-action-btn${panel === "password" ? " settings-action-active" : ""}`} onClick={() => togglePanel("password")} title="Пароль">
+        <button className="settings-action-btn" onClick={() => setPanel("password")} title="Пароль">
           <Lock size={14} />
         </button>
         <button className="settings-action-btn settings-action-logout" onClick={() => logout()} title="Выйти">
           <LogOut size={14} />
         </button>
       </div>
-
-      {panel === "email" && (
-        <div className="settings-form">
-          <div className="settings-input-row">
-            <input
-              className="settings-input"
-              type="email"
-              value={emailVal}
-              onChange={e => { setEmailVal(e.target.value); setEmailErr(""); setEmailOk(false); }}
-              placeholder="email@example.com"
-              autoFocus
-              onKeyDown={e => e.key === "Enter" && saveEmail()}
-            />
-            <button className="settings-save-sm" onClick={saveEmail} disabled={emailBusy} title="Сохранить">
-              {emailBusy ? "…" : <Check size={12} />}
-            </button>
-          </div>
-          {emailErr && <p className="settings-err">{emailErr}</p>}
-          {emailOk && <p className="settings-ok">Сохранено ✓</p>}
-        </div>
-      )}
-
-      {panel === "password" && (
-        <div className="settings-form">
-          <div className="settings-input-row">
-            <input
-              className="settings-input"
-              type="password"
-              value={newPw}
-              onChange={e => { setNewPw(e.target.value); setPwErr(""); setPwOk(false); }}
-              placeholder="Новый пароль"
-              autoFocus
-              onKeyDown={e => e.key === "Enter" && savePw()}
-            />
-            <button className="settings-save-sm" onClick={savePw} disabled={pwBusy} title="Сохранить">
-              {pwBusy ? "…" : <Check size={12} />}
-            </button>
-          </div>
-          {pwErr && <p className="settings-err">{pwErr}</p>}
-          {pwOk && <p className="settings-ok">Сохранено ✓</p>}
-        </div>
-      )}
     </div>
   );
 }
