@@ -643,17 +643,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  color: rgba(100, 130, 70, 0.5);
+  width: 28px;
+  height: 28px;
+  border: 2px solid #16a34a;
+  background: rgba(255, 255, 255, 0.80);
+  color: #16a34a;
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: 8px;
   padding: 0;
-  transition: color 0.15s, background 0.15s;
+  backdrop-filter: blur(4px);
+  transition: background 0.12s;
 }
-.game-gear-btn:hover { color: #4d7c0f; background: rgba(200, 240, 150, 0.4); }
+.game-gear-btn:hover { background: rgba(255, 255, 255, 0.95); }
 
 .game-session-detail {
   font-size: 0.82rem;
