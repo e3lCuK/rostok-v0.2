@@ -20,7 +20,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Banknote } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Banknote, Coins, CircleDollarSign, Wallet, WalletCards, CreditCard, HandCoins, PiggyBank, Landmark } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import GameAreaBg from "@/components/GameAreaBg";
@@ -578,10 +578,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               <span>{formatTreeGrowth(displayGrowthMM)}</span>
               <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
             </div>
-            <div className="progress-row progress-row-deposit">
-              <Banknote size={13} strokeWidth={1.5} />
-              <span>{formatRub(balances.active)}</span>
-              <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
+            <div className="progress-row progress-row-deposit" style={{ flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+              {([
+                ["Banknote", <Banknote size={13}/>],
+                ["Coins", <Coins size={13}/>],
+                ["CircleDollarSign", <CircleDollarSign size={13}/>],
+                ["Wallet", <Wallet size={13}/>],
+                ["WalletCards", <WalletCards size={13}/>],
+                ["CreditCard", <CreditCard size={13}/>],
+                ["HandCoins", <HandCoins size={13}/>],
+                ["PiggyBank", <PiggyBank size={13}/>],
+                ["Landmark", <Landmark size={13}/>],
+              ] as const).map(([name, icon]) => (
+                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  {icon}<span style={{ fontSize: 10 }}>{name}</span>
+                </div>
+              ))}
             </div>
           </div>
           <AnimatePresence>
