@@ -593,7 +593,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
             </div>
             <div className="progress-row progress-row-apples">
-              <span className="progress-row-icon" style={{ fontSize: 13 }}>🍎</span>
+              <span className="progress-row-icon">
+                <svg width="13" height="15" viewBox="0 0 13 15" fill="none" stroke="#166534" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6.5 4C6.5 4 7 2 9 1" />
+                  <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" />
+                </svg>
+              </span>
               <span>{apples} {pluralApples(apples)}</span>
               <button className="growth-info-btn growth-info-btn-plus">+</button>
             </div>
