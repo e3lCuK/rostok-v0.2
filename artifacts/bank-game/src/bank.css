@@ -2684,6 +2684,33 @@ body.modal-open {
   display: block;
 }
 
+.onboarding-single-card {
+  background: var(--surface);
+  border: 2px solid #86efac;
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.onboarding-single-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #15803d;
+  line-height: 1;
+}
+.onboarding-single-split {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+.onboarding-single-stats {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
 .onboarding-options {
   display: flex;
   flex-direction: column;

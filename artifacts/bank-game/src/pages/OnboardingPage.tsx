@@ -1,41 +1,30 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { CAPITAL_OPTIONS, formatCapital, calcStandardDaily } from "@/lib/engine";
+import { DEFAULT_CAPITAL, formatCapital, calcStandardDaily } from "@/lib/engine";
 
 interface Props {
   onComplete: (capital: number) => Promise<void>;
 }
 
 export default function OnboardingPage({ onComplete }: Props) {
-  const [selected, setSelected] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const isSubmitting = useRef(false);
 
-  const labels: Record<number, string> = {
-    20_000: "Начальный",
-    200_000: "Стандартный",
-    2_000_000: "Премиум",
-  };
-
-  const descriptions: Record<number, string> = {
-    20_000: "Подходит для знакомства с приложением",
-    200_000: "Оптимальный баланс роста",
-    2_000_000: "Максимальная скорость роста дерева",
-  };
+  const half = DEFAULT_CAPITAL / 2;
+  const dailyStd = calcStandardDaily(half);
+  const dailyAct = half * 0.15 / 365;
 
   async function handleStart() {
-    if (selected === null) return;
     if (loading) return;
     if (isSubmitting.current) return;
-
     isSubmitting.current = true;
     setError(null);
     setLoading(true);
     try {
-      await onComplete(selected);
+      await onComplete(DEFAULT_CAPITAL);
     } catch (e: unknown) {
       console.error("Account creation failed:", e);
       setError("Ошибка создания счёта. Попробуйте ещё раз.");
@@ -49,7 +38,7 @@ export default function OnboardingPage({ onComplete }: Props) {
     <div className="onboarding-page">
       <div className="onboarding-header">
         <span className="onboarding-icon">🌱</span>
-        <h1 className="onboarding-title">Выберите стартовый капитал</h1>
+        <h1 className="onboarding-title">Открыть учебный счёт</h1>
         <p className="onboarding-sub">Капитал делится поровну между стандартным и активным вкладами</p>
       </div>
 
@@ -76,7 +65,7 @@ export default function OnboardingPage({ onComplete }: Props) {
               style={{ overflow: "hidden" }}
             >
               <p className="onboarding-info-text">
-                Вкладывать ничего не нужно — это учебный счёт. В дальнейшем рост дерева зависит от того, сколько вы готовы выделить под накопления: чем больше сумма, тем заметнее влияние на скорость роста.
+                Вкладывать ничего не нужно — это учебный счёт. Дерево растёт вместе с активным доходом.
               </p>
               <div className="onboarding-rates">
                 <span className="onboarding-rate-badge">Стандартный вклад — <strong>12%</strong> годовых</span>
@@ -87,50 +76,28 @@ export default function OnboardingPage({ onComplete }: Props) {
         </AnimatePresence>
       </div>
 
-      <div className="onboarding-options">
-        {CAPITAL_OPTIONS.map((cap) => {
-          const half = cap / 2;
-          const daily = calcStandardDaily(half);
-          const dailyActiveMax = half * 0.15 / 365;
-          const isSelected = selected === cap;
-
-          return (
-            <motion.button
-              key={cap}
-              className={`capital-option ${isSelected ? "capital-option-selected" : ""}`}
-              onClick={() => setSelected(cap)}
-              whileTap={{ scale: 0.97 }}
-            >
-              <div className="capital-option-header">
-                <div>
-                  <p className="capital-option-label">{labels[cap]}</p>
-                  <p className="capital-option-amount">{formatCapital(cap)}</p>
-                </div>
-                <div className={`capital-option-radio ${isSelected ? "capital-option-radio-active" : ""}`} />
-              </div>
-              <p className="capital-option-desc">{descriptions[cap]}</p>
-              <div className="capital-option-stats">
-                <div className="capital-stat">
-                  <p className="capital-stat-label">В день (стан.)</p>
-                  <p className="capital-stat-value">до {daily.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
-                </div>
-                <div className="capital-stat">
-                  <p className="capital-stat-label">В день (акт.)</p>
-                  <p className="capital-stat-value">до {dailyActiveMax.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
-                </div>
-              </div>
-            </motion.button>
-          );
-        })}
+      <div className="onboarding-single-card">
+        <div className="onboarding-single-amount">{formatCapital(DEFAULT_CAPITAL)}</div>
+        <div className="onboarding-single-split">50 000 ₽ стандартный + 50 000 ₽ активный</div>
+        <div className="onboarding-single-stats">
+          <div className="capital-stat">
+            <p className="capital-stat-label">В день (стан.)</p>
+            <p className="capital-stat-value">до {dailyStd.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
+          </div>
+          <div className="capital-stat">
+            <p className="capital-stat-label">В день (акт.)</p>
+            <p className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
+          </div>
+        </div>
       </div>
 
       {error && <p style={{ color: "red", textAlign: "center", fontSize: 14, marginBottom: 8 }}>{error}</p>}
 
       <motion.button
-        className={`onboarding-start-btn ${selected === null ? "onboarding-start-btn-disabled" : ""}`}
+        className="onboarding-start-btn"
         onClick={handleStart}
-        disabled={selected === null || loading}
-        whileTap={selected !== null ? { scale: 0.97 } : {}}
+        disabled={loading}
+        whileTap={{ scale: 0.97 }}
       >
         {loading ? "Создание счёта..." : "Открыть счёт"}
       </motion.button>

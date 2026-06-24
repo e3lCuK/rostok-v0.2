@@ -10,9 +10,10 @@ export const APP_NAME = "Банк";
 export const SESSION_COOLDOWN_MS = 8 * 60 * 60 * 1000;
 export const SESSIONS_PER_DAY = 3; // 1 session per 8 hours → 3 sessions/day
 
-// Starting capital options
-export const CAPITAL_OPTIONS = [20_000, 200_000, 2_000_000] as const;
+// Starting capital
+export const CAPITAL_OPTIONS = [100_000] as const;
 export type CapitalOption = (typeof CAPITAL_OPTIONS)[number];
+export const DEFAULT_CAPITAL = 100_000;
 
 // ---- Canonical user state shape ----
 export interface UserState {
