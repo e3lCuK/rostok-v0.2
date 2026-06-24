@@ -11,14 +11,15 @@ interface Props {
 const COLOR = "#4d7c0f";
 const SW = 2;
 
-// Diamond: cx=32, cy=22, r=18 — leaves gap at bottom for label
-const TOP:   [number, number] = [32,  4];
-const RIGHT: [number, number] = [50, 22];
-const LEFT:  [number, number] = [14, 22];
-// Gap endpoints (bottom sides stop ~10px before meeting at bottom point 32,40)
-const GAP_D = 10 / Math.SQRT2; // ≈7.07
-const GAP_R: [number, number] = [32 + GAP_D, 40 - GAP_D]; // right side ends here
-const GAP_L: [number, number] = [32 - GAP_D, 40 - GAP_D]; // left side ends here
+// Wide diamond: 120×58 SVG, cx=60, cy=22
+// Horizontal half-diagonal=56, vertical half-diagonal=18
+const TOP:   [number, number] = [60,  4];
+const RIGHT: [number, number] = [116, 22];
+const LEFT:  [number, number] = [4,   22];
+// Bottom would be (60,40). Gap: stop ~14px before meeting at bottom point.
+// Bottom-left direction unit ≈ (0.952, 0.306)
+const GAP_R: [number, number] = [73, 36]; // right-bottom side stops here
+const GAP_L: [number, number] = [47, 36]; // left-bottom side stops here
 
 function pt(p: [number, number]) { return p.join(","); }
 
@@ -42,7 +43,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         className="lvl-badge"
         animate={showGain
           ? {
-              scale: [1, 1.15, 1],
+              scale: [1, 1.12, 1],
               filter: [
                 "drop-shadow(0 0 3px rgba(77,124,15,0.3))",
                 "drop-shadow(0 0 10px rgba(77,124,15,0.75))",
@@ -53,7 +54,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         }
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <svg width="64" height="56" viewBox="0 0 64 56" fill="none">
+        <svg width="120" height="58" viewBox="0 0 120 58" fill="none">
           {/* Open diamond frame: right-gap → right → top → left → left-gap */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
@@ -61,9 +62,9 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
           />
           {/* Level number centered in diamond */}
           <text
-            x="32" y="23"
+            x="60" y="23"
             textAnchor="middle" dominantBaseline="central"
-            fontSize="20" fontWeight="900"
+            fontSize="22" fontWeight="900"
             fill={COLOR}
             style={{ fontFamily: "inherit" }}
           >
@@ -71,11 +72,11 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
           </text>
           {/* УРОВЕНЬ label — sits in the gap at bottom */}
           <text
-            x="32" y="47"
+            x="60" y="50"
             textAnchor="middle" dominantBaseline="central"
-            fontSize="6" fontWeight="700"
+            fontSize="7" fontWeight="700"
             fill={COLOR}
-            letterSpacing="1.5"
+            letterSpacing="2"
             style={{ fontFamily: "inherit" }}
           >
             УРОВЕНЬ
