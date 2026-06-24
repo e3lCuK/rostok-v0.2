@@ -107,6 +107,9 @@ body {
 
 .bank-main-full {
   padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .bank-page {
@@ -494,7 +497,7 @@ body {
 /* ============================
    GAME PAGE
 ==============================*/
-.game-page { display: flex; flex-direction: column; gap: 12px; }
+.game-page { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 16px; }
 
 /* Session counter */
 .session-counter-card {
@@ -549,19 +552,16 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  height: 300px;
+  flex: 1;
+  min-height: 260px;
   position: relative;
   overflow: visible;
   box-shadow: var(--shadow-md);
-  flex-shrink: 0;
 }
 
 .game-area-bg-wrap {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 300px;
+  inset: 0;
   border-radius: inherit;
   overflow: hidden;
   pointer-events: none;
