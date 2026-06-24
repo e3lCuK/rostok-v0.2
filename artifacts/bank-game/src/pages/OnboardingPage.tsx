@@ -8,6 +8,7 @@ interface Props {
 }
 
 export default function OnboardingPage({ onComplete }: Props) {
+  const [selected, setSelected] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -16,8 +17,10 @@ export default function OnboardingPage({ onComplete }: Props) {
   const half = DEFAULT_CAPITAL / 2;
   const dailyStd = calcStandardDaily(half);
   const dailyAct = half * 0.15 / 365;
+  const isSelected = selected === DEFAULT_CAPITAL;
 
   async function handleStart() {
+    if (selected === null) return;
     if (loading) return;
     if (isSubmitting.current) return;
     isSubmitting.current = true;
@@ -76,28 +79,40 @@ export default function OnboardingPage({ onComplete }: Props) {
         </AnimatePresence>
       </div>
 
-      <div className="onboarding-single-card">
-        <div className="onboarding-single-amount">{formatCapital(DEFAULT_CAPITAL)}</div>
-        <div className="onboarding-single-split">50 000 ₽ стандартный + 50 000 ₽ активный</div>
-        <div className="onboarding-single-stats">
-          <div className="capital-stat">
-            <p className="capital-stat-label">В день (стан.)</p>
-            <p className="capital-stat-value">до {dailyStd.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
+      <div className="onboarding-options">
+        <motion.button
+          className={`capital-option${isSelected ? " capital-option-selected" : ""}`}
+          onClick={() => setSelected(DEFAULT_CAPITAL)}
+          whileTap={{ scale: 0.97 }}
+        >
+          <div className="capital-option-header">
+            <div>
+              <p className="capital-option-label">Стандартный</p>
+              <p className="capital-option-amount">{formatCapital(DEFAULT_CAPITAL)}</p>
+            </div>
+            <div className={`capital-option-radio${isSelected ? " capital-option-radio-active" : ""}`} />
           </div>
-          <div className="capital-stat">
-            <p className="capital-stat-label">В день (акт.)</p>
-            <p className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
+          <p className="capital-option-desc">50 000 ₽ стандартный + 50 000 ₽ активный</p>
+          <div className="capital-option-stats">
+            <div className="capital-stat">
+              <p className="capital-stat-label">В день (стан.)</p>
+              <p className="capital-stat-value">до {dailyStd.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
+            </div>
+            <div className="capital-stat">
+              <p className="capital-stat-label">В день (акт.)</p>
+              <p className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
+            </div>
           </div>
-        </div>
+        </motion.button>
       </div>
 
       {error && <p style={{ color: "red", textAlign: "center", fontSize: 14, marginBottom: 8 }}>{error}</p>}
 
       <motion.button
-        className="onboarding-start-btn"
+        className={`onboarding-start-btn${selected === null ? " onboarding-start-btn-disabled" : ""}`}
         onClick={handleStart}
-        disabled={loading}
-        whileTap={{ scale: 0.97 }}
+        disabled={selected === null || loading}
+        whileTap={selected !== null ? { scale: 0.97 } : {}}
       >
         {loading ? "Создание счёта..." : "Открыть счёт"}
       </motion.button>
