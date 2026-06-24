@@ -168,7 +168,6 @@ body {
 .game-bottom-nav-btn:hover { color: #166534; }
 
 .game-bottom-nav-btn-disabled {
-  opacity: 0.35;
   cursor: default;
   pointer-events: none;
 }
