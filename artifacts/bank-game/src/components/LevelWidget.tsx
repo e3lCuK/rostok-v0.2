@@ -11,14 +11,14 @@ interface Props {
 const COLOR = "#4d7c0f";
 const SW = 2;
 
-// Square diamond: cx=30, cy=30, r=26 (equal diagonals → true rhombus)
-// SVG 60×72: diamond 4..56 vertically, label at y=65
-const TOP:   [number, number] = [30,  4];
-const RIGHT: [number, number] = [56, 30];
-const LEFT:  [number, number] = [4,  30];
-// Bottom=(30,56). Gap ~12px before bottom along 45° sides.
-const GAP_R: [number, number] = [38, 48]; // right-bottom side stops here
-const GAP_L: [number, number] = [22, 48]; // left-bottom side stops here
+// Square diamond, r=25: top(30,5), right(55,30), bottom(30,55), left(5,30)
+// "УРОВЕНЬ" uses dominantBaseline="hanging" so its top edge = y=5 = diamond top vertex
+// Open gap at bottom: stop ~8px before bottom point along 45° sides (d = 8/√2 ≈ 5.7)
+const TOP:   [number, number] = [30,  5];
+const RIGHT: [number, number] = [55, 30];
+const LEFT:  [number, number] = [ 5, 30];
+const GAP_R: [number, number] = [36, 49];
+const GAP_L: [number, number] = [24, 49];
 
 function pt(p: [number, number]) { return p.join(","); }
 
@@ -53,32 +53,35 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         }
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <svg width="60" height="72" viewBox="0 0 60 72" fill="none">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
           {/* Open diamond frame: right-gap → right → top → left → left-gap */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
             stroke={COLOR} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
           />
-          {/* Level number — centered in diamond */}
+
+          {/* "УРОВЕНЬ" — top edge at y=5, same as diamond top vertex */}
           <text
-            x="30" y="31"
-            textAnchor="middle" dominantBaseline="central"
-            fontSize="22" fontWeight="900"
-            fill={COLOR}
-            style={{ fontFamily: "inherit" }}
-          >
-            {level}
-          </text>
-          {/* УРОВЕНЬ label — emerges from the open bottom gap */}
-          <text
-            x="30" y="62"
-            textAnchor="middle" dominantBaseline="central"
+            x="30" y="5"
+            textAnchor="middle"
+            dominantBaseline="hanging"
             fontSize="6" fontWeight="700"
             fill={COLOR}
             letterSpacing="1.8"
             style={{ fontFamily: "inherit" }}
           >
             УРОВЕНЬ
+          </text>
+
+          {/* Level number — centered in diamond */}
+          <text
+            x="30" y="32"
+            textAnchor="middle" dominantBaseline="central"
+            fontSize="22" fontWeight="900"
+            fill={COLOR}
+            style={{ fontFamily: "inherit" }}
+          >
+            {level}
           </text>
         </svg>
       </motion.div>
