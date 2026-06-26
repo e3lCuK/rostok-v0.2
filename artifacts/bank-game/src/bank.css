@@ -1064,10 +1064,10 @@ body {
 .progress-widget {
   background: transparent;
   border-radius: 6px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  width: 125px;
+  width: 100%;
+  max-width: 120px;
 }
 
 .progress-row {
@@ -1108,8 +1108,6 @@ body {
   text-align: left;
   font-size: 12px;
   font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .progress-val-unit {
