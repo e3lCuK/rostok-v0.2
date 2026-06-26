@@ -2748,7 +2748,7 @@ body.modal-open {
 .auth-card {
   width: 90%;
   max-width: 400px;
-  background: #d9f7a0;
+  background: #ffffff;
   border-radius: 24px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
   border: 1px solid rgba(100, 160, 40, 0.55);
@@ -3017,7 +3017,7 @@ body.modal-open {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: #d9f7a0;
+  background: #ffffff;
   border-radius: 24px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
   border: 1px solid rgba(100, 160, 40, 0.55);
