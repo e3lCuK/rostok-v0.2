@@ -129,7 +129,11 @@ function Root() {
     );
   }
 
-  if (!user) return <AuthPage />;
+  if (!user) return (
+    <div className="bank-app">
+      <AuthPage />
+    </div>
+  );
   return <AppShell />;
 }
 

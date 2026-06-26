@@ -2737,12 +2737,13 @@ body.modal-open {
    AUTH PAGE (custom login/register)
 ==============================*/
 .auth-page {
-  min-height: 100dvh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafff5;
+  background: var(--bg);
   padding: 24px 16px;
+  overflow-y: auto;
 }
 .auth-card {
   width: 100%;
