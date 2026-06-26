@@ -2727,7 +2727,7 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: #fafff5;
   padding: 16px;
 }
 
@@ -2739,7 +2739,7 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: #fafff5;
   padding: 24px 16px;
 }
 .auth-card {
