@@ -1080,7 +1080,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </button>
         <div className="game-bottom-nav-divider" />
         <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
-          <ShoppingCart size={18} strokeWidth={2.5} />
+          <ShoppingCart size={18} strokeWidth={2.5} fill="none" />
         </button>
       </nav>
 
