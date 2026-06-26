@@ -97,6 +97,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showActivityGhost, setShowActivityGhost] = useState(false);
   const [showGrowthAnim, setShowGrowthAnim] = useState(false);
   const [growthCountdown, setGrowthCountdown] = useState<number | null>(null);
+  const [growthTimerTotal, setGrowthTimerTotal] = useState(9);
   const [showApples, setShowApples] = useState(false);
   const [appleCount, setAppleCount] = useState(1);
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
@@ -373,13 +374,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     pendingXpRef.current = null;
     const scores = sessionScores;
 
-    // Growth animation: 9-second countdown pulse, then strong final pulse, then apples
+    // Growth animation: countdown (1s per mm, clamped 5–20s), then strong final pulse, then apples
+    const timerSecs = Math.max(5, Math.min(20, scores?.mm ?? 9));
     const newAppleCount = Math.floor(Math.random() * 3) + 1;
     setAppleCount(newAppleCount);
     setShowApples(false);
     setShowGrowthAnim(true);
-    setGrowthCountdown(9);
-    let countVal = 8;
+    setGrowthTimerTotal(timerSecs);
+    setGrowthCountdown(timerSecs);
+    let countVal = timerSecs - 1;
     const growthInterval = setInterval(() => {
       if (countVal >= 0) {
         setGrowthCountdown(countVal--);
@@ -917,13 +920,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <AnimatePresence>
           {growthCountdown !== null && (
             <motion.div
-              key={growthCountdown}
-              className="growth-countdown"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: [0, 1, 1, 0], scale: [0.5, 1.1, 1, 0.9] }}
-              transition={{ duration: 0.95, times: [0, 0.15, 0.55, 1] }}
+              className="growth-timer"
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -6 }}
+              transition={{ duration: 0.3 }}
             >
-              {growthCountdown}
+              <div className="growth-timer-row">
+                <div
+                  className="growth-timer-bar"
+                  style={{ width: `${((growthTimerTotal - growthCountdown) / growthTimerTotal) * 100}%` }}
+                />
+                <span className="growth-timer-leaf"><Leaf size={13} /></span>
+                <span className="growth-timer-time">
+                  {String(Math.floor(growthCountdown / 60)).padStart(2, '0')}:{String(growthCountdown % 60).padStart(2, '0')}
+                </span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -974,16 +986,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 >
                   <div className="action-buttons-row activities-disabled">
                     {([
-                      { key: "water", icon: <Droplets size={22} />, label: "Вода", oy: 80 },
-                      { key: "sun",   icon: <Sun size={22} />,      label: "Свет", oy: 0 },
-                      { key: "fertilizer", icon: <Leaf size={22} />, label: "Удобрение", oy: -80 },
+                      { key: "water",       icon: <Droplets size={22} />, ox: -72 },
+                      { key: "sun",         icon: <Sun size={22} />,      ox: 0   },
+                      { key: "fertilizer",  icon: <Leaf size={22} />,     ox: 72  },
                     ]).map((btn, i) => (
                       <motion.div
                         key={btn.key}
                         className="action-btn-bank"
-                        initial={{ opacity: 0, y: btn.oy, scale: 0 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 320, damping: 24, delay: 0 }}
+                        initial={{ opacity: 0, x: btn.ox, scale: 0.2 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 22, delay: i * 0.07 }}
                       >
                         <div className="action-btn-content">
                           {btn.icon}
