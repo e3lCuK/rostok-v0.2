@@ -163,6 +163,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   const floaterRef = useRef(0);
   const stateRef = useRef(state);
+  const appleAutoCollectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const collectedAppleIndicesRef = useRef<number[]>([]);
+  const appleCountRef = useRef(1);
   useEffect(() => { stateRef.current = state; }, [state]);
   const pendingXpRef = useRef<{ xpGained: number; newLevel?: number; xpHistory?: unknown[]; levelUp?: boolean; newMM: number; newRemainder: number } | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -325,37 +328,47 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     });
   }
 
-  function handleAppleClick(appleIdx: number) {
-    setCollectedAppleIndices(prev => {
-      if (prev.includes(appleIdx)) return prev;
-      const next = [...prev, appleIdx];
+  function claimApplesAndIncome(remaining: number) {
+    if (appleAutoCollectTimerRef.current) {
+      clearTimeout(appleAutoCollectTimerRef.current);
+      appleAutoCollectTimerRef.current = null;
+    }
+    const cur = stateRef.current;
+    const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
+    if (total > 0) {
+      setLastIncomeAmount(total);
+      setShowIncomePopup(true);
+      setTimeout(() => setShowIncomePopup(false), 1500);
+    }
+    setShowApplePopup(true);
+    setTimeout(() => setShowApplePopup(false), 1200);
+    setTotalApples(t => t + remaining);
+    setHistoryHighlight(true);
+    setTimeout(() => setHistoryHighlight(false), 2800);
+    setShowRewards(true);
+    void handleClaimAll();
+    setTimeout(() => {
+      setShowApples(false);
+      collectedAppleIndicesRef.current = [];
+      setCollectedAppleIndices([]);
+    }, 600);
+  }
 
-      // Show +1 apple popup
+  function handleAppleClick(appleIdx: number) {
+    if (collectedAppleIndicesRef.current.includes(appleIdx)) return;
+    const next = [...collectedAppleIndicesRef.current, appleIdx];
+    collectedAppleIndicesRef.current = next;
+    setCollectedAppleIndices(next);
+
+    if (next.length < appleCountRef.current) {
+      // Intermediate apple — just +1 popup
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1200);
       setTotalApples(t => t + 1);
-
-      if (next.length === appleCount) {
-        // Last apple — trigger income
-        const cur = stateRef.current;
-        const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
-        if (total > 0) {
-          setLastIncomeAmount(total);
-          setShowIncomePopup(true);
-          setTimeout(() => setShowIncomePopup(false), 1500);
-        }
-        setHistoryHighlight(true);
-        setTimeout(() => setHistoryHighlight(false), 2800);
-        setShowRewards(true);
-        void handleClaimAll();
-        setTimeout(() => {
-          setShowApples(false);
-          setCollectedAppleIndices([]);
-        }, 600);
-      }
-
-      return next;
-    });
+    } else {
+      // Last apple — claim income
+      claimApplesAndIncome(1);
+    }
   }
 
   function addTreeGrowthMm(mm: number) {
@@ -390,7 +403,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowGrowthAnim(false);
       setGrowthCountdown(null);
       setShowApples(false);
+      collectedAppleIndicesRef.current = [];
       setCollectedAppleIndices([]);
+      if (appleAutoCollectTimerRef.current) {
+        clearTimeout(appleAutoCollectTimerRef.current);
+        appleAutoCollectTimerRef.current = null;
+      }
       onStateChange({
         ...state,
         game: { ...game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
@@ -445,6 +463,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       .reduce<number>((s, p) => s + (p ?? 0), 0)) / 3;
     const newAppleCount = avgPct >= 90 ? 3 : avgPct >= 70 ? 2 : 1;
     setAppleCount(newAppleCount);
+    appleCountRef.current = newAppleCount;
     setShowApples(false);
     setShowGrowthAnim(true);
     setGrowthTimerTotal(timerSecs);
@@ -478,7 +497,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         // Step 6 — яблоки через 1800ms после вспышки (доход — при сборе последнего яблока)
         const appleTimer = setTimeout(() => {
           setShowGrowthAnim(false);
+          collectedAppleIndicesRef.current = [];
+          setCollectedAppleIndices([]);
           setShowApples(true);
+          // Автосбор через 60 секунд если пользователь не собрал
+          appleAutoCollectTimerRef.current = setTimeout(() => {
+            appleAutoCollectTimerRef.current = null;
+            const remaining = appleCountRef.current - collectedAppleIndicesRef.current.length;
+            if (remaining > 0) claimApplesAndIncome(remaining);
+          }, 60000);
         }, 1800);
         growthTimeoutsRef.current.push(appleTimer);
       }
@@ -661,8 +688,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     try {
       const result = await api.claimAll();
       const total = result.totalAmount ?? 0;
-      const rect = gameAreaRef.current?.getBoundingClientRect();
-      addFloater(`+${formatRub(total)}`, (rect?.width ?? 200) / 2, 40);
       const cur = stateRef.current;
       const today = new Date().toLocaleDateString("ru-RU");
       const newHistory = [...cur.history];
