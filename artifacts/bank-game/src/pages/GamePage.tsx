@@ -837,7 +837,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                +{applePopupCount} ябл.
+                +{applePopupCount} ябл
               </motion.div>
             )}
           </AnimatePresence>
