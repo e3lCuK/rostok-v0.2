@@ -581,9 +581,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
   return (
     <div className="game-page">
-      {/* Tree + game area */}
-      <div className="game-area" ref={gameAreaRef}>
-        <div className="game-area-top-strip" />
+      {/* TOP BAR — separate block, never overlaps play field */}
+      <div className="game-top-bar">
         <span className="game-beta-floating">{APP_VERSION}</span>
         <div className="game-session-status">
           <div className="game-top-controls">
@@ -630,6 +629,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             )}
           </div>
         </div>
+      </div>
+
+      {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
+      <div className="game-area" ref={gameAreaRef}>
         <GameAreaBg />
 
         {floaters.map(fl => (

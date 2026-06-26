@@ -584,11 +584,33 @@ body {
 .session-ready-text { font-size: 0.78rem; font-weight: 700; color: var(--green); text-align: center; width: 100%; }
 .session-earn-hint { font-size: 0.65rem; color: var(--text3); margin-top: 6px; }
 
-/* Game area */
+/* Top bar — separate block above play field */
+.game-top-bar {
+  flex-shrink: 0;
+  height: 90px;
+  background: var(--bg);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 1px solid rgba(100, 160, 40, 0.18);
+  position: relative;
+}
+.game-top-bar::before,
+.game-top-bar::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  height: 66px;
+  width: 1px;
+  background: rgba(100, 160, 40, 0.55);
+  z-index: 2;
+  pointer-events: none;
+}
+.game-top-bar::before { left: calc(50% - 58px); }
+.game-top-bar::after  { left: calc(50% + 58px); }
+
+/* Game area — pure play field */
 .game-area {
   background: linear-gradient(160deg, #d4edaa 0%, #b8de74 40%, #f5e87c 100%);
-  border-radius: var(--radius) var(--radius) 0 0;
-  padding: 16px 20px 50px;
+  padding: 0 20px 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -599,30 +621,7 @@ body {
   overflow: hidden;
 }
 .game-area::before,
-.game-area::after {
-  content: '';
-  position: absolute;
-  top: 12px;
-  height: 66px;
-  width: 1px;
-  background: rgba(100, 160, 40, 0.55);
-  z-index: 2;
-  pointer-events: none;
-}
-.game-area::before { left: calc(50% - 58px); }
-.game-area::after  { left: calc(50% + 58px); }
-
-.game-area-top-strip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 90px;
-  background: var(--bg);
-  border-radius: var(--radius) var(--radius) 0 0;
-  z-index: 1;
-  pointer-events: none;
-}
+.game-area::after { content: none; }
 
 .game-session-status {
   position: absolute;
@@ -659,9 +658,9 @@ body {
 
 .game-beta-floating {
   position: absolute;
-  top: 94px;
-  right: 10px;
-  left: auto;
+  top: 6px;
+  left: 10px;
+  right: auto;
   font-size: 0.56rem;
   font-weight: 400;
   color: rgba(120, 140, 100, 0.65);
