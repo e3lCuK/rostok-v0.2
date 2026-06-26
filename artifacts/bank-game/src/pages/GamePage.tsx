@@ -203,6 +203,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const pbo = state.game.pendingBonusReward ?? 0;
     if (pb === 0 && pbo === 0 && showCompletionStage) {
       setShowCompletionStage(false);
+      setShowRewards(false);
       setFadeActivities(false);
     }
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
@@ -210,7 +211,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   useEffect(() => {
     if (!autoClaimedOnLoadRef.current && hasPendingInit && notInSessionInit) {
       autoClaimedOnLoadRef.current = true;
-      setTimeout(() => handleClaimAll(), 600);
+      const total = (state.game.pendingBaseReward ?? 0) + (state.game.pendingBonusReward ?? 0);
+      setTimeout(() => {
+        if (total > 0) {
+          setLastIncomeAmount(total);
+          setShowIncomePopup(true);
+          setTimeout(() => setShowIncomePopup(false), 1500);
+        }
+        void handleClaimAll();
+      }, 600);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
