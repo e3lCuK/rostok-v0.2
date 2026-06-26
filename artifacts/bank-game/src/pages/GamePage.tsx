@@ -215,6 +215,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setTimeout(() => {
         if (total > 0) {
           setLastIncomeAmount(total);
+          // На перезагрузке показываем только доход (без яблок — количество неизвестно)
+          setApplePopupCount(0);
           setShowIncomePopup(true);
           setTimeout(() => setShowIncomePopup(false), 1500);
         }
@@ -848,7 +850,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                <span className="topbar-reward-popup-apple">+{applePopupCount} ябл.</span>
+                {applePopupCount > 0 && <span className="topbar-reward-popup-apple">+{applePopupCount} ябл.</span>}
                 <span className="topbar-reward-popup-income">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
               </motion.div>
             )}
