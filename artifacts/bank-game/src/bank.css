@@ -3028,6 +3028,13 @@ body.modal-open {
 
 .onboarding-icon { font-size: 3rem; }
 
+.onboarding-tagline {
+  font-size: 0.72rem;
+  color: #5a7a40;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .onboarding-title {
   font-size: 1.4rem;
   font-weight: 800;

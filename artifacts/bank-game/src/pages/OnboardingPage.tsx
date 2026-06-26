@@ -38,7 +38,10 @@ export default function OnboardingPage({ onComplete }: Props) {
       <div className="onboarding-center">
         <div className="onboarding-header">
           <span className="onboarding-icon">🌳</span>
-          <h1 className="onboarding-title">Открыть демо-счёт</h1>
+          <div>
+            <h1 className="onboarding-title">Открыть демо-счёт</h1>
+            <p className="onboarding-tagline">Растите капитал играючи</p>
+          </div>
         </div>
 
         <p className="onboarding-info-text">
