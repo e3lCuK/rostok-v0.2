@@ -1072,15 +1072,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
       <nav className="game-bottom-nav">
         <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
-          <Trophy size={18} />
+          <Trophy size={18} fill="currentColor" stroke="none" />
         </button>
         <div className="game-bottom-nav-divider" />
         <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
-          <Medal size={18} />
+          <Medal size={18} fill="currentColor" stroke="none" />
         </button>
         <div className="game-bottom-nav-divider" />
         <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
-          <ShoppingCart size={18} />
+          <ShoppingCart size={18} fill="currentColor" stroke="none" />
         </button>
       </nav>
 
