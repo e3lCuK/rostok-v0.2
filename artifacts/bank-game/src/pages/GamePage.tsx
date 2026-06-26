@@ -929,7 +929,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 ? Math.max(0, Math.min(1, 1 - msLeft / SESSION_COOLDOWN_MS))
                 : game.sessionInProgress ? 1 : 1;
               const fillW = Math.max(0, Math.round(34 * charge));
-              const fillColor = charge < 0.25 ? "#ef4444" : charge < 0.6 ? "#f59e0b" : "#22c55e";
+              const fillColor = "#888";
               return (
                 <svg className="battery-svg" width="46" height="16" viewBox="0 0 46 16" fill="none">
                   <rect x="1" y="2" width="38" height="12" rx="2.5" fill="transparent" stroke="#111" strokeWidth="1.5"/>
