@@ -107,17 +107,17 @@ export default function SettingsWidget({ onClose, onOpenDailyReward, dailyAvaila
     <div className="settings-widget">
       <div className="settings-icon-row">
         <button className="settings-action-btn settings-bell-btn" onClick={onOpenDailyReward} title="Ежедневные награды">
-          <Bell size={14} />
+          <Bell size={11} />
           {dailyAvailable && <span className="settings-bell-dot" />}
         </button>
         <button className="settings-action-btn" onClick={() => setPanel("email")} title="Почта">
-          <Mail size={14} />
+          <Mail size={11} />
         </button>
         <button className="settings-action-btn" onClick={() => setPanel("password")} title="Пароль">
-          <Lock size={14} />
+          <Lock size={11} />
         </button>
         <button className="settings-action-btn settings-action-logout" onClick={() => logout()} title="Выйти">
-          <LogOut size={14} />
+          <LogOut size={11} />
         </button>
       </div>
     </div>
