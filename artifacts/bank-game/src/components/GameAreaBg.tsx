@@ -41,8 +41,8 @@ export default function GameAreaBg() {
           <path d="M145 92 Q148 88 151 92" />
         </g>
 
-        {/* Butterfly — mid-field */}
-        <g transform="translate(250,370)">
+        {/* Butterfly — upper area, stays in sky regardless of container height */}
+        <g transform="translate(250,200)">
           <g className="bg-butterfly">
             <path d="M0,0 Q-10,-12 -18,-4 Q-10,4 0,0" fill="#fb923c" />
             <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0" fill="#fb923c" />
