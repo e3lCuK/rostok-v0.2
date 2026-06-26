@@ -357,7 +357,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
     setShowRewards(true);
-    void handleClaimAll(remaining);
+    // Save ALL apples from this session (not just uncollected remaining)
+    void handleClaimAll(appleCountRef.current);
     setTimeout(() => {
       setShowApples(false);
       collectedAppleIndicesRef.current = [];
