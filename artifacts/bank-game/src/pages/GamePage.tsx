@@ -1361,8 +1361,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   <div className="xp-leaderboard-list">
                     {sorted.map((p, i) => (
                       <div key={p.nickname} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
-                        <span className={`xp-lb-rank${i < 3 ? ` xp-lb-rank-top${i + 1}` : ""}`}>
-                          {i < 3 ? ["🥇","🥈","🥉"][i] : `#${i + 1}`}
+                        <span className="xp-lb-rank">
+                          #{i + 1}
                         </span>
                         <div className="xp-lb-info">
                           <span className="xp-lb-nick">{p.nickname}{p.isMe ? " (я)" : ""}</span>
