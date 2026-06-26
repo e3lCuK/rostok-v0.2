@@ -1021,24 +1021,29 @@ body {
 }
 
 @keyframes tree-growth-pulse {
-  0%, 100% { filter: drop-shadow(0 0 0px rgba(100, 200, 60, 0)); }
-  50% { filter: drop-shadow(0 0 16px rgba(100, 200, 60, 0.6)); }
+  0%, 100% {
+    filter: drop-shadow(0 0 0px rgba(100, 200, 60, 0));
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(100, 200, 60, 0.5));
+    transform: translateX(-50%) scale(1.04);
+  }
 }
 .game-tree-wrap.tree-growing {
-  animation: tree-growth-pulse 1.4s ease-in-out infinite;
+  animation: tree-growth-pulse 1.2s ease-in-out infinite;
 }
 
 .growth-countdown {
   position: absolute;
-  left: calc(50% + 100px);
-  bottom: 90px;
-  font-size: 32px;
-  font-weight: 800;
-  color: #4a7c2f;
+  left: calc(50% + 50px);
+  bottom: 130px;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(74, 124, 47, 0.45);
   line-height: 1;
   pointer-events: none;
   z-index: 10;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
 .tree-apples-overlay {

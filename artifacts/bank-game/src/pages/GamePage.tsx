@@ -387,7 +387,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setGrowthCountdown(9);
     let countVal = 8;
     const growthInterval = setInterval(() => {
-      if (countVal > 0) {
+      if (countVal >= 0) {
         setGrowthCountdown(countVal--);
       } else {
         clearInterval(growthInterval);
