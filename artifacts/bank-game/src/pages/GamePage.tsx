@@ -647,6 +647,30 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
         {/* Col 3: Энергия */}
         <div className="game-topbar-col">
+          <div className="game-top-controls">
+            <div ref={settingsRef} className="game-gear-wrap">
+              <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
+                <Settings size={14} />
+              </button>
+              <AnimatePresence>
+                {showSettings && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 6, scale: 0.97 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ position: "absolute", right: "calc(100% + 4px)", top: 0, zIndex: 100 }}
+                  >
+                    <SettingsWidget
+                      onClose={() => setShowSettings(false)}
+                      onOpenDailyReward={() => { setShowSettings(false); setShowStreakWidget(true); }}
+                      dailyAvailable={localStorage.getItem("streak_widget_date") !== new Date().toISOString().slice(0, 10)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
           <div className="game-session-status">
             <div className={`session-status-badge ${showCompletionStage && !showRewards ? "session-status-ready" : locked ? "session-status-locked" : "session-status-ready"}`}>
               {game.sessionInProgress || (showCompletionStage && !showRewards) ? "В процессе" : locked ? "Перезарядка" : "Готова"}
@@ -674,30 +698,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
         <span className="game-beta-floating">{APP_VERSION}</span>
-        <div className="game-top-controls">
-          <div ref={settingsRef} className="game-gear-wrap">
-            <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
-              <Settings size={14} />
-            </button>
-            <AnimatePresence>
-              {showSettings && (
-                <motion.div
-                  initial={{ opacity: 0, x: 6, scale: 0.97 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: 6, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
-                  style={{ position: "absolute", right: "calc(100% + 4px)", top: 0, zIndex: 100 }}
-                >
-                  <SettingsWidget
-                    onClose={() => setShowSettings(false)}
-                    onOpenDailyReward={() => { setShowSettings(false); setShowStreakWidget(true); }}
-                    dailyAvailable={localStorage.getItem("streak_widget_date") !== new Date().toISOString().slice(0, 10)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
         <GameAreaBg />
 
         {floaters.map(fl => (
