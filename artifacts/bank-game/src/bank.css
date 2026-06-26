@@ -2742,12 +2742,12 @@ body.modal-open {
   align-items: flex-start;
   justify-content: center;
   background: var(--bg);
-  padding: 10dvh 16px 24px;
+  padding: 10dvh 8px 24px;
   overflow-y: auto;
 }
 .auth-card {
-  width: 100%;
-  max-width: 360px;
+  width: 90%;
+  max-width: 400px;
   background: #d9f7a0;
   border-radius: 24px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
@@ -3004,16 +3004,16 @@ body.modal-open {
 .onboarding-page {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background: var(--bg);
-  padding: 24px 16px;
+  padding: 10dvh 8px 24px;
   overflow-y: auto;
 }
 
 .onboarding-center {
-  width: 100%;
-  max-width: 360px;
+  width: 90%;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -3038,6 +3038,7 @@ body.modal-open {
   font-size: 0.72rem;
   color: #5a7a40;
   font-weight: 500;
+  font-style: italic;
   margin-top: 2px;
   text-align: center;
 }
