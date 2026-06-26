@@ -918,7 +918,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               ) : !game.sessionInProgress ? (
                 <span>
                   <span style={{ fontWeight: 700 }}>×{storedSessions}</span>
-                  {' '}<span style={{ fontWeight: 700 }}>сессии</span>
+                  {' '}<span style={{ fontWeight: 700 }}>{
+                    storedSessions % 100 >= 11 && storedSessions % 100 <= 19 ? "сессий"
+                    : storedSessions % 10 === 1 ? "сессия"
+                    : storedSessions % 10 >= 2 && storedSessions % 10 <= 4 ? "сессии"
+                    : "сессий"
+                  }</span>
                 </span>
               ) : (
                 <span>Осталось: {actionsLeft}</span>
