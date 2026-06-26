@@ -7,10 +7,10 @@ interface TreeSVGProps {
 
 const STAGE_DIMS: [number, number][] = [
   [100,  97],
-  [105, 117],
-  [140, 138],
-  [158, 168],
-  [178, 194],
+  [115, 150],
+  [148, 180],
+  [168, 215],
+  [188, 232],
 ];
 
 export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
@@ -27,7 +27,7 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       <ellipse cx="100" cy="172" rx="10" ry="10" fill="#83c97d" />
     </svg>,
     // Stage 1 — small tree
-    <svg key={1} viewBox="52 133 96 107" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={1} viewBox="52 115 96 125" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
       <g transform="translate(25, 56) scale(0.75)">
         <ellipse cx="100" cy="232" rx="60" ry="9" fill="#c4a882" opacity="0.4" />
         <rect x="95" y="165" width="10" height="68" rx="4" fill="#8B6340" />
@@ -39,7 +39,7 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>,
     // Stage 2 — medium tree
-    <svg key={2} viewBox="28 98 144 142" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={2} viewBox="28 65 144 175" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
       <g transform="translate(25, 56) scale(0.75)">
         <ellipse cx="100" cy="234" rx="68" ry="10" fill="#b89870" opacity="0.4" />
         <rect x="92" y="130" width="16" height="106" rx="5" fill="#7a5330" />
@@ -55,7 +55,7 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>,
     // Stage 3 — tall tree
-    <svg key={3} viewBox="18 66 164 174" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={3} viewBox="18 30 164 210" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
       <g transform="translate(25, 56) scale(0.75)">
         <ellipse cx="100" cy="236" rx="76" ry="11" fill="#a08060" opacity="0.4" />
         <rect x="89" y="98" width="22" height="140" rx="6" fill="#6b4423" />
@@ -75,7 +75,7 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>,
     // Stage 4 — mighty tree
-    <svg key={4} viewBox="8 40 184 200" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={4} viewBox="8 13 184 227" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
       <g transform="translate(25, 56) scale(0.75)">
         <ellipse cx="100" cy="238" rx="88" ry="13" fill="#8B6340" opacity="0.38" />
         <path d="M90 226 Q76 234 56 238" stroke="#5a3a1a" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
