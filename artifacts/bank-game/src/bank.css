@@ -1238,12 +1238,27 @@ body.modal-open {
   letter-spacing: 0.02em;
 }
 
-.reward-popup-mm {
+.reward-popup-field {
   position: absolute;
-  top: calc(100% + 2px);
   left: 0;
   right: 0;
+  bottom: 120px;
   text-align: center;
+  font-size: 0.88rem;
+  font-weight: 800;
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.18);
+  z-index: 30;
+}
+.reward-popup-field-mm {
+  color: #15803d;
+  bottom: 150px;
+}
+.reward-popup-field-xp {
+  color: #b45309;
+  bottom: 120px;
 }
 .level-widget-wrap {
   position: relative;
