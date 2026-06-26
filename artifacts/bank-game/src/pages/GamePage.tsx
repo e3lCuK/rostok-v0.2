@@ -193,7 +193,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       setMerging(false);
       setShowCareButton(false);
       setCareClicked(false);
-      setShowActivityGhost(false);
       return;
     }
     const t1 = setTimeout(() => setMerging(true), 2200);
@@ -333,6 +332,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       setFertilizerResultPct(null);
       setShowCompletionStage(false);
       setShowRewards(false);
+      setShowActivityGhost(false);
       setFadeActivities(false);
       onStateChange({
         ...state,
@@ -756,7 +756,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
 
         <div className="session-actions-wrap">
-        {!game.sessionInProgress && !showCompletionStage && !showRewards ? (
+        {!game.sessionInProgress && !showCompletionStage && !showRewards && !showActivityGhost ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={locked ? "cooldown" : "ready"}
@@ -788,7 +788,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               </div>
             </motion.div>
           </AnimatePresence>
-        ) : showRewards ? null : (
+        ) : (
           <AnimatePresence mode="wait">
               {showActivityGhost ? (
                 <motion.div
@@ -820,7 +820,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                     ))}
                   </div>
                 </motion.div>
-              ) : showCareButton ? (
+              ) : showCareButton && !showRewards ? (
                 <motion.div
                   key="care-btn"
                   className="session-actions"
@@ -846,7 +846,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                     <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
                   </div>
                 </motion.div>
-              ) : (
+              ) : showRewards ? null : (
                 <motion.div
                   key="activity-btns"
                   className={`session-actions ${fadeActivities ? "activities-fade" : ""}${showCompletionStage && !merging ? " session-actions-ready" : ""}`}
