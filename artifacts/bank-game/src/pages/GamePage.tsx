@@ -1202,6 +1202,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
       </div>
 
+      <div className="game-nav-h-divider" />
       <nav className="game-bottom-nav">
         <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
           <Trophy size={18} strokeWidth={2.5} />

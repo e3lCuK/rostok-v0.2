@@ -178,6 +178,13 @@ body {
   flex-shrink: 0;
 }
 
+.game-nav-h-divider {
+  width: 100%;
+  height: 2px;
+  background: rgba(100, 160, 40, 0.55);
+  flex-shrink: 0;
+}
+
 .bank-nav-btn {
   flex: 1;
   display: flex;
