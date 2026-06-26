@@ -1543,7 +1543,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               onClick={e => e.stopPropagation()}
             >
               <div className="help-modal-header">
-                <h3 className="help-modal-title"><ScrollText size={18} style={{ marginRight: 7, verticalAlign: "middle", position: "relative", top: -1 }} /> История начислений</h3>
+                <h3 className="help-modal-title"><ScrollText size={18} style={{ color: "#c9920a", flexShrink: 0 }} /> История начислений</h3>
                 <button className="help-modal-close" onClick={() => setShowDepositInfo(false)}>
                   <X size={18} />
                 </button>

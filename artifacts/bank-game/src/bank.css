@@ -2047,6 +2047,9 @@ body.modal-open {
   font-size: 1.05rem;
   font-weight: 700;
   color: #365314;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .help-modal-close {
