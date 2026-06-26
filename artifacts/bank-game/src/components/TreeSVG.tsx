@@ -5,7 +5,7 @@ interface TreeSVGProps {
   size?: number;
 }
 
-const STAGE_DIMS: [number, number][] = [
+export const STAGE_DIMS: [number, number][] = [
   [100,  97],
   [115, 150],
   [148, 180],

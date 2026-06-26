@@ -18,7 +18,7 @@ import {
 } from "@/lib/engine";
 import { api, type LeaderboardPlayer } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import TreeSVG from "@/components/TreeSVG";
+import TreeSVG, { STAGE_DIMS } from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
@@ -52,6 +52,15 @@ const TREE_STAGE_DATA = [
   { emoji: "🌲", from: 8500, fromFmt: "8.50 м",  toFmt: null      },
 ];
 
+const APPLE_POSITIONS: [number, number][][] = [
+  [[44, 22], [54, 30], [48, 38]],
+  [[40, 27], [58, 23], [50, 37]],
+  [[35, 24], [60, 21], [50, 34]],
+  [[32, 21], [62, 19], [50, 31]],
+  [[30, 21], [64, 19], [50, 29]],
+];
+const APPLE_SIZES = [4, 5, 6, 7, 8];
+
 export default function GamePage({ state, onStateChange, notif, onClearNotif }: Props) {
   const { user, logout, updateNickname } = useAuth();
   const [now, setNow] = useState(Date.now());
@@ -84,6 +93,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const [showMmPopup, setShowMmPopup] = useState(false);
   const [careClicked, setCareClicked] = useState(false);
   const [showActivityGhost, setShowActivityGhost] = useState(false);
+  const [showGrowthAnim, setShowGrowthAnim] = useState(false);
+  const [growthCountdown, setGrowthCountdown] = useState<number | null>(null);
+  const [showApples, setShowApples] = useState(false);
+  const [appleCount, setAppleCount] = useState(1);
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
@@ -152,6 +165,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
   const fertilizerScoreRef = useRef<number>(40);
   const treeControls = useAnimation();
   const animFrameRef = useRef<number | null>(null);
+  const growthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const growthTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const displayGrowthMMRef = useRef(state.game.treeGrowthMM ?? 0);
   const [displayGrowthMM, setDisplayGrowthMM] = useState(state.game.treeGrowthMM ?? 0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -334,6 +349,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       setShowRewards(false);
       setShowActivityGhost(false);
       setFadeActivities(false);
+      if (growthIntervalRef.current) { clearInterval(growthIntervalRef.current); growthIntervalRef.current = null; }
+      growthTimeoutsRef.current.forEach(clearTimeout);
+      growthTimeoutsRef.current = [];
+      setShowGrowthAnim(false);
+      setGrowthCountdown(null);
+      setShowApples(false);
       onStateChange({
         ...state,
         game: { ...game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
@@ -355,6 +376,38 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     const px = pendingXpRef.current;
     pendingXpRef.current = null;
     const scores = sessionScores;
+
+    // Growth animation: 9-second countdown pulse, then strong final pulse, then apples
+    const newAppleCount = Math.floor(Math.random() * 3) + 1;
+    setAppleCount(newAppleCount);
+    setShowApples(false);
+    setShowGrowthAnim(true);
+    setGrowthCountdown(9);
+    let countVal = 8;
+    const growthInterval = setInterval(() => {
+      if (countVal > 0) {
+        setGrowthCountdown(countVal--);
+      } else {
+        clearInterval(growthInterval);
+        growthIntervalRef.current = null;
+        setGrowthCountdown(null);
+        void treeControls.start({
+          scale: [1, 1.22, 1],
+          filter: [
+            "drop-shadow(0 0 0px rgba(80,200,60,0))",
+            "drop-shadow(0 0 30px rgba(80,200,60,0.85))",
+            "drop-shadow(0 0 0px rgba(80,200,60,0))",
+          ],
+          transition: { duration: 1.0, ease: "easeInOut" },
+        });
+        const appleTimer = setTimeout(() => {
+          setShowGrowthAnim(false);
+          setShowApples(true);
+        }, 2000);
+        growthTimeoutsRef.current.push(appleTimer);
+      }
+    }, 1000);
+    growthIntervalRef.current = growthInterval;
 
     // Step 1 — immediately show +XP and +мм popups; freeze care button
     setCareClicked(true);
@@ -714,7 +767,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           )}
         </AnimatePresence>
 
-        <div className="game-tree-wrap">
+        <div className={`game-tree-wrap${showGrowthAnim ? " tree-growing" : ""}`}>
           <motion.div animate={treeControls} style={{ display: "inline-block" }}>
             <div className={`tree-wrapper${isTransitioning ? " transitioning" : ""}`}>
               {isTransitioning && <div className="tree-cloud" />}
@@ -752,7 +805,44 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               ))}
             </div>
           )}
+          <AnimatePresence>
+            {showApples && (
+              <div
+                className="tree-apples-overlay"
+                style={{ width: STAGE_DIMS[currentStage][0], height: STAGE_DIMS[currentStage][1] }}
+              >
+                {Array.from({ length: appleCount }, (_, i) => {
+                  const [xPct, yPct] = APPLE_POSITIONS[currentStage][i];
+                  const r = APPLE_SIZES[currentStage];
+                  return (
+                    <motion.div
+                      key={i}
+                      className="tree-apple"
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
+                      style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </AnimatePresence>
         </div>
+
+        <AnimatePresence>
+          {growthCountdown !== null && (
+            <motion.div
+              key={growthCountdown}
+              className="growth-countdown"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: [0, 1, 1, 0], scale: [0.5, 1.1, 1, 0.9] }}
+              transition={{ duration: 0.95, times: [0, 0.15, 0.55, 1] }}
+            >
+              {growthCountdown}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
 
         <div className="session-actions-wrap">

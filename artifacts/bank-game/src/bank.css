@@ -1020,6 +1020,42 @@ body {
   z-index: 5;
 }
 
+@keyframes tree-growth-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(100, 200, 60, 0)); }
+  50% { filter: drop-shadow(0 0 16px rgba(100, 200, 60, 0.6)); }
+}
+.game-tree-wrap.tree-growing {
+  animation: tree-growth-pulse 1.4s ease-in-out infinite;
+}
+
+.growth-countdown {
+  position: absolute;
+  left: calc(50% + 100px);
+  bottom: 90px;
+  font-size: 32px;
+  font-weight: 800;
+  color: #4a7c2f;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 10;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.tree-apples-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 6;
+}
+.tree-apple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ff7070, #b91c1c);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.18);
+}
+
 .progress-widget {
   background: transparent;
   border-radius: 6px;
