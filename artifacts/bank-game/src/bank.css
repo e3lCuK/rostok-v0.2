@@ -589,7 +589,6 @@ body {
   flex-shrink: 0;
   height: 90px;
   background: var(--bg);
-  border-radius: var(--radius) var(--radius) 0 0;
   border-bottom: 1px solid rgba(100, 160, 40, 0.18);
   position: relative;
 }
