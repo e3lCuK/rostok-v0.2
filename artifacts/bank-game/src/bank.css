@@ -603,17 +603,8 @@ body {
 }
 .game-area::before,
 .game-area::after {
-  content: '';
-  position: absolute;
-  top: 12px;
-  height: 66px;
-  width: 1px;
-  background: rgba(100, 160, 40, 0.55);
-  z-index: 2;
-  pointer-events: none;
+  content: none;
 }
-.game-area::before { left: calc(50% - 58px); }
-.game-area::after  { left: calc(50% + 58px); }
 
 .game-area-top-strip {
   position: absolute;
@@ -2206,13 +2197,14 @@ body.modal-open {
 /* Action buttons */
 .session-actions-wrap {
   position: absolute;
-  top: 100px;
-  left: 0;
-  right: 0;
+  top: 50%;
+  left: 12px;
+  right: auto;
+  transform: translateY(-50%);
   z-index: 15;
   display: flex;
-  justify-content: center;
-  padding: 8px 20px 0;
+  justify-content: flex-start;
+  padding: 0;
 }
 
 .session-actions {
@@ -2298,8 +2290,9 @@ body.modal-open {
 
 .action-buttons-row {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  justify-content: center;
+  align-items: center;
 }
 
 .action-btn-bank {
