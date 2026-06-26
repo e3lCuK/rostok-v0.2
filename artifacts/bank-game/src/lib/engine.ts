@@ -88,10 +88,10 @@ export function getTreeProgressFromMM(mm: number): number {
 // Stage based on accumulated mm — same thresholds as before but in mm units
 // (0%, 5%, 20%, 50%, 85%) × 10 000 mm
 export function getTreeStage(mm: number): 0 | 1 | 2 | 3 | 4 {
-  if (mm < 500)  return 0;
-  if (mm < 2000) return 1;
-  if (mm < 5000) return 2;
-  if (mm < 8500) return 3;
+  if (mm < 50)  return 0;
+  if (mm < 200) return 1;
+  if (mm < 500) return 2;
+  if (mm < 850) return 3;
   return 4;
 }
 

@@ -47,11 +47,11 @@ interface Floater {
 }
 
 const TREE_STAGE_DATA = [
-  { emoji: "🌱", from: 0,    fromFmt: "0 мм",    toFmt: "49.9 см" },
-  { emoji: "🌿", from: 500,  fromFmt: "50.0 см", toFmt: "1.99 м"  },
-  { emoji: "🌴", from: 2000, fromFmt: "2.00 м",  toFmt: "4.99 м"  },
-  { emoji: "🌳", from: 5000, fromFmt: "5.00 м",  toFmt: "8.49 м"  },
-  { emoji: "🌲", from: 8500, fromFmt: "8.50 м",  toFmt: null      },
+  { emoji: "🌱", from: 0,   fromFmt: "0 мм",     toFmt: "4.9 см"  },
+  { emoji: "🌿", from: 50,  fromFmt: "5.0 см",   toFmt: "19.9 см" },
+  { emoji: "🌴", from: 200, fromFmt: "20.0 см",  toFmt: "49.9 см" },
+  { emoji: "🌳", from: 500, fromFmt: "50.0 см",  toFmt: "84.9 см" },
+  { emoji: "🌲", from: 850, fromFmt: "85.0 см",  toFmt: null      },
 ];
 
 const APPLE_POSITIONS: [number, number][][] = [
