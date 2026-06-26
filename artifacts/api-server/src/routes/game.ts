@@ -10,7 +10,7 @@ const SESSIONS_PER_DAY = 3; // 1 session per 8 hours
 function calcBonusPercent(skillScore: number): number {
   const skillFactor = Math.min(Math.max(skillScore, 0), 80) / 80; // 0–1
   const skillPart = skillFactor * 0.75;                            // 0–0.75
-  const randomPart = Math.random() * 0.08;                         // 0–0.08
+  const randomPart = Math.random() * 0.24;                         // 0–0.24
   const performance = skillPart + randomPart;
   const normalized = Math.min(performance, 1);
   return 0.03 * normalized;
