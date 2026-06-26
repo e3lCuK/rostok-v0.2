@@ -1081,7 +1081,7 @@ body {
   white-space: nowrap;
 }
 
-.progress-row-deposit .progress-row-icon {
+.progress-row-deposit {
   color: #c9920a;
 }
 .progress-row-deposit .growth-info-btn {
