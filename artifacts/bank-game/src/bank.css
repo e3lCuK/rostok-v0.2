@@ -730,9 +730,20 @@ body {
   z-index: 0;
 }
 
-.game-area-bg {
+.game-area-bg-sky {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
+}
+
+.game-area-bg-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
   display: block;
 }
 

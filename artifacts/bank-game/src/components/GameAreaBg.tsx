@@ -1,9 +1,14 @@
 export default function GameAreaBg() {
   return (
     <div className="game-area-bg-wrap">
-      {/* viewBox 340x600 + preserveAspectRatio xMidYMid meet fills full height on portrait screens */}
-      <svg className="game-area-bg" viewBox="0 0 340 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-
+      {/* Sky layer — preserved aspect ratio, nature elements never distort */}
+      <svg
+        className="game-area-bg-sky"
+        viewBox="0 0 340 600"
+        preserveAspectRatio="xMidYMin meet"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
         {/* Sun — very top */}
         <g opacity="0.35" className="bg-sun">
           <circle cx="298" cy="28" r="9" fill="#fde68a" />
@@ -47,10 +52,18 @@ export default function GameAreaBg() {
             <line x1="0" y1="-3" x2="4" y2="-10" stroke="#78350f" strokeWidth="0.8" />
           </g>
         </g>
+      </svg>
 
-        {/* Ground group — just above bottom nav (nav top ≈ 570 SVG; strip top ≈ 552) */}
+      {/* Ground layer — stretches full width, minor distortion unnoticeable on a hill curve */}
+      <svg
+        className="game-area-bg-ground"
+        viewBox="0 525 340 80"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
         <g transform="translate(0,-25)">
-          {/* Ground strip — rounded top corners, square bottom corners */}
+          {/* Ground strip */}
           <path d="M-5,625 L-5,585 Q170,558 350,585 L350,625 Z" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}
           <g fill="#5a9e1e" opacity="0.55">
@@ -104,7 +117,6 @@ export default function GameAreaBg() {
           <ellipse cx="115" cy="578" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
           <ellipse cx="225" cy="580" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
         </g>
-
       </svg>
     </div>
   );
