@@ -995,16 +995,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 >
                   <div className="action-buttons-row activities-disabled">
                     {([
-                      { key: "water",       icon: <Droplets size={22} />, ix: 80,  iy: -56 },
-                      { key: "sun",         icon: <Sun size={22} />,      ix: 0,   iy: 0   },
-                      { key: "fertilizer",  icon: <Leaf size={22} />,     ix: -80, iy: 56  },
+                      { key: "water",       icon: <Droplets size={22} />, iy: 66  },
+                      { key: "sun",         icon: <Sun size={22} />,      iy: 0   },
+                      { key: "fertilizer",  icon: <Leaf size={22} />,     iy: -66 },
                     ]).map((btn, i) => (
                       <motion.div
                         key={btn.key}
                         className="action-btn-bank"
-                        initial={{ opacity: 0, x: btn.ix, y: btn.iy, scale: 0 }}
-                        animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 20, delay: i * 0.04 }}
+                        initial={{ opacity: 0, y: btn.iy, scale: 0 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 20, delay: i * 0.06 }}
                       >
                         <div className="action-btn-content">
                           {btn.icon}
