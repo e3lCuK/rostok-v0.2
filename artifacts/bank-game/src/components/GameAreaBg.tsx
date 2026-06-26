@@ -57,7 +57,7 @@ export default function GameAreaBg() {
       {/* Ground layer — stretches full width, minor distortion unnoticeable on a hill curve */}
       <svg
         className="game-area-bg-ground"
-        viewBox="0 520 340 80"
+        viewBox="-5 510 360 90"
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
