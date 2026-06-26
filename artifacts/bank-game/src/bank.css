@@ -9,7 +9,7 @@
 }
 
 :root {
-  --bg: #fafff5;
+  --bg: #ecfccb;
   --surface: #ffffff;
   --surface2: #f8f9fc;
   --text: #111827;
@@ -36,7 +36,7 @@ html, body {
 }
 
 body {
-  background: var(--bg);
+  background: #fafff5;
   color: var(--text);
 }
 
