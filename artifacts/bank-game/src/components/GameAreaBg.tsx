@@ -63,8 +63,8 @@ export default function GameAreaBg() {
         aria-hidden="true"
       >
         <g transform="translate(0,-25)">
-          {/* Ground strip — extended to x=370 to guarantee full-width fill */}
-          <path d="M-10,625 L-10,585 Q170,558 370,585 L370,625 Z" fill="#8dc63f" opacity="0.35" />
+          {/* Ground strip — right side extends far off-screen so viewBox clip hits flat portion */}
+          <path d="M-10,625 L-10,578 Q200,553 550,578 L550,625 Z" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}
           <g fill="#5a9e1e" opacity="0.55">
             <ellipse cx="22" cy="572" rx="12" ry="7" />
