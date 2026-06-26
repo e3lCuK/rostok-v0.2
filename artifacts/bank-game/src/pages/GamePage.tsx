@@ -581,52 +581,117 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
   return (
     <div className="game-page">
-      {/* TOP BAR — separate block, never overlaps play field */}
+      {/* TOP BAR — 3 equal columns: Ресурсы / Уровень / Энергия */}
       <div className="game-top-bar">
         <span className="game-beta-floating">{APP_VERSION}</span>
-        <div className="game-session-status">
-          <div className="game-top-controls">
-            <div ref={settingsRef} className="game-gear-wrap">
-              <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
-                <Settings size={14} />
-              </button>
-              <AnimatePresence>
-                {showSettings && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    style={{ position: "absolute", right: "calc(100% + 4px)", top: 0, zIndex: 100 }}
-                  >
-                    <SettingsWidget
-                      onClose={() => setShowSettings(false)}
-                      onOpenDailyReward={() => { setShowSettings(false); setShowStreakWidget(true); }}
-                      dailyAvailable={localStorage.getItem("streak_widget_date") !== new Date().toISOString().slice(0, 10)}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-          <div className={`session-status-badge ${showCompletionStage && !showRewards ? "session-status-ready" : locked ? "session-status-locked" : "session-status-ready"}`}>
-            {game.sessionInProgress || (showCompletionStage && !showRewards) ? "В процессе" : locked ? "Перезарядка" : "Готова"}
-          </div>
-          <div className="game-session-detail">
-            {showCompletionStage && !showRewards ? (
-              <span>Осталось: 0</span>
-            ) : locked && msLeft !== null && msLeft > 0 ? (
-              <div className="session-timer">
-                <Clock size={12} />
-                <span>{formatTimer(msLeft)}</span>
+
+        {/* Col 1: Ресурсы */}
+        <div className="game-topbar-col">
+          <div className="growth-label-wrap">
+            <div className="progress-widget">
+              <div className="progress-row progress-row-deposit">
+                <span className="progress-row-icon"><Wallet size={13} strokeWidth={1.5} /></span>
+                <span>{formatRub(balances.active)}</span>
+                <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
               </div>
-            ) : !game.sessionInProgress ? (
-              <span style={{ color: storedSessions > 1 ? '#dc2626' : undefined }}>
-                ×{storedSessions} сессии
-              </span>
-            ) : (
-              <span>Осталось: {actionsLeft}</span>
-            )}
+              <div className="progress-row">
+                <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
+                <span>{formatTreeGrowth(displayGrowthMM)}</span>
+                <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
+              </div>
+              <div className="progress-row progress-row-apples">
+                <span className="progress-row-icon">
+                  <svg width="13" height="15" viewBox="0 0 13 15" fill="none" stroke="#166534" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6.5 4C6.5 4 7 2 9 1" />
+                    <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" />
+                  </svg>
+                </span>
+                <span>{apples} {pluralApples(apples)}</span>
+                <button className="growth-info-btn growth-info-btn-plus">+</button>
+              </div>
+            </div>
+            <AnimatePresence>
+              {showMmPopup && sessionScores && sessionScores.mm > 0 && (
+                <motion.div
+                  className="reward-popup reward-popup-mm"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                >
+                  +{sessionScores.mm} мм.
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Col 2: Уровень */}
+        <div className="game-topbar-col">
+          <div className="game-left-widgets">
+            <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
+            <AnimatePresence>
+              {showXpPopup && sessionScores && (
+                <motion.div
+                  className="reward-popup reward-popup-xp"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                >
+                  +{sessionScores.xp} оп.
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Col 3: Энергия */}
+        <div className="game-topbar-col">
+          <div className="game-session-status">
+            <div className="game-top-controls">
+              <div ref={settingsRef} className="game-gear-wrap">
+                <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
+                  <Settings size={14} />
+                </button>
+                <AnimatePresence>
+                  {showSettings && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 6, scale: 0.97 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      style={{ position: "absolute", right: "calc(100% + 4px)", top: 0, zIndex: 100 }}
+                    >
+                      <SettingsWidget
+                        onClose={() => setShowSettings(false)}
+                        onOpenDailyReward={() => { setShowSettings(false); setShowStreakWidget(true); }}
+                        dailyAvailable={localStorage.getItem("streak_widget_date") !== new Date().toISOString().slice(0, 10)}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+            <div className={`session-status-badge ${showCompletionStage && !showRewards ? "session-status-ready" : locked ? "session-status-locked" : "session-status-ready"}`}>
+              {game.sessionInProgress || (showCompletionStage && !showRewards) ? "В процессе" : locked ? "Перезарядка" : "Готова"}
+            </div>
+            <div className="game-session-detail">
+              {showCompletionStage && !showRewards ? (
+                <span>Осталось: 0</span>
+              ) : locked && msLeft !== null && msLeft > 0 ? (
+                <div className="session-timer">
+                  <Clock size={12} />
+                  <span>{formatTimer(msLeft)}</span>
+                </div>
+              ) : !game.sessionInProgress ? (
+                <span style={{ color: storedSessions > 1 ? '#dc2626' : undefined }}>
+                  ×{storedSessions} сессии
+                </span>
+              ) : (
+                <span>Осталось: {actionsLeft}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -640,61 +705,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             {fl.label}
           </div>
         ))}
-
-        <div className="growth-label-wrap">
-          <div className="progress-widget">
-            <div className="progress-row progress-row-deposit">
-              <span className="progress-row-icon"><Wallet size={13} strokeWidth={1.5} /></span>
-              <span>{formatRub(balances.active)}</span>
-              <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
-            </div>
-            <div className="progress-row">
-              <span className="progress-row-icon"><TreePine size={16} strokeWidth={1.5} /></span>
-              <span>{formatTreeGrowth(displayGrowthMM)}</span>
-              <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
-            </div>
-            <div className="progress-row progress-row-apples">
-              <span className="progress-row-icon">
-                <svg width="13" height="15" viewBox="0 0 13 15" fill="none" stroke="#166534" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6.5 4C6.5 4 7 2 9 1" />
-                  <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" />
-                </svg>
-              </span>
-              <span>{apples} {pluralApples(apples)}</span>
-              <button className="growth-info-btn growth-info-btn-plus">+</button>
-            </div>
-          </div>
-          <AnimatePresence>
-            {showMmPopup && sessionScores && sessionScores.mm > 0 && (
-              <motion.div
-                className="reward-popup reward-popup-mm"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-              >
-                +{sessionScores.mm} мм.
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="game-left-widgets">
-          <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
-          <AnimatePresence>
-            {showXpPopup && sessionScores && (
-              <motion.div
-                className="reward-popup reward-popup-xp"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-              >
-                +{sessionScores.xp} оп.
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
         <AnimatePresence>
           {levelUpData && (

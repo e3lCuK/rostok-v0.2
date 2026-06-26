@@ -591,6 +591,8 @@ body {
   background: var(--bg);
   border-bottom: 1px solid rgba(100, 160, 40, 0.18);
   position: relative;
+  display: flex;
+  align-items: stretch;
 }
 .game-top-bar::before,
 .game-top-bar::after {
@@ -603,8 +605,18 @@ body {
   z-index: 2;
   pointer-events: none;
 }
-.game-top-bar::before { left: calc(50% - 58px); }
-.game-top-bar::after  { left: calc(50% + 58px); }
+.game-top-bar::before { left: 33.33%; }
+.game-top-bar::after  { left: 66.67%; }
+
+.game-topbar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+}
 
 /* Game area — pure play field */
 .game-area {
@@ -623,18 +635,14 @@ body {
 .game-area::after { content: none; }
 
 .game-session-status {
-  position: absolute;
-  top: 0;
-  left: calc(50% + 58px);
-  right: 0;
-  height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
   padding: 0 8px;
-  gap: 0px;
-  z-index: 16;
+  gap: 0;
+  position: relative;
 }
 
 .game-top-controls {
@@ -1184,33 +1192,6 @@ body.modal-open {
   align-items: center;
   position: relative;
   z-index: 15;
-  margin-top: -10px;
-}
-
-.game-top-bar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  z-index: 15;
-  pointer-events: none;
-}
-.game-top-bar > * { pointer-events: auto; }
-
-.game-top-level {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.game-top-center {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 .growth-label-wrap {
@@ -1218,12 +1199,9 @@ body.modal-open {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 90px;
-  padding: 0 10px 0 12px;
-  z-index: 15;
+  width: 100%;
+  padding: 0 6px 0 10px;
+  position: relative;
 }
 
 /* ── Diamond Level Badge ─────────────────────────────────── */
