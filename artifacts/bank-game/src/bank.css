@@ -1052,8 +1052,8 @@ body {
 .tree-apple {
   position: absolute;
   border-radius: 50%;
-  background: #4a6b20;
-  opacity: 0.72;
+  background: #c0392b;
+  opacity: 0.82;
 }
 
 .progress-widget {
