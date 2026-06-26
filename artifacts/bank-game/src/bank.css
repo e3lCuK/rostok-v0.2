@@ -723,7 +723,7 @@ body {
 
 .battery-svg {
   display: block;
-  margin-top: 4px;
+  margin: 4px auto 0;
 }
 
 .game-area-bg-wrap {
