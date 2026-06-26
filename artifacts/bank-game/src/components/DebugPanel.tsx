@@ -65,7 +65,7 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
         game: {
           ...game,
           missedSessions: res.missedSessions,
-          lastSessionTime: res.lastSessionTime,
+          lastSessionTime: null,
           sessionInProgress: false,
         },
       });
