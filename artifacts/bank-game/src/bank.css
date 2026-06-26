@@ -3031,8 +3031,8 @@ body.modal-open {
 }
 
 .onboarding-info {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(90,172,84,0.07);
+  border: 1px solid rgba(90,172,84,0.25);
   border-radius: 14px;
   padding: 14px 16px;
   display: flex;
@@ -3072,8 +3072,8 @@ body.modal-open {
 
 .onboarding-rate-badge {
   font-size: 0.8rem;
-  color: var(--text2);
-  background: rgba(255,255,255,0.1);
+  color: #2d7a28;
+  background: rgba(90,172,84,0.13);
   border-radius: 8px;
   padding: 5px 10px;
   display: block;
@@ -3128,8 +3128,8 @@ body.modal-open {
 }
 
 .capital-option-selected {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+  border-color: #5aac54;
+  box-shadow: 0 0 0 3px rgba(90,172,84,0.15);
 }
 
 .capital-option-header {
@@ -3162,8 +3162,8 @@ body.modal-open {
 }
 
 .capital-option-radio-active {
-  border-color: var(--blue);
-  background: var(--blue);
+  border-color: #5aac54;
+  background: #5aac54;
   box-shadow: inset 0 0 0 3px white;
 }
 
@@ -3192,11 +3192,11 @@ body.modal-open {
 .capital-stat-value {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--blue);
+  color: #3d9e38;
 }
 
 .onboarding-start-btn {
-  background: var(--blue);
+  background: linear-gradient(135deg, #5aac54 0%, #3d9e38 100%);
   color: white;
   border: none;
   border-radius: var(--radius-sm);

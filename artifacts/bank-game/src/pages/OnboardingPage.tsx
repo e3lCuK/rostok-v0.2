@@ -39,8 +39,7 @@ export default function OnboardingPage({ onComplete }: Props) {
     <div className="onboarding-page">
       <div className="onboarding-header">
         <span className="onboarding-icon">🌱</span>
-        <h1 className="onboarding-title">Открыть учебный счёт</h1>
-        <p className="onboarding-sub">Все средства идут в активный вклад под 15% годовых</p>
+        <h1 className="onboarding-title">Открыть демо-счёт</h1>
       </div>
 
       <div className="onboarding-info">
@@ -66,10 +65,10 @@ export default function OnboardingPage({ onComplete }: Props) {
               style={{ overflow: "hidden" }}
             >
               <p className="onboarding-info-text">
-                Вкладывать ничего не нужно — это учебный счёт. Играйте в мини-игры каждые 8 часов, чтобы получать доход и растить дерево.
+                Вкладывать ничего не нужно — это демо-счёт. Играйте в мини-игры каждые 8 часов, чтобы получать доход и растить дерево.
               </p>
               <div className="onboarding-rates">
-                <span className="onboarding-rate-badge">Активный вклад — <strong>15%</strong> годовых</span>
+                <span className="onboarding-rate-badge">Активный вклад до <strong>15%</strong> годовых</span>
               </div>
             </motion.div>
           )}
@@ -92,7 +91,7 @@ export default function OnboardingPage({ onComplete }: Props) {
           <p className="capital-option-desc">Весь капитал — в активный вклад</p>
           <div className="capital-option-stats">
             <div className="capital-stat">
-              <p className="capital-stat-label">В день (акт.)</p>
+              <p className="capital-stat-label">В день</p>
               <p className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
             </div>
           </div>
