@@ -495,6 +495,67 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     doAction(type, x, y);
   }
 
+  async function handleDebugCompleteAll() {
+    if (!game.sessionInProgress || actionLoading) return;
+    setActionLoading(true);
+    waterScoreRef.current = 80;
+    sunScoreRef.current = 80;
+    fertilizerScoreRef.current = 80;
+    skillScoreRef.current = 80;
+    const rect = gameAreaRef.current?.getBoundingClientRect();
+    const x = (rect?.width ?? 200) / 2;
+    const y = (rect?.height ?? 200) / 2;
+    const labels: Record<string, string> = { water: "💧", sun: "☀️", fertilizer: "🌱" };
+    let trackedGame = { ...stateRef.current.game };
+    try {
+      const toComplete = (["water", "sun", "fertilizer"] as const).filter(a => !trackedGame[a]);
+      for (const action of toComplete) {
+        const result = await api.doAction(action, 80);
+        addFloater(labels[action], x, y);
+        const cur = stateRef.current;
+        trackedGame = { ...trackedGame, [action]: true };
+        if (result.sessionComplete) {
+          const finishedTime = Date.now();
+          trackedGame = {
+            ...trackedGame,
+            water: true, sun: true, fertilizer: true,
+            sessionInProgress: false,
+            lastSessionTime: finishedTime,
+            missedSessions: 0,
+            pendingBaseReward: (cur.game.pendingBaseReward ?? 0) + (result.baseReward ?? 0),
+            pendingBonusReward: (cur.game.pendingBonusReward ?? 0) + (result.bonusReward ?? 0),
+            pendingStoredSessions: result.storedSessions ?? 1,
+          };
+          setWaterResultPct(100);
+          setLightResultPct(100);
+          setFertilizerResultPct(100);
+          const totalReward = (result.baseReward ?? 0) + (result.bonusReward ?? 0);
+          const { newMM: mmAfter, newRemainder: remAfter } = applyTreeGrowth(
+            totalReward, cur.game.treeGrowthMM ?? 0, cur.game.treeGrowthRemainder ?? 0
+          );
+          const mmGained = mmAfter - (cur.game.treeGrowthMM ?? 0);
+          setSessionScores({ water: 100, sun: 100, fert: 100, xp: result.xpGained ?? 0, base: result.baseReward ?? 0, bonus: result.bonusReward ?? 0, mm: mmGained });
+          pendingXpRef.current = {
+            xpGained: result.xpGained ?? 0,
+            newLevel: result.newLevel,
+            xpHistory: result.xpHistory,
+            levelUp: result.levelUp,
+            newMM: mmAfter,
+            newRemainder: remAfter,
+          };
+          setShowCompletionStage(true);
+          onStateChange({ ...cur, game: trackedGame });
+        } else {
+          onStateChange({ ...cur, game: trackedGame });
+        }
+      }
+    } catch (err) {
+      console.error("[Debug] Complete all failed:", err);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   async function handleAction(action: "water" | "sun" | "fertilizer", e: React.MouseEvent) {
     if (game[action] || actionLoading) return;
     const rect = gameAreaRef.current?.getBoundingClientRect();
@@ -988,6 +1049,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
             </AnimatePresence>
         )}
         </div>
+
+        {game.sessionInProgress && !showCompletionStage && (
+          <div className="debug-panel">
+            <button
+              className="debug-btn-dev"
+              onClick={handleDebugCompleteAll}
+              disabled={actionLoading}
+            >
+              🔧 100%
+            </button>
+          </div>
+        )}
 
       </div>
 
