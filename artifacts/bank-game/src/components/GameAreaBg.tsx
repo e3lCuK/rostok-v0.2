@@ -57,25 +57,25 @@ export default function GameAreaBg() {
       {/* Ground layer — stretches full width, minor distortion unnoticeable on a hill curve */}
       <svg
         className="game-area-bg-ground"
-        viewBox="-5 510 360 90"
+        viewBox="-10 510 375 90"
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
         <g transform="translate(0,-25)">
-          {/* Ground strip */}
-          <path d="M-5,625 L-5,585 Q170,558 350,585 L350,625 Z" fill="#8dc63f" opacity="0.35" />
+          {/* Ground strip — extended to x=370 to guarantee full-width fill */}
+          <path d="M-10,625 L-10,585 Q170,558 370,585 L370,625 Z" fill="#8dc63f" opacity="0.35" />
           {/* Grass tufts left */}
           <g fill="#5a9e1e" opacity="0.55">
             <ellipse cx="22" cy="572" rx="12" ry="7" />
             <ellipse cx="36" cy="569" rx="9" ry="6" />
             <ellipse cx="10" cy="569" rx="7" ry="5" />
           </g>
-          {/* Grass tufts right */}
+          {/* Grass tufts right — shifted further right */}
           <g fill="#5a9e1e" opacity="0.55">
-            <ellipse cx="318" cy="572" rx="12" ry="7" />
-            <ellipse cx="304" cy="569" rx="9" ry="6" />
-            <ellipse cx="330" cy="569" rx="7" ry="5" />
+            <ellipse cx="335" cy="572" rx="12" ry="7" />
+            <ellipse cx="320" cy="569" rx="9" ry="6" />
+            <ellipse cx="348" cy="569" rx="7" ry="5" />
           </g>
           {/* Bush left */}
           <g opacity="0.45" className="bg-bush-left">
@@ -83,11 +83,11 @@ export default function GameAreaBg() {
             <circle cx="34" cy="560" r="10" fill="#5aab1a" />
             <circle cx="56" cy="561" r="10" fill="#5aab1a" />
           </g>
-          {/* Bush right */}
+          {/* Bush right — shifted further right */}
           <g opacity="0.45" className="bg-bush-right">
-            <circle cx="295" cy="556" r="14" fill="#4a8f12" />
-            <circle cx="284" cy="560" r="10" fill="#5aab1a" />
-            <circle cx="306" cy="561" r="10" fill="#5aab1a" />
+            <circle cx="320" cy="556" r="14" fill="#4a8f12" />
+            <circle cx="309" cy="560" r="10" fill="#5aab1a" />
+            <circle cx="331" cy="561" r="10" fill="#5aab1a" />
           </g>
           {/* Flower left */}
           <g opacity="0.7" className="bg-flower-left">
@@ -98,14 +98,14 @@ export default function GameAreaBg() {
             <circle cx="68" cy="568" r="2.5" fill="#f9a8d4" />
             <line x1="68" y1="570" x2="68" y2="576" stroke="#4d7c0f" strokeWidth="1.2" />
           </g>
-          {/* Flower right */}
+          {/* Flower right — shifted further right */}
           <g opacity="0.7" className="bg-flower-right">
-            <circle cx="272" cy="565" r="3" fill="#fbbf24" />
-            <circle cx="272" cy="560" r="2.5" fill="#c4b5fd" />
-            <circle cx="277" cy="563" r="2.5" fill="#c4b5fd" />
-            <circle cx="267" cy="563" r="2.5" fill="#c4b5fd" />
-            <circle cx="272" cy="568" r="2.5" fill="#c4b5fd" />
-            <line x1="272" y1="570" x2="272" y2="576" stroke="#4d7c0f" strokeWidth="1.2" />
+            <circle cx="292" cy="565" r="3" fill="#fbbf24" />
+            <circle cx="292" cy="560" r="2.5" fill="#c4b5fd" />
+            <circle cx="297" cy="563" r="2.5" fill="#c4b5fd" />
+            <circle cx="287" cy="563" r="2.5" fill="#c4b5fd" />
+            <circle cx="292" cy="568" r="2.5" fill="#c4b5fd" />
+            <line x1="292" y1="570" x2="292" y2="576" stroke="#4d7c0f" strokeWidth="1.2" />
           </g>
           {/* Mushroom */}
           <g opacity="0.5" className="bg-mushroom">
@@ -115,7 +115,7 @@ export default function GameAreaBg() {
           </g>
           {/* Stones */}
           <ellipse cx="115" cy="578" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
-          <ellipse cx="225" cy="580" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
+          <ellipse cx="238" cy="580" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
         </g>
       </svg>
     </div>
