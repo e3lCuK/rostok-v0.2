@@ -52,6 +52,8 @@ body {
   background: var(--bg);
   position: relative;
   overflow: hidden;
+  border-left: 1px solid rgba(100, 160, 40, 0.55);
+  border-right: 1px solid rgba(100, 160, 40, 0.55);
 }
 
 .status-bar {
