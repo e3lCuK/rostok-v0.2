@@ -986,9 +986,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 >
                   <div className="action-buttons-row activities-disabled">
                     {([
-                      { key: "water",       icon: <Droplets size={22} />, ox: -72 },
+                      { key: "water",       icon: <Droplets size={22} />, ox: 72  },
                       { key: "sun",         icon: <Sun size={22} />,      ox: 0   },
-                      { key: "fertilizer",  icon: <Leaf size={22} />,     ox: 72  },
+                      { key: "fertilizer",  icon: <Leaf size={22} />,     ox: -72 },
                     ]).map((btn, i) => (
                       <motion.div
                         key={btn.key}
