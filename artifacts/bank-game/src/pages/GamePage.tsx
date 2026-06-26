@@ -22,7 +22,7 @@ import TreeSVG from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, ShoppingCart } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -890,6 +890,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         <nav className="game-bottom-nav">
           <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
             <Trophy size={18} />
+          </button>
+          <div className="game-bottom-nav-divider" />
+          <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+            <Medal size={18} />
           </button>
           <div className="game-bottom-nav-divider" />
           <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
