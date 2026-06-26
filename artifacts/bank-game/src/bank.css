@@ -1037,7 +1037,7 @@ body {
 .growth-timer {
   position: absolute;
   left: 100%;
-  top: 50%;
+  top: 22%;
   transform: translateY(-50%);
   margin-left: 10px;
   display: flex;
