@@ -6,19 +6,12 @@ const SESSIONS_PER_DAY = 3; // 1 session per 8 hours
 
 // ---- New economy helpers ----
 
-function getCapitalPart(totalBalance: number): number {
-  if (totalBalance >= 2_000_000) return 0.20;
-  if (totalBalance >= 200_000) return 0.18;
-  return 0.16;
-}
-
 // skillScore: 0–80 average from mini-games
-function calcBonusPercent(skillScore: number, totalBalance: number): number {
+function calcBonusPercent(skillScore: number): number {
   const skillFactor = Math.min(Math.max(skillScore, 0), 80) / 80; // 0–1
   const skillPart = skillFactor * 0.75;                            // 0–0.75
-  const capitalPart = getCapitalPart(totalBalance);                // 0.16–0.20
-  const randomPart = Math.random() * 0.04;                         // 0–0.04
-  const performance = skillPart + capitalPart + randomPart;
+  const randomPart = Math.random() * 0.08;                         // 0–0.08
+  const performance = skillPart + randomPart;
   const normalized = Math.min(performance, 1);
   return 0.03 * normalized;
 }
@@ -266,11 +259,10 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       // New economy formula — single source of truth
       // daily = activeBalance * rate / 365 | session = daily / SESSIONS_PER_DAY
       // IMPORTANT: use activeBalance only — all income is via active sessions
-      // totalBalance is only used for capital tier in calcBonusPercent
       const missedSessions = g.missed_sessions || 0;
       storedSessionsResult = 1 + missedSessions;
       const bonusMultiplier = Math.max(1 - missedSessions * 0.1, 0.1);
-      const bonusPercent = calcBonusPercent(skillScore, totalBalance);
+      const bonusPercent = calcBonusPercent(skillScore);
       const dailyBase = activeBalance * 0.12 / 365;
       const dailyBonus = activeBalance * bonusPercent / 365;
       const basePerSession = dailyBase / SESSIONS_PER_DAY;
