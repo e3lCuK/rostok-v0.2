@@ -802,15 +802,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                 >
                   <div className="action-buttons-row activities-disabled">
                     {([
-                      { key: "water", icon: <Droplets size={22} />, label: "Вода", ox: 88 },
-                      { key: "sun",   icon: <Sun size={22} />,      label: "Свет", ox: 0 },
-                      { key: "fertilizer", icon: <Leaf size={22} />, label: "Удобрение", ox: -88 },
+                      { key: "water", icon: <Droplets size={22} />, label: "Вода", oy: 80 },
+                      { key: "sun",   icon: <Sun size={22} />,      label: "Свет", oy: 0 },
+                      { key: "fertilizer", icon: <Leaf size={22} />, label: "Удобрение", oy: -80 },
                     ]).map((btn, i) => (
                       <motion.div
                         key={btn.key}
                         className="action-btn-bank"
-                        initial={{ opacity: 0, x: btn.ox, scale: 0 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        initial={{ opacity: 0, y: btn.oy, scale: 0 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ type: "spring", stiffness: 320, damping: 24, delay: 0 }}
                       >
                         <div className="action-btn-content">
@@ -862,7 +862,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                       { key: "sun" as const, icon: <Sun size={22} />, label: "Свет", color: "#f59e0b", done: game.sun, pct: lightResultPct },
                       { key: "fertilizer" as const, icon: <Leaf size={22} />, label: "Удобрение", color: "#22c55e", done: game.fertilizer, pct: fertilizerResultPct },
                     ] as const).map((btn, i) => {
-                      const mergeX = [88, 0, -88][i];
+                      const mergeY = [80, 0, -80][i];
                       return (
                         <motion.button
                           key={btn.key}
@@ -871,7 +871,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
                           onClick={!btn.done ? () => setActiveMinigame(btn.key) : undefined}
                           disabled={!!btn.done || actionLoading}
                           whileTap={!btn.done ? { scale: 0.91 } : {}}
-                          animate={merging ? { x: mergeX, opacity: 0, scale: 0.1 } : { x: 0, opacity: 1, scale: 1 }}
+                          animate={merging ? { y: mergeY, opacity: 0, scale: 0.1 } : { y: 0, opacity: 1, scale: 1 }}
                           transition={merging ? { duration: 0.45, ease: "easeInOut" } : { duration: 0.2 }}
                         >
                           {btn.done ? (
