@@ -665,9 +665,8 @@ body {
 
 .game-beta-floating {
   position: absolute;
-  top: 10px;
-  left: 6px;
-  right: auto;
+  top: 4px;
+  left: 4px;
   font-size: 0.56rem;
   font-weight: 400;
   color: rgba(120, 140, 100, 0.65);
@@ -676,8 +675,6 @@ body {
   line-height: 1;
   z-index: 17;
   pointer-events: none;
-  transform: rotate(-35deg);
-  transform-origin: left top;
 }
 
 .game-gear-wrap {
