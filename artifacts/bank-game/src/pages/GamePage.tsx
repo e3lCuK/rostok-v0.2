@@ -583,7 +583,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     <div className="game-page">
       {/* TOP BAR — 3 equal columns: Ресурсы / Уровень / Энергия */}
       <div className="game-top-bar">
-        <span className="game-beta-floating">{APP_VERSION}</span>
 
         {/* Col 1: Ресурсы */}
         <div className="game-topbar-col">
@@ -698,6 +697,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
+        <span className="game-beta-floating">{APP_VERSION}</span>
         <GameAreaBg />
 
         {floaters.map(fl => (
