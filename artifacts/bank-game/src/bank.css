@@ -2727,7 +2727,7 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: #ecfccb;
   padding: 16px;
 }
 
@@ -2739,15 +2739,16 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: #ecfccb;
   padding: 24px 16px;
 }
 .auth-card {
   width: 100%;
   max-width: 360px;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.88);
+  border-radius: 24px;
+  box-shadow: 0 4px 32px rgba(60,120,30,0.12);
+  border: 1.5px solid rgba(100,160,40,0.18);
   padding: 28px 24px 24px;
   display: flex;
   flex-direction: column;
@@ -2769,7 +2770,7 @@ body.modal-open {
 .auth-tabs {
   display: flex;
   border-radius: 10px;
-  background: #f3f4f6;
+  background: rgba(90,172,84,0.15);
   padding: 3px;
   gap: 2px;
 }
@@ -2781,15 +2782,15 @@ body.modal-open {
   background: transparent;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: #5a7a40;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .auth-tab-active {
   background: #fff;
-  color: #166534;
+  color: #2d7a28;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(60,120,30,0.12);
 }
 .auth-form {
   display: flex;
@@ -2804,22 +2805,22 @@ body.modal-open {
 .auth-label {
   font-size: 12px;
   font-weight: 600;
-  color: #374151;
+  color: #3a5a28;
 }
 .auth-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid rgba(100,160,40,0.25);
   border-radius: 10px;
   font-size: 14px;
   color: #111827;
-  background: #f9fafb;
+  background: rgba(255,255,255,0.75);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
   box-sizing: border-box;
 }
 .auth-input:focus {
-  border-color: #16a34a;
+  border-color: #5aac54;
   background: #fff;
 }
 .auth-error {
@@ -2834,17 +2835,17 @@ body.modal-open {
 .auth-submit {
   width: 100%;
   padding: 11px;
-  background: #16a34a;
+  background: linear-gradient(135deg, #5aac54 0%, #3d9e38 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: opacity 0.15s;
   margin-top: 2px;
 }
-.auth-submit:hover:not(:disabled) { background: #15803d; }
+.auth-submit:hover:not(:disabled) { opacity: 0.9; }
 .auth-submit:disabled { opacity: 0.6; cursor: default; }
 .auth-note {
   font-size: 11px;
@@ -2854,25 +2855,25 @@ body.modal-open {
 }
 .auth-success {
   font-size: 12px;
-  color: #15803d;
+  color: #2d7a28;
   text-align: center;
   margin: 0;
   padding: 8px 10px;
-  background: #f0fdf4;
+  background: rgba(90,172,84,0.12);
   border-radius: 8px;
   line-height: 1.5;
 }
 .auth-mode-title {
   font-size: 15px;
   font-weight: 700;
-  color: #365314;
+  color: #2d7a28;
   text-align: center;
   margin: 0 0 4px;
 }
 .auth-forgot-link {
   background: none;
   border: none;
-  color: #6b7280;
+  color: #5a7a40;
   font-size: 12px;
   cursor: pointer;
   text-align: center;
@@ -2882,7 +2883,7 @@ body.modal-open {
   margin-top: 4px;
   transition: color 0.15s;
 }
-.auth-forgot-link:hover { color: #374151; }
+.auth-forgot-link:hover { color: #2d7a28; }
 
 /* ============================
    LANDING PAGE
@@ -3003,6 +3004,7 @@ body.modal-open {
   flex-direction: column;
   gap: 20px;
   min-height: 100dvh;
+  background: #ecfccb;
 }
 
 .onboarding-header {
@@ -3019,7 +3021,7 @@ body.modal-open {
 .onboarding-title {
   font-size: 1.4rem;
   font-weight: 800;
-  color: var(--text);
+  color: #2d5a1a;
   letter-spacing: -0.5px;
 }
 
@@ -3114,8 +3116,8 @@ body.modal-open {
 }
 
 .capital-option {
-  background: var(--surface);
-  border: 2px solid var(--border);
+  background: rgba(255,255,255,0.82);
+  border: 2px solid rgba(100,160,40,0.2);
   border-radius: var(--radius);
   padding: 16px;
   text-align: left;
