@@ -819,8 +819,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   <span>{formatTimer(msLeft)}</span>
                 </div>
               ) : !game.sessionInProgress ? (
-                <span style={{ color: storedSessions > 1 ? '#dc2626' : undefined }}>
-                  ×{storedSessions} сессии
+                <span style={{ color: storedSessions > 1 ? '#6b21a8' : undefined }}>
+                  <span style={{ fontWeight: 700 }}>×{storedSessions}</span>
+                  {' '}<span style={{ fontWeight: 400 }}>сессии</span>
                 </span>
               ) : (
                 <span>Осталось: {actionsLeft}</span>
