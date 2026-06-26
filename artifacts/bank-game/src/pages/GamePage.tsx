@@ -345,19 +345,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
     }
-    // Show ябл first, then ₽ after it fades
+    // Show ябл + ₽ together in two lines
     setApplePopupCount(remaining);
-    setShowApplePopup(true);
-    setTimeout(() => setShowApplePopup(false), 1000);
     const cur = stateRef.current;
     const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
-    if (total > 0) {
-      setLastIncomeAmount(total);
-      setTimeout(() => {
-        setShowIncomePopup(true);
-        setTimeout(() => setShowIncomePopup(false), 1500);
-      }, 1000);
-    }
+    if (total > 0) setLastIncomeAmount(total);
+    setShowIncomePopup(true);
+    setShowApplePopup(true);
+    setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
     setTotalApples(t => t + remaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
@@ -832,19 +827,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             )}
           </AnimatePresence>
           <AnimatePresence>
-            {showApplePopup && (
-              <motion.div
-                className="topbar-reward-popup topbar-reward-popup-apple"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-              >
-                +{applePopupCount} ябл
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <AnimatePresence>
             {showIncomePopup && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-income-wrap"
@@ -852,7 +834,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}
               >
+                {showApplePopup && <span className="topbar-reward-popup-apple">+{applePopupCount} ябл</span>}
                 <span className="topbar-reward-popup-income">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
               </motion.div>
             )}
