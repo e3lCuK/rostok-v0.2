@@ -115,12 +115,6 @@ export default function GameAreaBg() {
           <line x1="335" y1="55" x2="335" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
         </g>
 
-        {/* Mushroom */}
-        <g opacity="0.5" className="bg-mushroom">
-          <rect x="96" y="54" width="5" height="8" rx="1" fill="#e5c07b" />
-          <ellipse cx="98.5" cy="54" rx="9" ry="5" fill="#e06c75" />
-          <ellipse cx="96" cy="53" rx="2" ry="1.2" fill="#fff" opacity="0.6" />
-        </g>
 
         {/* Stones */}
         <ellipse cx="145" cy="62" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
