@@ -1116,16 +1116,6 @@ body {
   flex-shrink: 0;
 }
 
-.progress-row > span:not(.progress-row-icon) {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .tree-growth-label {
   white-space: nowrap;
