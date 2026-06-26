@@ -36,13 +36,13 @@ export default function GameAreaBg() {
 
         {/* Birds — below clouds */}
         <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
-          <path d="M120 90 Q123 86 126 90" />
-          <path d="M132 84 Q135 80 138 84" />
-          <path d="M145 92 Q148 88 151 92" />
+          <path d="M120 140 Q123 136 126 140" />
+          <path d="M132 134 Q135 130 138 134" />
+          <path d="M145 142 Q148 138 151 142" />
         </g>
 
         {/* Butterfly — upper area, stays in sky regardless of container height */}
-        <g transform="translate(250,200)">
+        <g transform="translate(250,270)">
           <g className="bg-butterfly">
             <path d="M0,0 Q-10,-12 -18,-4 Q-10,4 0,0" fill="#fb923c" />
             <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0" fill="#fb923c" />
