@@ -1266,7 +1266,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       return (
                         <div key={i} className={`streak-day-slot${done ? " streak-day-done" : active ? " streak-day-active" : " streak-day-upcoming"}`}>
                           <div className="streak-day-icon">
-                            {done ? "✓" : active ? "⭐" : <Lock size={14} strokeWidth={2.2} fill="transparent" />}
+                            {done ? "✓" : active ? "⭐" : <Lock size={14} strokeWidth={2.2} fill="none" />}
                           </div>
                           <div className="streak-day-label">{d.label}</div>
                           <div className="streak-day-reward">{d.reward}</div>
