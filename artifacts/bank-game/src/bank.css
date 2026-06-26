@@ -666,8 +666,8 @@ body {
 
 .game-beta-floating {
   position: absolute;
-  top: 4px;
-  left: 4px;
+  bottom: 4px;
+  right: 4px;
   font-size: 0.56rem;
   font-weight: 400;
   color: rgba(120, 140, 100, 0.65);
