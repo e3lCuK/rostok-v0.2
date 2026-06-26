@@ -2,7 +2,7 @@ export default function GameAreaBg() {
   return (
     <div className="game-area-bg-wrap">
       {/* viewBox 340x600 + preserveAspectRatio xMidYMid meet fills full height on portrait screens */}
-      <svg className="game-area-bg" viewBox="0 0 340 600" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <svg className="game-area-bg" viewBox="0 0 340 600" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 
         {/* Sun — very top */}
         <g opacity="0.35" className="bg-sun">
