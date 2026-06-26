@@ -80,14 +80,16 @@ export default function GameAreaBg() {
         </g>
 
         {/* Bush left */}
-        <g opacity="0.45" className="bg-bush-left">
+        <g className="bg-bush-left">
+          <ellipse cx="55" cy="54" rx="26" ry="10" fill="#6ab22a" />
           <circle cx="55" cy="42" r="14" fill="#4a8f12" />
           <circle cx="44" cy="46" r="10" fill="#5aab1a" />
           <circle cx="66" cy="47" r="10" fill="#5aab1a" />
         </g>
 
         {/* Bush right — mirrors left at ~87% of width */}
-        <g opacity="0.45" className="bg-bush-right">
+        <g className="bg-bush-right">
+          <ellipse cx="375" cy="54" rx="26" ry="10" fill="#6ab22a" />
           <circle cx="375" cy="42" r="14" fill="#4a8f12" />
           <circle cx="364" cy="46" r="10" fill="#5aab1a" />
           <circle cx="386" cy="47" r="10" fill="#5aab1a" />
