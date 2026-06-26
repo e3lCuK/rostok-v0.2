@@ -102,6 +102,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [appleCount, setAppleCount] = useState(1);
   const [collectedAppleIndices, setCollectedAppleIndices] = useState<number[]>([]);
   const [showApplePopup, setShowApplePopup] = useState(false);
+  const [applePopupCount, setApplePopupCount] = useState(1);
   const [showIncomePopup, setShowIncomePopup] = useState(false);
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
   const [totalApples, setTotalApples] = useState(0);
@@ -340,6 +341,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowIncomePopup(true);
       setTimeout(() => setShowIncomePopup(false), 1500);
     }
+    setApplePopupCount(remaining);
     setShowApplePopup(true);
     setTimeout(() => setShowApplePopup(false), 1200);
     setTotalApples(t => t + remaining);
@@ -362,6 +364,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     if (next.length < appleCountRef.current) {
       // Intermediate apple — just +1 popup
+      setApplePopupCount(1);
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1200);
       setTotalApples(t => t + 1);
@@ -823,7 +826,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                +1 ябл.
+                +{applePopupCount} ябл.
               </motion.div>
             )}
           </AnimatePresence>
@@ -836,7 +839,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                <span className="topbar-reward-popup-apple">+1 ябл.</span>
+                <span className="topbar-reward-popup-apple">+{applePopupCount} ябл.</span>
                 <span className="topbar-reward-popup-income">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
               </motion.div>
             )}
