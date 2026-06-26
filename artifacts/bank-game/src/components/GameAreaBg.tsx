@@ -6,37 +6,37 @@ export default function GameAreaBg() {
 
         {/* Sun */}
         <g opacity="0.35" className="bg-sun">
-          <circle cx="298" cy="155" r="9" fill="#fde68a" />
+          <circle cx="298" cy="105" r="9" fill="#fde68a" />
           {/* 8 rays all around */}
-          <line x1="310" y1="155" x2="316" y2="155" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="307" y1="164" x2="311" y2="168" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="298" y1="167" x2="298" y2="173" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="290" y1="164" x2="286" y2="168" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="286" y1="155" x2="280" y2="155" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="290" y1="147" x2="286" y2="143" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="298" y1="143" x2="298" y2="137" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="307" y1="147" x2="311" y2="143" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="310" y1="105" x2="316" y2="105" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="307" y1="114" x2="311" y2="118" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="298" y1="117" x2="298" y2="123" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="290" y1="114" x2="286" y2="118" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="286" y1="105" x2="280" y2="105" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="290" y1="97"  x2="286" y2="93"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="298" y1="93"  x2="298" y2="87"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="307" y1="97"  x2="311" y2="93"  stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
         {/* Left cloud */}
         <g opacity="0.55" className="bg-cloud-left">
-          <ellipse cx="55" cy="210" rx="22" ry="13" fill="#fff" />
-          <ellipse cx="39" cy="216" rx="14" ry="10" fill="#fff" />
-          <ellipse cx="72" cy="216" rx="13" ry="9" fill="#fff" />
+          <ellipse cx="55" cy="115" rx="22" ry="13" fill="#fff" />
+          <ellipse cx="39" cy="121" rx="14" ry="10" fill="#fff" />
+          <ellipse cx="72" cy="121" rx="13" ry="9" fill="#fff" />
         </g>
 
         {/* Right cloud */}
         <g opacity="0.45" className="bg-cloud-right">
-          <ellipse cx="282" cy="202" rx="18" ry="10" fill="#fff" />
-          <ellipse cx="268" cy="207" rx="11" ry="8" fill="#fff" />
-          <ellipse cx="296" cy="207" rx="10" ry="7" fill="#fff" />
+          <ellipse cx="180" cy="108" rx="18" ry="10" fill="#fff" />
+          <ellipse cx="166" cy="113" rx="11" ry="8" fill="#fff" />
+          <ellipse cx="194" cy="113" rx="10" ry="7" fill="#fff" />
         </g>
 
         {/* Birds */}
         <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
-          <path d="M152 202 Q155 198 158 202" />
-          <path d="M163 195 Q166 191 169 195" />
-          <path d="M178 204 Q181 200 184 204" />
+          <path d="M100 100 Q103 96 106 100" />
+          <path d="M112 94 Q115 90 118 94" />
+          <path d="M125 102 Q128 98 131 102" />
         </g>
 
         {/* Butterfly — mid-field */}

@@ -887,20 +887,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         )}
         </div>
 
-        <nav className="game-bottom-nav">
-          <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
-            <Trophy size={18} />
-          </button>
-          <div className="game-bottom-nav-divider" />
-          <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
-            <Medal size={18} />
-          </button>
-          <div className="game-bottom-nav-divider" />
-          <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
-            <ShoppingCart size={18} />
-          </button>
-        </nav>
       </div>
+
+      <nav className="game-bottom-nav">
+        <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
+          <Trophy size={18} />
+        </button>
+        <div className="game-bottom-nav-divider" />
+        <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+          <Medal size={18} />
+        </button>
+        <div className="game-bottom-nav-divider" />
+        <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+          <ShoppingCart size={18} />
+        </button>
+      </nav>
 
       {false && showCompletionStage && !showRewards && (
         <button className="transition-btn" onClick={handleGoToRewards}>
