@@ -100,6 +100,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [growthTimerTotal, setGrowthTimerTotal] = useState(9);
   const [showApples, setShowApples] = useState(false);
   const [appleCount, setAppleCount] = useState(1);
+  const [collectedAppleIndices, setCollectedAppleIndices] = useState<number[]>([]);
+  const [showApplePopup, setShowApplePopup] = useState(false);
+  const [showIncomePopup, setShowIncomePopup] = useState(false);
+  const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
+  const [totalApples, setTotalApples] = useState(0);
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
@@ -221,7 +226,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const { balances, game } = state;
   const totalBalance = balances.active;
 
-  const apples = 0;
+  const apples = totalApples;
   const pluralApples = () => "ябл";
 
   useEffect(() => {
@@ -320,6 +325,39 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     });
   }
 
+  function handleAppleClick(appleIdx: number) {
+    setCollectedAppleIndices(prev => {
+      if (prev.includes(appleIdx)) return prev;
+      const next = [...prev, appleIdx];
+
+      // Show +1 apple popup
+      setShowApplePopup(true);
+      setTimeout(() => setShowApplePopup(false), 1200);
+      setTotalApples(t => t + 1);
+
+      if (next.length === appleCount) {
+        // Last apple — trigger income
+        const cur = stateRef.current;
+        const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
+        if (total > 0) {
+          setLastIncomeAmount(total);
+          setShowIncomePopup(true);
+          setTimeout(() => setShowIncomePopup(false), 1500);
+        }
+        setHistoryHighlight(true);
+        setTimeout(() => setHistoryHighlight(false), 2800);
+        setShowRewards(true);
+        void handleClaimAll();
+        setTimeout(() => {
+          setShowApples(false);
+          setCollectedAppleIndices([]);
+        }, 600);
+      }
+
+      return next;
+    });
+  }
+
   function addTreeGrowthMm(mm: number) {
     const currentMM = game.treeGrowthMM ?? 0;
     const newMM = currentMM + mm;
@@ -352,6 +390,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowGrowthAnim(false);
       setGrowthCountdown(null);
       setShowApples(false);
+      setCollectedAppleIndices([]);
       onStateChange({
         ...state,
         game: { ...game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
@@ -439,16 +478,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         const mmPopupTimer = setTimeout(() => setShowMmPopup(false), 1400);
         growthTimeoutsRef.current.push(mmPopupTimer);
 
-        // Step 6 — начисление дохода (деньги) через 900ms после вспышки
-        const incomeTimer = setTimeout(() => {
-          setHistoryHighlight(true);
-          setTimeout(() => setHistoryHighlight(false), 2800);
-          setShowRewards(true);
-          handleClaimAll();
-        }, 900);
-        growthTimeoutsRef.current.push(incomeTimer);
-
-        // Step 7 — яблоки через 1800ms после вспышки
+        // Step 6 — яблоки через 1800ms после вспышки (доход — при сборе последнего яблока)
         const appleTimer = setTimeout(() => {
           setShowGrowthAnim(false);
           setShowApples(true);
@@ -762,6 +792,33 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </motion.div>
             )}
           </AnimatePresence>
+          <AnimatePresence>
+            {showApplePopup && !showIncomePopup && (
+              <motion.div
+                className="topbar-reward-popup topbar-reward-popup-apple"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                +1 ябл.
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {showIncomePopup && (
+              <motion.div
+                className="topbar-reward-popup topbar-reward-popup-income-wrap"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <span className="topbar-reward-popup-apple">+1 ябл.</span>
+                <span className="topbar-reward-popup-income">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Col 2: Уровень */}
@@ -896,23 +953,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <AnimatePresence>
             {showApples && (
               <div
-                className="tree-apples-overlay"
+                className="tree-apples-overlay tree-apples-overlay-active"
                 style={{ width: STAGE_DIMS[currentStage][0], height: STAGE_DIMS[currentStage][1] }}
               >
-                {Array.from({ length: appleCount }, (_, i) => {
-                  const [xPct, yPct] = APPLE_POSITIONS[currentStage][i];
-                  const r = APPLE_SIZES[currentStage];
-                  return (
-                    <motion.div
-                      key={i}
-                      className="tree-apple"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
-                      style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
-                    />
-                  );
-                })}
+                <AnimatePresence>
+                  {Array.from({ length: appleCount }, (_, i) => {
+                    if (collectedAppleIndices.includes(i)) return null;
+                    const [xPct, yPct] = APPLE_POSITIONS[currentStage][i];
+                    const r = APPLE_SIZES[currentStage];
+                    return (
+                      <motion.div
+                        key={i}
+                        className="tree-apple tree-apple-pending"
+                        onClick={() => handleAppleClick(i)}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0, transition: { duration: 0.25 } }}
+                        transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
+                        style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
+                      />
+                    );
+                  })}
+                </AnimatePresence>
               </div>
             )}
           </AnimatePresence>
