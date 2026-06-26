@@ -2755,14 +2755,14 @@ body.modal-open {
   height: 22px;
   flex-shrink: 0;
   padding: 0;
-  background: #166534;
+  background: rgba(180, 190, 160, 0.45);
   color: #111;
   border: none;
   border-radius: 3px;
   cursor: pointer;
   transition: background 0.12s;
 }
-.settings-save-sm:hover { background: #14532d; }
+.settings-save-sm:hover { background: rgba(160, 175, 140, 0.55); }
 .settings-save-sm:disabled { opacity: 0.5; cursor: default; }
 
 .settings-close-sm {
