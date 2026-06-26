@@ -930,7 +930,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     className="growth-timer-bar"
                     style={{ width: `${((growthTimerTotal - growthCountdown) / growthTimerTotal) * 100}%` }}
                   />
-                  <span className="growth-timer-leaf"><Leaf size={13} /></span>
+                  <span className="growth-timer-leaf"><TreePine size={13} /></span>
                   <span className="growth-timer-time">
                     {String(Math.floor(growthCountdown / 60)).padStart(2, '0')}:{String(growthCountdown % 60).padStart(2, '0')}
                   </span>
