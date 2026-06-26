@@ -4,7 +4,7 @@
 
 pnpm workspace monorepo using TypeScript. Two main products:
 1. **Tree Idle Game** (`artifacts/tree-idle-game`) — simple SVG tree idle game at `/`
-2. **Bank** (`artifacts/bank-game`) — gamified banking app at `/bank/` with custom session auth + PostgreSQL
+2. **Росток** (`artifacts/bank-game`) — gamified banking app at `/bank/` with custom session auth + PostgreSQL
 
 ## Stack
 

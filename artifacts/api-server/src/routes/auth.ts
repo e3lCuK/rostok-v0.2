@@ -194,18 +194,18 @@ router.post("/auth/forgot-password", async (req: any, res: any) => {
     const domains = process.env["REPLIT_DOMAINS"]?.split(",")[0] ?? "localhost";
     const resetUrl = `https://${domains}/bank/reset-password?token=${token}`;
     await resend.emails.send({
-      from: "TreeBank <onboarding@resend.dev>",
+      from: "Росток <onboarding@resend.dev>",
       to: e,
-      subject: "Сброс пароля — TreeBank",
+      subject: "Сброс пароля — Росток",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;">
-          <h2 style="margin:0 0 8px;color:#365314;">🌳 TreeBank</h2>
+          <h2 style="margin:0 0 8px;color:#365314;">🌳 Росток</h2>
           <p style="color:#4b5563;">Привет, <strong>${user.nickname}</strong>!</p>
           <p style="color:#4b5563;">Мы получили запрос на сброс пароля. Нажмите кнопку ниже, чтобы задать новый пароль. Ссылка действует <strong>1 час</strong>.</p>
           <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 28px;background:#4d7c0f;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Сбросить пароль</a>
           <p style="color:#9ca3af;font-size:0.8rem;">Если вы не запрашивали сброс — просто проигнорируйте это письмо.</p>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
-          <p style="color:#d1d5db;font-size:0.75rem;">TreeBank · Гейсификация личных финансов</p>
+          <p style="color:#d1d5db;font-size:0.75rem;">Росток · Гейсификация личных финансов</p>
         </div>
       `,
     });
