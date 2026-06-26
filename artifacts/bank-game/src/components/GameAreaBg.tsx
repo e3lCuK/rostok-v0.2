@@ -7,10 +7,15 @@ export default function GameAreaBg() {
         {/* Sun */}
         <g opacity="0.35" className="bg-sun">
           <circle cx="298" cy="155" r="9" fill="#fde68a" />
-          <line x1="284" y1="155" x2="279" y2="155" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="288" y1="165" x2="285" y2="170" stroke="#f59e0b" strokeWidth="1.5" />
+          {/* 8 rays all around */}
+          <line x1="310" y1="155" x2="316" y2="155" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="307" y1="164" x2="311" y2="168" stroke="#f59e0b" strokeWidth="1.5" />
           <line x1="298" y1="167" x2="298" y2="173" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="308" y1="165" x2="311" y2="170" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="290" y1="164" x2="286" y2="168" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="286" y1="155" x2="280" y2="155" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="290" y1="147" x2="286" y2="143" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="298" y1="143" x2="298" y2="137" stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="307" y1="147" x2="311" y2="143" stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
         {/* Left cloud */}
