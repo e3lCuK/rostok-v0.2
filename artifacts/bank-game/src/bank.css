@@ -1102,12 +1102,28 @@ body {
   justify-content: center;
 }
 
+.progress-val-num {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-val-unit {
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
 .progress-row > span:not(.progress-row-icon) {
   flex: 1;
   min-width: 0;
   text-align: left;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
