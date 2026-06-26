@@ -829,19 +829,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             )}
           </AnimatePresence>
           <AnimatePresence>
-            {showApplePopup && !showIncomePopup && (
-              <motion.div
-                className="topbar-reward-popup topbar-reward-popup-apple"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-              >
-                +{applePopupCount} ябл.
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <AnimatePresence>
             {showIncomePopup && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-income-wrap"
@@ -850,7 +837,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                {applePopupCount > 0 && <span className="topbar-reward-popup-apple">+{applePopupCount} ябл.</span>}
                 <span className="topbar-reward-popup-income">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
               </motion.div>
             )}
@@ -862,19 +848,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <div className="game-left-widgets">
             <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
           </div>
-          <AnimatePresence>
-            {showXpPopup && sessionScores && (
-              <motion.div
-                className="topbar-reward-popup topbar-reward-popup-xp"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                +{sessionScores.xp} оп.
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Col 3: Энергия */}
