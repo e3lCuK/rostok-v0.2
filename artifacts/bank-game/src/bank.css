@@ -721,6 +721,11 @@ body {
 }
 .game-session-detail .session-timer svg { color: #111; }
 
+.battery-svg {
+  display: block;
+  margin-top: 4px;
+}
+
 .game-area-bg-wrap {
   position: absolute;
   inset: 0;

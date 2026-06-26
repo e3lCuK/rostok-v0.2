@@ -924,6 +924,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <span>Осталось: {actionsLeft}</span>
               )}
             </div>
+            {locked && msLeft !== null && (() => {
+              const charge = Math.max(0, Math.min(1, 1 - msLeft / SESSION_COOLDOWN_MS));
+              const fillW = Math.max(0, Math.round(34 * charge));
+              const fillColor = charge < 0.25 ? "#ef4444" : charge < 0.6 ? "#f59e0b" : "#22c55e";
+              return (
+                <svg className="battery-svg" width="46" height="16" viewBox="0 0 46 16" fill="none">
+                  <rect x="1" y="2" width="38" height="12" rx="2.5" stroke="#111" strokeWidth="1.5"/>
+                  <rect x="40" y="6" width="4" height="4" rx="1" fill="#111"/>
+                  {fillW > 0 && (
+                    <rect x="3" y="4" width={fillW} height="8" rx="1.5" fill={fillColor}/>
+                  )}
+                </svg>
+              );
+            })()}
           </div>
         </div>
       </div>
