@@ -2739,10 +2739,10 @@ body.modal-open {
 .auth-page {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background: var(--bg);
-  padding: 24px 16px;
+  padding: 10dvh 16px 24px;
   overflow-y: auto;
 }
 .auth-card {
