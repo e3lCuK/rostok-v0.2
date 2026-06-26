@@ -757,7 +757,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
 
 
         <div className="session-actions-wrap">
-        {!game.sessionInProgress && !showCompletionStage ? (
+        {!game.sessionInProgress && !showCompletionStage && !showRewards ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={locked ? "cooldown" : "ready"}
@@ -789,7 +789,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               </div>
             </motion.div>
           </AnimatePresence>
-        ) : (
+        ) : showRewards ? null : (
           <AnimatePresence mode="wait">
               {showActivityGhost ? (
                 <motion.div
