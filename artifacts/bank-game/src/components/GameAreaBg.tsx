@@ -4,39 +4,36 @@ export default function GameAreaBg() {
       {/* viewBox 340x600 + preserveAspectRatio xMidYMid meet fills full height on portrait screens */}
       <svg className="game-area-bg" viewBox="0 0 340 600" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 
-        {/* Sun */}
+        {/* Sun — very top */}
         <g opacity="0.35" className="bg-sun">
-          <circle cx="298" cy="105" r="9" fill="#fde68a" />
-          {/* 8 rays all around */}
-          <line x1="310" y1="105" x2="316" y2="105" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="307" y1="114" x2="311" y2="118" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="298" y1="117" x2="298" y2="123" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="290" y1="114" x2="286" y2="118" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="286" y1="105" x2="280" y2="105" stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="290" y1="97"  x2="286" y2="93"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="298" y1="93"  x2="298" y2="87"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="307" y1="97"  x2="311" y2="93"  stroke="#f59e0b" strokeWidth="1.5" />
+          <circle cx="298" cy="28" r="9" fill="#fde68a" />
+          <line x1="310" y1="28"  x2="316" y2="28"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="307" y1="37"  x2="311" y2="41"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="298" y1="40"  x2="298" y2="46"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="290" y1="37"  x2="286" y2="41"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="286" y1="28"  x2="280" y2="28"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="290" y1="19"  x2="286" y2="15"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="298" y1="16"  x2="298" y2="10"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="307" y1="19"  x2="311" y2="15"  stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
-        {/* Left cloud */}
+        {/* Clouds — below sun */}
         <g opacity="0.55" className="bg-cloud-left">
-          <ellipse cx="55" cy="115" rx="22" ry="13" fill="#fff" />
-          <ellipse cx="39" cy="121" rx="14" ry="10" fill="#fff" />
-          <ellipse cx="72" cy="121" rx="13" ry="9" fill="#fff" />
+          <ellipse cx="55" cy="65" rx="22" ry="13" fill="#fff" />
+          <ellipse cx="39" cy="71" rx="14" ry="10" fill="#fff" />
+          <ellipse cx="72" cy="71" rx="13" ry="9" fill="#fff" />
         </g>
-
-        {/* Right cloud */}
         <g opacity="0.45" className="bg-cloud-right">
-          <ellipse cx="180" cy="108" rx="18" ry="10" fill="#fff" />
-          <ellipse cx="166" cy="113" rx="11" ry="8" fill="#fff" />
-          <ellipse cx="194" cy="113" rx="10" ry="7" fill="#fff" />
+          <ellipse cx="200" cy="55" rx="18" ry="10" fill="#fff" />
+          <ellipse cx="186" cy="60" rx="11" ry="8" fill="#fff" />
+          <ellipse cx="214" cy="60" rx="10" ry="7" fill="#fff" />
         </g>
 
-        {/* Birds */}
+        {/* Birds — below clouds */}
         <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
-          <path d="M100 100 Q103 96 106 100" />
-          <path d="M112 94 Q115 90 118 94" />
-          <path d="M125 102 Q128 98 131 102" />
+          <path d="M120 90 Q123 86 126 90" />
+          <path d="M132 84 Q135 80 138 84" />
+          <path d="M145 92 Q148 88 151 92" />
         </g>
 
         {/* Butterfly — mid-field */}
