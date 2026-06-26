@@ -3002,12 +3002,20 @@ body.modal-open {
    ONBOARDING PAGE
 ==============================*/
 .onboarding-page {
-  padding: 24px 16px 32px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+.onboarding-center {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  min-height: 100dvh;
-  background: var(--bg);
+  gap: 18px;
 }
 
 .onboarding-header {
@@ -3016,7 +3024,6 @@ body.modal-open {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding-top: 16px;
 }
 
 .onboarding-icon { font-size: 3rem; }
@@ -3028,45 +3035,17 @@ body.modal-open {
   letter-spacing: -0.5px;
 }
 
-.onboarding-sub {
-  font-size: 0.85rem;
-  color: var(--text2);
-  line-height: 1.4;
-  max-width: 280px;
-}
-
-.onboarding-info {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 2px 0;
+.onboarding-info-static {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
-  margin-top: -12px;
-}
-
-.onboarding-info-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 100%;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text2);
-  padding: 0;
 }
 
 .onboarding-info-text {
   font-size: 0.82rem;
   color: var(--text2);
   line-height: 1.55;
-  margin: 8px 0 6px;
 }
 
 .onboarding-rates {
