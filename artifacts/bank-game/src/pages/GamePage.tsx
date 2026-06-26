@@ -22,7 +22,7 @@ import TreeSVG, { STAGE_DIMS } from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart, ScrollText } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -1543,7 +1543,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               onClick={e => e.stopPropagation()}
             >
               <div className="help-modal-header">
-                <h3 className="help-modal-title">💰 История начислений</h3>
+                <h3 className="help-modal-title"><ScrollText size={18} style={{ marginRight: 7, verticalAlign: "middle", position: "relative", top: -1 }} /> История начислений</h3>
                 <button className="help-modal-close" onClick={() => setShowDepositInfo(false)}>
                   <X size={18} />
                 </button>
