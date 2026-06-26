@@ -402,7 +402,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     // Step 3 — countdown timer (1s per mm, min 5s, no upper cap)
     const timerSecs = Math.max(5, scores?.mm ?? 9);
-    const newAppleCount = Math.floor(Math.random() * 3) + 1;
+    const avgPct = ([waterResultPct, lightResultPct, fertilizerResultPct]
+      .reduce<number>((s, p) => s + (p ?? 0), 0)) / 3;
+    const newAppleCount = avgPct >= 90 ? 3 : avgPct >= 70 ? 2 : 1;
     setAppleCount(newAppleCount);
     setShowApples(false);
     setShowGrowthAnim(true);
