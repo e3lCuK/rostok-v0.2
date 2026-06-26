@@ -827,6 +827,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             )}
           </AnimatePresence>
           <AnimatePresence>
+            {showApplePopup && !showIncomePopup && (
+              <motion.div
+                className="topbar-reward-popup topbar-reward-popup-apple"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                +{applePopupCount} ябл
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
             {showIncomePopup && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-income-wrap"
