@@ -221,13 +221,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const totalBalance = balances.active;
 
   const apples = 0;
-  const pluralApples = (n: number) => {
-    const mod10 = n % 10, mod100 = n % 100;
-    if (mod100 >= 11 && mod100 <= 19) return "яблок";
-    if (mod10 === 1) return "яблоко";
-    if (mod10 >= 2 && mod10 <= 4) return "яблока";
-    return "яблок";
-  };
+  const pluralApples = () => "ябл";
 
   useEffect(() => {
     const cur = game.playerLevel ?? 1;
@@ -720,7 +714,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   const i = s.lastIndexOf(' ');
                   return i === -1 ? [s, ''] : [s.slice(0, i), s.slice(i + 1)];
                 };
-                const [rubNum, rubUnit] = splitVal(formatRub(balances.active));
+                const rubNum = Math.floor(balances.active).toLocaleString("ru-RU");
+                const rubUnit = "₽";
                 const [treeNum, treeUnit] = splitVal(formatTreeGrowth(displayGrowthMM));
                 return <>
                   <div className="progress-row progress-row-deposit">
@@ -743,7 +738,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       </svg>
                     </span>
                     <span className="progress-val-num">{apples}</span>
-                    <span className="progress-val-unit">{pluralApples(apples)}</span>
+                    <span className="progress-val-unit">{pluralApples()}</span>
                     <button className="growth-info-btn growth-info-btn-plus">+</button>
                   </div>
                 </>;
