@@ -37,7 +37,7 @@ export default function OnboardingPage({ onComplete }: Props) {
     <div className="onboarding-page">
       <div className="onboarding-center">
         <div className="onboarding-header">
-          <span className="onboarding-icon">🌱</span>
+          <span className="onboarding-icon">🌳</span>
           <h1 className="onboarding-title">Открыть демо-счёт</h1>
         </div>
 
