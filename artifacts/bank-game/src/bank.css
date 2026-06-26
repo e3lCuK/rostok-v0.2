@@ -1103,8 +1103,6 @@ body {
 }
 
 .progress-val-num {
-  flex: 1;
-  min-width: 0;
   text-align: left;
   font-size: 12px;
   font-weight: 400;
@@ -1114,6 +1112,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   flex-shrink: 0;
+  margin-right: auto;
 }
 
 
