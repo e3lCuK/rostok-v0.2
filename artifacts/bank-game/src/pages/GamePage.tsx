@@ -374,8 +374,27 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     pendingXpRef.current = null;
     const scores = sessionScores;
 
-    // Step 1 — immediately freeze care button, start timer
+    // Step 1 — immediately freeze care button, show XP popup, apply XP
     setCareClicked(true);
+    if (scores && scores.xp > 0) setShowXpPopup(true);
+    const xpTimer = setTimeout(() => {
+      if (px) {
+        const cur = stateRef.current;
+        onStateChange({
+          ...cur,
+          game: {
+            ...cur.game,
+            playerXP: (cur.game.playerXP ?? 0) + px.xpGained,
+            playerLevel: px.newLevel ?? cur.game.playerLevel,
+            xpHistory: (px.xpHistory as typeof cur.game.xpHistory) ?? cur.game.xpHistory,
+          },
+        });
+        if (scores) setXpGainAmount(scores.xp);
+        if (px.levelUp && px.newLevel) setLevelUpData({ level: px.newLevel });
+      }
+      setShowXpPopup(false);
+    }, 1400);
+    growthTimeoutsRef.current.push(xpTimer);
 
     // Step 2 — ghost buttons split in after 800ms
     const ghostTimer = setTimeout(() => setShowActivityGhost(true), 800);
@@ -409,31 +428,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           transition: { duration: 1.0, ease: "easeInOut" },
         });
 
-        // Step 5 — начисление роста (мм + XP) после вспышки + показ попапов
+        // Step 5 — начисление роста (мм) после вспышки + показ попапа мм
         if (px) {
           const cur = stateRef.current;
           onStateChange({
             ...cur,
             game: {
               ...cur.game,
-              playerXP: (cur.game.playerXP ?? 0) + px.xpGained,
-              playerLevel: px.newLevel ?? cur.game.playerLevel,
-              xpHistory: (px.xpHistory as typeof cur.game.xpHistory) ?? cur.game.xpHistory,
               treeGrowthMM: px.newMM,
               treeGrowthRemainder: px.newRemainder,
             },
           });
           animateGrowth(displayGrowthMMRef.current, px.newMM);
-          if (scores) setXpGainAmount(scores.xp);
-          if (px.levelUp && px.newLevel) setLevelUpData({ level: px.newLevel });
         }
-        if (scores && scores.xp > 0) setShowXpPopup(true);
         if (scores && scores.mm > 0) setShowMmPopup(true);
-        const popupTimer = setTimeout(() => {
-          setShowXpPopup(false);
-          setShowMmPopup(false);
-        }, 1400);
-        growthTimeoutsRef.current.push(popupTimer);
+        const mmPopupTimer = setTimeout(() => setShowMmPopup(false), 1400);
+        growthTimeoutsRef.current.push(mmPopupTimer);
 
         // Step 6 — начисление дохода (деньги) через 900ms после вспышки
         const incomeTimer = setTimeout(() => {
