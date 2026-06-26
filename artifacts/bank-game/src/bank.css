@@ -2402,7 +2402,7 @@ body.modal-open {
 }
 
 .session-actions {
-  transition: opacity 300ms ease, transform 300ms ease;
+  transition: opacity 300ms ease, transform 300ms ease, background 450ms ease;
 }
 
 .activities-fade {
