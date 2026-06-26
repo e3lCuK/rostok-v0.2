@@ -9,7 +9,7 @@
 }
 
 :root {
-  --bg: #ecfccb;
+  --bg: #fafff5;
   --surface: #ffffff;
   --surface2: #f8f9fc;
   --text: #111827;
@@ -36,7 +36,7 @@ html, body {
 }
 
 body {
-  background: #fafff5;
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -145,7 +145,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #ecfccb;
+  background: var(--bg);
   border-top: 1px solid rgba(100,160,40,0.18);
   display: flex;
   align-items: center;
@@ -539,7 +539,7 @@ body {
 /* ============================
    GAME PAGE
 ==============================*/
-.game-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: #ecfccb; }
+.game-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: var(--bg); }
 
 /* Session counter */
 .session-counter-card {
@@ -619,7 +619,7 @@ body {
   left: 0;
   right: 0;
   height: 90px;
-  background: #ecfccb;
+  background: var(--bg);
   border-radius: var(--radius) var(--radius) 0 0;
   z-index: 1;
   pointer-events: none;
@@ -805,7 +805,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  background: #ecfccb;
+  background: var(--bg);
   border-radius: 14px;
   border: 1.5px solid #d9f99d;
   transition: background 0.15s;
@@ -1385,8 +1385,8 @@ body.modal-open {
   border-radius: 8px;
   transition: color 0.15s, background 0.15s;
 }
-.xp-modal-tab:hover { background: #ecfccb; color: #365314; }
-.xp-modal-tab-active { color: #365314 !important; background: #ecfccb !important; }
+.xp-modal-tab:hover { background: var(--bg); color: #365314; }
+.xp-modal-tab-active { color: #365314 !important; background: var(--bg) !important; }
 
 .xp-rating-subtabs {
   display: flex;
@@ -1459,7 +1459,7 @@ body.modal-open {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: #ecfccb;
+  background: var(--bg);
 }
 .xp-lb-row-me {
   background: #d9f99d;
@@ -1543,7 +1543,7 @@ body.modal-open {
   height: 26px;
   border-radius: 50%;
   border: none;
-  background: #ecfccb;
+  background: var(--bg);
   color: #65a30d;
   cursor: pointer;
   flex-shrink: 0;
@@ -1658,7 +1658,7 @@ body.modal-open {
   justify-content: space-between;
   padding: 7px 10px;
   border-radius: 10px;
-  background: #ecfccb;
+  background: var(--bg);
   font-size: 0.84rem;
 }
 .xp-history-row-new { background: #d9f99d; border: 1px solid #a3e635; }
@@ -1804,7 +1804,7 @@ body.modal-open {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: #ecfccb;
+  background: var(--bg);
   border-radius: 20px;
   padding: 18px 28px 16px;
   box-shadow: 0 8px 32px rgba(22, 101, 52, 0.35);
@@ -1939,7 +1939,7 @@ body.modal-open {
   gap: 14px;
   align-items: flex-start;
   padding: 14px;
-  background: #ecfccb;
+  background: var(--bg);
   border-radius: 14px;
   border: 1px solid #d9f99d;
 }
@@ -2036,7 +2036,7 @@ body.modal-open {
 }
 
 .streak-day-upcoming {
-  background: #ecfccb;
+  background: var(--bg);
   border-color: #d9f99d;
 }
 
@@ -2077,7 +2077,7 @@ body.modal-open {
   font-size: 0.8rem;
   font-weight: 600;
   color: #4d7c0f;
-  background: #ecfccb;
+  background: var(--bg);
   border-radius: 10px;
   padding: 7px 12px;
   margin-bottom: 14px;
@@ -2419,7 +2419,7 @@ body.modal-open {
 .session-item {
   padding: 12px;
   border-radius: 12px;
-  background: #ecfccb;
+  background: var(--bg);
   border: 1.5px solid #d9f99d;
   margin-bottom: 8px;
 }
@@ -2470,7 +2470,7 @@ body.modal-open {
 
 /* ── Deposit info modal ──────────────────────────────── */
 .deposit-modal-summary {
-  background: #ecfccb;
+  background: var(--bg);
   border: 1.5px solid #d9f99d;
   border-radius: 12px;
   padding: 12px 14px;
@@ -2727,7 +2727,7 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ecfccb;
+  background: var(--bg);
   padding: 16px;
 }
 
@@ -2739,7 +2739,7 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ecfccb;
+  background: var(--bg);
   padding: 24px 16px;
 }
 .auth-card {
@@ -2787,7 +2787,7 @@ body.modal-open {
   transition: background 0.15s, color 0.15s;
 }
 .auth-tab-active {
-  background: #ecfccb;
+  background: var(--bg);
   color: #2d7a28;
   font-weight: 700;
   box-shadow: 0 1px 4px rgba(60,120,30,0.14);
@@ -3004,7 +3004,7 @@ body.modal-open {
   flex-direction: column;
   gap: 20px;
   min-height: 100dvh;
-  background: #ecfccb;
+  background: var(--bg);
 }
 
 .onboarding-header {
@@ -3724,7 +3724,7 @@ canvas {
 ==============================*/
 .daily-reward-modal {
   position: relative;
-  background: #ecfccb;
+  background: var(--bg);
   border-radius: 18px;
   padding: 20px 16px 16px;
   width: 310px;
