@@ -1090,6 +1090,9 @@ body {
 .progress-row-apples {
   color: #c0392b;
 }
+.progress-row-apples .growth-info-btn {
+  color: #c0392b;
+}
 
 .progress-row-icon {
   width: 16px;
