@@ -419,16 +419,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         growthIntervalRef.current = null;
         setGrowthCountdown(null);
 
-        // Step 4 — дерево вспыхивает
-        void treeControls.start({
-          scale: [1, 1.22, 1],
-          filter: [
-            "drop-shadow(0 0 0px rgba(80,200,60,0))",
-            "drop-shadow(0 0 30px rgba(80,200,60,0.85))",
-            "drop-shadow(0 0 0px rgba(80,200,60,0))",
-          ],
-          transition: { duration: 1.0, ease: "easeInOut" },
-        });
+        // Step 4 — финальная пульсация (идентична обычной)
+        triggerTreeAnim();
 
         // Step 5 — начисление роста (мм) после вспышки + показ попапа мм
         if (px) {
