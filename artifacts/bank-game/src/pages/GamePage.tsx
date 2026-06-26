@@ -374,17 +374,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     pendingXpRef.current = null;
     const scores = sessionScores;
 
-    // Step 1 — immediately freeze care button, show XP/мм popups, start timer
+    // Step 1 — immediately freeze care button, start timer
     setCareClicked(true);
-    if (scores && scores.xp > 0) setShowXpPopup(true);
-    if (scores && scores.mm > 0) setShowMmPopup(true);
 
     // Step 2 — ghost buttons split in after 800ms
     const ghostTimer = setTimeout(() => setShowActivityGhost(true), 800);
     growthTimeoutsRef.current.push(ghostTimer);
 
-    // Step 3 — countdown timer (1s per mm, clamped 5–20s)
-    const timerSecs = Math.max(5, Math.min(20, scores?.mm ?? 9));
+    // Step 3 — countdown timer (1s per mm, min 5s, no upper cap)
+    const timerSecs = Math.max(5, scores?.mm ?? 9);
     const newAppleCount = Math.floor(Math.random() * 3) + 1;
     setAppleCount(newAppleCount);
     setShowApples(false);
@@ -411,7 +409,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           transition: { duration: 1.0, ease: "easeInOut" },
         });
 
-        // Step 5 — начисление роста (мм + XP) сразу после вспышки
+        // Step 5 — начисление роста (мм + XP) после вспышки + показ попапов
         if (px) {
           const cur = stateRef.current;
           onStateChange({
@@ -429,8 +427,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           if (scores) setXpGainAmount(scores.xp);
           if (px.levelUp && px.newLevel) setLevelUpData({ level: px.newLevel });
         }
-        setShowXpPopup(false);
-        setShowMmPopup(false);
+        if (scores && scores.xp > 0) setShowXpPopup(true);
+        if (scores && scores.mm > 0) setShowMmPopup(true);
+        const popupTimer = setTimeout(() => {
+          setShowXpPopup(false);
+          setShowMmPopup(false);
+        }, 1400);
+        growthTimeoutsRef.current.push(popupTimer);
 
         // Step 6 — начисление дохода (деньги) через 900ms после вспышки
         const incomeTimer = setTimeout(() => {
