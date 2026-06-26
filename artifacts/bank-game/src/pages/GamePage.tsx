@@ -374,7 +374,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     pendingXpRef.current = null;
     const scores = sessionScores;
 
-    // Growth animation: countdown (1s per mm, clamped 5–20s), then strong final pulse, then apples
+    // Step 1 — immediately freeze care button, show XP/мм popups, start timer
+    setCareClicked(true);
+    if (scores && scores.xp > 0) setShowXpPopup(true);
+    if (scores && scores.mm > 0) setShowMmPopup(true);
+
+    // Step 2 — ghost buttons split in after 800ms
+    const ghostTimer = setTimeout(() => setShowActivityGhost(true), 800);
+    growthTimeoutsRef.current.push(ghostTimer);
+
+    // Step 3 — countdown timer (1s per mm, clamped 5–20s)
     const timerSecs = Math.max(5, Math.min(20, scores?.mm ?? 9));
     const newAppleCount = Math.floor(Math.random() * 3) + 1;
     setAppleCount(newAppleCount);
@@ -390,6 +399,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         clearInterval(growthInterval);
         growthIntervalRef.current = null;
         setGrowthCountdown(null);
+
+        // Step 4 — дерево вспыхивает
         void treeControls.start({
           scale: [1, 1.22, 1],
           filter: [
@@ -399,64 +410,46 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           ],
           transition: { duration: 1.0, ease: "easeInOut" },
         });
+
+        // Step 5 — начисление роста (мм + XP) сразу после вспышки
+        if (px) {
+          const cur = stateRef.current;
+          onStateChange({
+            ...cur,
+            game: {
+              ...cur.game,
+              playerXP: (cur.game.playerXP ?? 0) + px.xpGained,
+              playerLevel: px.newLevel ?? cur.game.playerLevel,
+              xpHistory: (px.xpHistory as typeof cur.game.xpHistory) ?? cur.game.xpHistory,
+              treeGrowthMM: px.newMM,
+              treeGrowthRemainder: px.newRemainder,
+            },
+          });
+          animateGrowth(displayGrowthMMRef.current, px.newMM);
+          if (scores) setXpGainAmount(scores.xp);
+          if (px.levelUp && px.newLevel) setLevelUpData({ level: px.newLevel });
+        }
+        setShowXpPopup(false);
+        setShowMmPopup(false);
+
+        // Step 6 — начисление дохода (деньги) через 900ms после вспышки
+        const incomeTimer = setTimeout(() => {
+          setHistoryHighlight(true);
+          setTimeout(() => setHistoryHighlight(false), 2800);
+          setShowRewards(true);
+          handleClaimAll();
+        }, 900);
+        growthTimeoutsRef.current.push(incomeTimer);
+
+        // Step 7 — яблоки через 1800ms после вспышки
         const appleTimer = setTimeout(() => {
           setShowGrowthAnim(false);
           setShowApples(true);
-        }, 2000);
+        }, 1800);
         growthTimeoutsRef.current.push(appleTimer);
       }
     }, 1000);
     growthIntervalRef.current = growthInterval;
-
-    // Step 1 — immediately show +XP and +мм popups; freeze care button
-    setCareClicked(true);
-    if (scores && scores.xp > 0) setShowXpPopup(true);
-    if (scores && scores.mm > 0) setShowMmPopup(true);
-
-    // Step 2 — small delay, then apply XP/MM: bar fills, level/growth numbers update
-    setTimeout(() => {
-      if (px) {
-        const cur = stateRef.current;
-        onStateChange({
-          ...cur,
-          game: {
-            ...cur.game,
-            playerXP: (cur.game.playerXP ?? 0) + px.xpGained,
-            playerLevel: px.newLevel ?? cur.game.playerLevel,
-            xpHistory: (px.xpHistory as typeof cur.game.xpHistory) ?? cur.game.xpHistory,
-            treeGrowthMM: px.newMM,
-            treeGrowthRemainder: px.newRemainder,
-          },
-        });
-        animateGrowth(displayGrowthMMRef.current, px.newMM);
-        if (scores) setXpGainAmount(scores.xp);
-        if (px.levelUp && px.newLevel) setLevelUpData({ level: px.newLevel });
-      }
-    }, 700);
-
-    // Step 3 — tree flashes, popups fade out
-    setTimeout(() => {
-      treeControls.start({
-        scale: [1, 1.20, 1],
-        filter: ["brightness(1)", "brightness(1.65)", "brightness(1)"],
-        transition: { duration: 0.85, ease: "easeInOut" },
-      });
-      setShowXpPopup(false);
-      setShowMmPopup(false);
-    }, 1400);
-
-    // Step 3b — care button exits, 3 ghost buttons split in
-    setTimeout(() => {
-      setShowActivityGhost(true);
-    }, 800);
-
-    // Step 4 — ghost buttons exit, auto-claim rewards
-    setTimeout(() => {
-      setHistoryHighlight(true);
-      setTimeout(() => setHistoryHighlight(false), 2800);
-      setShowRewards(true);
-      handleClaimAll();
-    }, 2200);
   }
 
   function handleMinigameComplete(type: GameType, skillScore: number) {
