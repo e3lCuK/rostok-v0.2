@@ -97,22 +97,22 @@ export default function GameAreaBg() {
 
         {/* Flower left */}
         <g opacity="0.7" className="bg-flower-left">
-          <circle cx="82" cy="50" r="3" fill="#fbbf24" />
-          <circle cx="82" cy="45" r="2.5" fill="#f9a8d4" />
-          <circle cx="87" cy="48" r="2.5" fill="#f9a8d4" />
-          <circle cx="77" cy="48" r="2.5" fill="#f9a8d4" />
-          <circle cx="82" cy="53" r="2.5" fill="#f9a8d4" />
-          <line x1="82" y1="55" x2="82" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
+          <circle cx="95" cy="50" r="3" fill="#fbbf24" />
+          <circle cx="95" cy="45" r="2.5" fill="#f9a8d4" />
+          <circle cx="100" cy="48" r="2.5" fill="#f9a8d4" />
+          <circle cx="90" cy="48" r="2.5" fill="#f9a8d4" />
+          <circle cx="95" cy="53" r="2.5" fill="#f9a8d4" />
+          <line x1="95" y1="55" x2="95" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
         </g>
 
         {/* Flower right */}
         <g opacity="0.7" className="bg-flower-right">
-          <circle cx="348" cy="50" r="3" fill="#fbbf24" />
-          <circle cx="348" cy="45" r="2.5" fill="#c4b5fd" />
-          <circle cx="353" cy="48" r="2.5" fill="#c4b5fd" />
-          <circle cx="343" cy="48" r="2.5" fill="#c4b5fd" />
-          <circle cx="348" cy="53" r="2.5" fill="#c4b5fd" />
-          <line x1="348" y1="55" x2="348" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
+          <circle cx="335" cy="50" r="3" fill="#fbbf24" />
+          <circle cx="335" cy="45" r="2.5" fill="#c4b5fd" />
+          <circle cx="340" cy="48" r="2.5" fill="#c4b5fd" />
+          <circle cx="330" cy="48" r="2.5" fill="#c4b5fd" />
+          <circle cx="335" cy="53" r="2.5" fill="#c4b5fd" />
+          <line x1="335" y1="55" x2="335" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
         </g>
 
         {/* Mushroom */}
