@@ -643,6 +643,7 @@ body {
   padding: 0 8px;
   gap: 0;
   position: relative;
+  margin-top: 8px;
 }
 
 .game-top-controls {
@@ -686,8 +687,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border: none;
   border-radius: 3px;
   background: rgba(180, 190, 160, 0.45);
@@ -2695,8 +2696,8 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   background: rgba(180, 190, 160, 0.45);
   border: none;

@@ -855,7 +855,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <div className="game-top-controls">
             <div ref={settingsRef} className="game-gear-wrap">
               <button className="game-gear-btn" onClick={() => setShowSettings(s => !s)} title="Настройки">
-                <Settings size={11} />
+                <Settings size={14} />
               </button>
               <AnimatePresence>
                 {showSettings && (
