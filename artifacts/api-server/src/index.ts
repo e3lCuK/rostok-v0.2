@@ -58,6 +58,7 @@ async function runMigrations() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_prt_token ON password_reset_tokens (token)`);
   await pool.query(`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS last_streak_date TEXT`);
+  await pool.query(`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS total_apples INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS starting_capital NUMERIC(15,2) NOT NULL DEFAULT 0`);
   await pool.query(`
     UPDATE accounts

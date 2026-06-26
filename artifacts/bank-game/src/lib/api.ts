@@ -107,10 +107,10 @@ export const api = {
       { method: "POST", body: JSON.stringify({ type }) },
     ),
 
-  claimAll: () =>
+  claimAll: (applesCollected?: number) =>
     request<{ success: boolean; totalAmount: number; baseAmount: number; bonusAmount: number; treeGrowthMM: number; treeGrowthRemainder: number }>(
       "/game/session/claimAll",
-      { method: "POST" },
+      { method: "POST", body: JSON.stringify({ applesCollected: applesCollected ?? 0 }) },
     ),
 
   debugAddSessions: () =>

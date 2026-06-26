@@ -105,7 +105,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [applePopupCount, setApplePopupCount] = useState(1);
   const [showIncomePopup, setShowIncomePopup] = useState(false);
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
-  const [totalApples, setTotalApples] = useState(0);
+  const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
@@ -357,7 +357,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
     setShowRewards(true);
-    void handleClaimAll();
+    void handleClaimAll(remaining);
     setTimeout(() => {
       setShowApples(false);
       collectedAppleIndicesRef.current = [];
@@ -694,11 +694,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
   }
 
-  async function handleClaimAll() {
+  async function handleClaimAll(applesCollected = 0) {
     if (claiming || (pendingBase <= 0 && pendingBonus <= 0)) return;
     setClaiming(true);
     try {
-      const result = await api.claimAll();
+      const result = await api.claimAll(applesCollected);
       const total = result.totalAmount ?? 0;
       const cur = stateRef.current;
       const today = new Date().toLocaleDateString("ru-RU");

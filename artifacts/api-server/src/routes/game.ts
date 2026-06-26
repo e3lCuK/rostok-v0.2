@@ -69,6 +69,7 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
         treeGrowthRemainder: parseFloat(game.tree_growth_remainder) || 0,
         playerXP: parseInt(game.player_xp) || 0,
         playerLevel: parseInt(game.player_level) || 1,
+        totalApples: parseInt(game.total_apples) || 0,
         xpHistory: Array.isArray(game.xp_history)
           ? game.xp_history
           : (game.xp_history ? JSON.parse(game.xp_history) : []),
@@ -367,9 +368,10 @@ router.post("/game/session/claimAll", requireAuth, async (req: any, res) => {
       newGrowthRemainder -= extraMM;
     }
 
+    const applesCollected = parseInt(req.body?.applesCollected) || 0;
     await pool.query(
-      `UPDATE game_state SET pending_base_reward = 0, pending_bonus_reward = 0, tree_growth_mm = $2, tree_growth_remainder = $3, updated_at = NOW() WHERE user_id = $1`,
-      [userId, newGrowthMM, newGrowthRemainder],
+      `UPDATE game_state SET pending_base_reward = 0, pending_bonus_reward = 0, tree_growth_mm = $2, tree_growth_remainder = $3, total_apples = COALESCE(total_apples, 0) + $4, updated_at = NOW() WHERE user_id = $1`,
+      [userId, newGrowthMM, newGrowthRemainder, applesCollected],
     );
     await pool.query(
       `UPDATE accounts SET active_balance = active_balance + $1, active_earned = active_earned + $1 WHERE user_id = $2`,
