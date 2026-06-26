@@ -3015,7 +3015,7 @@ body.modal-open {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .onboarding-header {
@@ -3046,6 +3046,7 @@ body.modal-open {
   font-size: 0.82rem;
   color: var(--text2);
   line-height: 1.55;
+  text-align: center;
 }
 
 .onboarding-rates {
@@ -3061,6 +3062,7 @@ body.modal-open {
   border-radius: 8px;
   padding: 5px 10px;
   display: block;
+  text-align: center;
 }
 
 .onboarding-single-card {
@@ -3094,7 +3096,6 @@ body.modal-open {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: -16px;
 }
 
 .capital-option {

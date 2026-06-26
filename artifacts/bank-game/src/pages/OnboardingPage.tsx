@@ -41,14 +41,11 @@ export default function OnboardingPage({ onComplete }: Props) {
           <h1 className="onboarding-title">Открыть демо-счёт</h1>
         </div>
 
-        <div className="onboarding-info-static">
-          <p className="onboarding-info-text">
-            Вкладывать ничего не нужно — это демо-счёт. Играйте в мини-игры каждые 8 часов, чтобы получать доход и растить дерево.
-          </p>
-          <div className="onboarding-rates">
-            <span className="onboarding-rate-badge">Активный вклад до <strong>15%</strong> годовых</span>
-          </div>
-        </div>
+        <p className="onboarding-info-text">
+          Вкладывать ничего не нужно — это демо-счёт. Играйте в мини-игры каждые 8 часов, чтобы получать доход и растить дерево.
+        </p>
+
+        <span className="onboarding-rate-badge">Активный вклад до <strong>15%</strong> годовых</span>
 
         <div className="onboarding-options">
           <motion.button
