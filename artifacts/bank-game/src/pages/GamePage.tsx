@@ -915,30 +915,30 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </div>
             )}
           </AnimatePresence>
-        </div>
 
-        <AnimatePresence>
-          {growthCountdown !== null && (
-            <motion.div
-              className="growth-timer"
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="growth-timer-row">
-                <div
-                  className="growth-timer-bar"
-                  style={{ width: `${((growthTimerTotal - growthCountdown) / growthTimerTotal) * 100}%` }}
-                />
-                <span className="growth-timer-leaf"><Leaf size={13} /></span>
-                <span className="growth-timer-time">
-                  {String(Math.floor(growthCountdown / 60)).padStart(2, '0')}:{String(growthCountdown % 60).padStart(2, '0')}
-                </span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {growthCountdown !== null && (
+              <motion.div
+                className="growth-timer"
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="growth-timer-row">
+                  <div
+                    className="growth-timer-bar"
+                    style={{ width: `${((growthTimerTotal - growthCountdown) / growthTimerTotal) * 100}%` }}
+                  />
+                  <span className="growth-timer-leaf"><Leaf size={13} /></span>
+                  <span className="growth-timer-time">
+                    {String(Math.floor(growthCountdown / 60)).padStart(2, '0')}:{String(growthCountdown % 60).padStart(2, '0')}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
 
         <div className="session-actions-wrap">
