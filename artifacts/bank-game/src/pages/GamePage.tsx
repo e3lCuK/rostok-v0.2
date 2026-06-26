@@ -458,9 +458,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         growthIntervalRef.current = null;
         setGrowthCountdown(null);
 
-        // Step 4 — финальная пульсация (идентична обычной)
-        triggerTreeAnim();
-
         // Step 5 — начисление роста (мм) после вспышки + показ попапа мм
         if (px) {
           const cur = stateRef.current;
