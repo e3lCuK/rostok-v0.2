@@ -1087,6 +1087,9 @@ body {
 .progress-row-deposit .growth-info-btn {
   color: #c9920a;
 }
+.progress-row-apples {
+  color: #c0392b;
+}
 
 .progress-row-icon {
   width: 16px;
