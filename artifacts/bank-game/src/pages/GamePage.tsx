@@ -176,7 +176,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
     const pbo = state.game.pendingBonusReward ?? 0;
     if (pb === 0 && pbo === 0 && showCompletionStage) {
       setShowCompletionStage(false);
-      setShowRewards(false);
       setFadeActivities(false);
     }
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
