@@ -57,66 +57,72 @@ export default function GameAreaBg() {
       {/* Ground layer — stretches full width, minor distortion unnoticeable on a hill curve */}
       <svg
         className="game-area-bg-ground"
-        viewBox="-10 510 375 90"
+        viewBox="0 0 430 90"
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        <g transform="translate(0,-25)">
-          {/* Ground strip — right side extends far off-screen so viewBox clip hits flat portion */}
-          <path d="M-10,625 L-10,578 Q200,553 550,578 L550,625 Z" fill="#8dc63f" opacity="0.35" />
-          {/* Grass tufts left */}
-          <g fill="#5a9e1e" opacity="0.55">
-            <ellipse cx="22" cy="572" rx="12" ry="7" />
-            <ellipse cx="36" cy="569" rx="9" ry="6" />
-            <ellipse cx="10" cy="569" rx="7" ry="5" />
-          </g>
-          {/* Grass tufts right — shifted further right */}
-          <g fill="#5a9e1e" opacity="0.55">
-            <ellipse cx="335" cy="572" rx="12" ry="7" />
-            <ellipse cx="320" cy="569" rx="9" ry="6" />
-            <ellipse cx="348" cy="569" rx="7" ry="5" />
-          </g>
-          {/* Bush left */}
-          <g opacity="0.45" className="bg-bush-left">
-            <circle cx="45" cy="556" r="14" fill="#4a8f12" />
-            <circle cx="34" cy="560" r="10" fill="#5aab1a" />
-            <circle cx="56" cy="561" r="10" fill="#5aab1a" />
-          </g>
-          {/* Bush right — shifted further right */}
-          <g opacity="0.45" className="bg-bush-right">
-            <circle cx="320" cy="556" r="14" fill="#4a8f12" />
-            <circle cx="309" cy="560" r="10" fill="#5aab1a" />
-            <circle cx="331" cy="561" r="10" fill="#5aab1a" />
-          </g>
-          {/* Flower left */}
-          <g opacity="0.7" className="bg-flower-left">
-            <circle cx="68" cy="565" r="3" fill="#fbbf24" />
-            <circle cx="68" cy="560" r="2.5" fill="#f9a8d4" />
-            <circle cx="73" cy="563" r="2.5" fill="#f9a8d4" />
-            <circle cx="63" cy="563" r="2.5" fill="#f9a8d4" />
-            <circle cx="68" cy="568" r="2.5" fill="#f9a8d4" />
-            <line x1="68" y1="570" x2="68" y2="576" stroke="#4d7c0f" strokeWidth="1.2" />
-          </g>
-          {/* Flower right — shifted further right */}
-          <g opacity="0.7" className="bg-flower-right">
-            <circle cx="292" cy="565" r="3" fill="#fbbf24" />
-            <circle cx="292" cy="560" r="2.5" fill="#c4b5fd" />
-            <circle cx="297" cy="563" r="2.5" fill="#c4b5fd" />
-            <circle cx="287" cy="563" r="2.5" fill="#c4b5fd" />
-            <circle cx="292" cy="568" r="2.5" fill="#c4b5fd" />
-            <line x1="292" y1="570" x2="292" y2="576" stroke="#4d7c0f" strokeWidth="1.2" />
-          </g>
-          {/* Mushroom */}
-          <g opacity="0.5" className="bg-mushroom">
-            <rect x="78" y="569" width="5" height="8" rx="1" fill="#e5c07b" />
-            <ellipse cx="80.5" cy="569" rx="9" ry="5" fill="#e06c75" />
-            <ellipse cx="78" cy="568" rx="2" ry="1.2" fill="#fff" opacity="0.6" />
-          </g>
-          {/* Stones */}
-          <ellipse cx="115" cy="578" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
-          <ellipse cx="238" cy="580" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
+        {/* Hill fills corner-to-corner: x=0→430, both edges at y=45, peak at y=20 */}
+        <path d="M0,90 L0,45 Q215,20 430,45 L430,90 Z" fill="#8dc63f" opacity="0.35" />
+
+        {/* Grass tufts left */}
+        <g fill="#5a9e1e" opacity="0.55">
+          <ellipse cx="22" cy="57" rx="12" ry="7" />
+          <ellipse cx="36" cy="54" rx="9" ry="6" />
+          <ellipse cx="10" cy="54" rx="7" ry="5" />
         </g>
+
+        {/* Grass tufts right */}
+        <g fill="#5a9e1e" opacity="0.55">
+          <ellipse cx="408" cy="57" rx="12" ry="7" />
+          <ellipse cx="394" cy="54" rx="9" ry="6" />
+          <ellipse cx="420" cy="54" rx="7" ry="5" />
+        </g>
+
+        {/* Bush left */}
+        <g opacity="0.45" className="bg-bush-left">
+          <circle cx="55" cy="42" r="14" fill="#4a8f12" />
+          <circle cx="44" cy="46" r="10" fill="#5aab1a" />
+          <circle cx="66" cy="47" r="10" fill="#5aab1a" />
+        </g>
+
+        {/* Bush right — mirrors left at ~87% of width */}
+        <g opacity="0.45" className="bg-bush-right">
+          <circle cx="375" cy="42" r="14" fill="#4a8f12" />
+          <circle cx="364" cy="46" r="10" fill="#5aab1a" />
+          <circle cx="386" cy="47" r="10" fill="#5aab1a" />
+        </g>
+
+        {/* Flower left */}
+        <g opacity="0.7" className="bg-flower-left">
+          <circle cx="82" cy="50" r="3" fill="#fbbf24" />
+          <circle cx="82" cy="45" r="2.5" fill="#f9a8d4" />
+          <circle cx="87" cy="48" r="2.5" fill="#f9a8d4" />
+          <circle cx="77" cy="48" r="2.5" fill="#f9a8d4" />
+          <circle cx="82" cy="53" r="2.5" fill="#f9a8d4" />
+          <line x1="82" y1="55" x2="82" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
+        </g>
+
+        {/* Flower right */}
+        <g opacity="0.7" className="bg-flower-right">
+          <circle cx="348" cy="50" r="3" fill="#fbbf24" />
+          <circle cx="348" cy="45" r="2.5" fill="#c4b5fd" />
+          <circle cx="353" cy="48" r="2.5" fill="#c4b5fd" />
+          <circle cx="343" cy="48" r="2.5" fill="#c4b5fd" />
+          <circle cx="348" cy="53" r="2.5" fill="#c4b5fd" />
+          <line x1="348" y1="55" x2="348" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
+        </g>
+
+        {/* Mushroom */}
+        <g opacity="0.5" className="bg-mushroom">
+          <rect x="96" y="54" width="5" height="8" rx="1" fill="#e5c07b" />
+          <ellipse cx="98.5" cy="54" rx="9" ry="5" fill="#e06c75" />
+          <ellipse cx="96" cy="53" rx="2" ry="1.2" fill="#fff" opacity="0.6" />
+        </g>
+
+        {/* Stones */}
+        <ellipse cx="145" cy="62" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
+        <ellipse cx="285" cy="63" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
       </svg>
     </div>
   );
