@@ -648,10 +648,11 @@ body {
 .game-top-controls {
   position: absolute;
   top: 6px;
-  right: 8px;
+  right: 6px;
   display: flex;
   align-items: center;
   gap: 5px;
+  z-index: 20;
 }
 
 .game-beta-badge {
