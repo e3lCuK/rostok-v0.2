@@ -345,21 +345,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
     }
-    // Show мм + ябл together first
+    // Show ябл + ₽ together
     setApplePopupCount(remaining);
     setShowApplePopup(true);
-    setShowMmPopup(true);
     setTimeout(() => setShowApplePopup(false), 1200);
-    setTimeout(() => setShowMmPopup(false), 1200);
-    // Then show ₽ income popup after apple/мм fade
     const cur = stateRef.current;
     const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
     if (total > 0) {
       setLastIncomeAmount(total);
-      setTimeout(() => {
-        setShowIncomePopup(true);
-        setTimeout(() => setShowIncomePopup(false), 1500);
-      }, 1200);
+      setShowIncomePopup(true);
+      setTimeout(() => setShowIncomePopup(false), 1500);
     }
     setTotalApples(t => t + remaining);
     setHistoryHighlight(true);
