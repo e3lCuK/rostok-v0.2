@@ -9,9 +9,10 @@ interface Props {
   onResetAccount: () => void;
   onSignOut: () => Promise<void>;
   onCompleteAll?: () => Promise<void>;
+  onDebugSessionAdded?: () => void;
 }
 
-export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll }: Props) {
+export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -58,7 +59,6 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
   async function addOneSession() {
     setBusy(true);
     try {
-      // Server computes the correct target — no client-side guessing
       const res = await api.debugAddSessions();
       onStateChange({
         ...state,
@@ -69,6 +69,7 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
           sessionInProgress: false,
         },
       });
+      onDebugSessionAdded?.();
     } catch (e) {
       console.warn("[Debug] add-sessions failed", e);
     }

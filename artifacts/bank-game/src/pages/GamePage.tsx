@@ -1600,6 +1600,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         onResetAccount={onResetAccount ?? (() => {})}
         onSignOut={logout}
         onCompleteAll={handleDebugCompleteAll}
+        onDebugSessionAdded={() => {
+          setShowCompletionStage(false);
+          setShowRewards(false);
+          setShowActivityGhost(false);
+          setFadeActivities(false);
+          setCareClicked(false);
+          setShowApples(false);
+          collectedAppleIndicesRef.current = [];
+          setCollectedAppleIndices([]);
+          if (appleAutoCollectTimerRef.current) {
+            clearTimeout(appleAutoCollectTimerRef.current);
+            appleAutoCollectTimerRef.current = null;
+          }
+        }}
       />
     </div>
   );
