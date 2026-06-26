@@ -3141,7 +3141,8 @@ body.modal-open {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid var(--border);
+  border: 2px solid rgba(100, 160, 40, 0.4);
+  background: rgba(90, 172, 84, 0.18);
   transition: border-color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
