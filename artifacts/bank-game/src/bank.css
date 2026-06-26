@@ -2773,7 +2773,7 @@ body.modal-open {
 .auth-tabs {
   display: flex;
   border-radius: 10px;
-  background: rgba(80,140,30,0.18);
+  background: #f0f0f0;
   padding: 3px;
   gap: 2px;
 }
@@ -2790,10 +2790,10 @@ body.modal-open {
   transition: background 0.15s, color 0.15s;
 }
 .auth-tab-active {
-  background: var(--bg);
+  background: #ffffff;
   color: #2d7a28;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(60,120,30,0.14);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
 }
 .auth-form {
   display: flex;
@@ -2813,18 +2813,18 @@ body.modal-open {
 .auth-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1.5px solid rgba(100,160,40,0.3);
+  border: 1.5px solid #e4e4e7;
   border-radius: 10px;
   font-size: 14px;
   color: #111827;
-  background: #edfccb;
+  background: #f4f4f5;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
   box-sizing: border-box;
 }
 .auth-input:focus {
   border-color: #5aac54;
-  background: #f5fee0;
+  background: #ffffff;
 }
 .auth-error {
   font-size: 12px;
@@ -3113,8 +3113,8 @@ body.modal-open {
 }
 
 .capital-option {
-  background: #d9f7a0;
-  border: 2px solid rgba(100,160,40,0.28);
+  background: #f4f4f5;
+  border: 2px solid #e4e4e7;
   border-radius: var(--radius);
   padding: 16px;
   text-align: left;
