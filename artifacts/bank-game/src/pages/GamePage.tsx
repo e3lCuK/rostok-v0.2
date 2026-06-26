@@ -949,7 +949,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </div>
       </div>
 
-      <div className="game-nav-h-divider" />
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
         <span className="game-beta-floating">{APP_VERSION}</span>

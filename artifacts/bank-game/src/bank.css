@@ -596,7 +596,7 @@ body {
   flex-shrink: 0;
   height: 90px;
   background: var(--bg);
-  border-bottom: 1px solid rgba(100, 160, 40, 0.18);
+  border-bottom: 2px solid rgba(100, 160, 40, 0.55);
   position: relative;
   display: flex;
   align-items: stretch;
