@@ -2292,10 +2292,10 @@ body.modal-open {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  width: 76px;
-  min-height: 68px;
-  border-radius: 15px;
+  gap: 0;
+  width: 54px;
+  min-height: 54px;
+  border-radius: 12px;
   border: 2px solid #92400e;
   background: rgba(255,255,255,0.80);
   color: #92400e;
@@ -2345,9 +2345,9 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
-  min-height: 68px;
-  border-radius: 15px;
+  width: 54px;
+  min-height: 54px;
+  border-radius: 12px;
   border: 2px solid var(--ac, #16a34a);
   background: rgba(255,255,255,0.80);
   color: var(--ac, #16a34a);
@@ -2370,7 +2370,7 @@ body.modal-open {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 0;
 }
 
 .action-btn-done {

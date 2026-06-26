@@ -946,7 +946,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   >
                     <div className="action-btn-content">
                       {btn.icon}
-                      <span>{btn.label}</span>
                     </div>
                   </button>
                 ))}
@@ -979,7 +978,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       >
                         <div className="action-btn-content">
                           {btn.icon}
-                          <span>{btn.label}</span>
                         </div>
                       </motion.div>
                     ))}
@@ -1006,7 +1004,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                         return <div className="action-btn-fill" style={{ height: `${avg}%`, background: "#92400e" }} />;
                       })()}
                       <Shovel size={20} />
-                      <span>УХОД</span>
                     </button>
                     <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
                   </div>
@@ -1045,13 +1042,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                               )}
                               <div className="action-btn-top">
                                 <CheckCircle2 size={20} />
-                                <span>{btn.label}</span>
                               </div>
                             </>
                           ) : (
                             <div className="action-btn-content">
                               {btn.icon}
-                              <span>{btn.label}</span>
                             </div>
                           )}
                         </motion.button>
