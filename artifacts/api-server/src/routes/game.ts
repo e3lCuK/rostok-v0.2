@@ -566,13 +566,16 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
   }
 });
 
-// DELETE /api/game/debug/reset-all — wipe game data only (keep user + session)
+// DELETE /api/game/debug/reset-all — wipe all user data including the user record itself
 router.delete("/game/debug/reset-all", requireAuth, async (req: any, res) => {
   const userId = req.userId;
   try {
     await pool.query("DELETE FROM income_history WHERE user_id = $1", [userId]);
     await pool.query("DELETE FROM game_state WHERE user_id = $1", [userId]);
     await pool.query("DELETE FROM accounts WHERE user_id = $1", [userId]);
+    await pool.query("DELETE FROM sessions WHERE user_id = $1", [userId]).catch(() => {});
+    await pool.query("DELETE FROM password_reset_tokens WHERE user_id = $1", [userId]).catch(() => {});
+    await pool.query("DELETE FROM users WHERE id = $1", [userId]);
     return res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Error wiping user data (debug)");
