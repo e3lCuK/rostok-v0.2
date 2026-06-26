@@ -651,6 +651,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         newHistory.push({ date: today, amount: result.baseAmount, type: "base" as const });
       if ((result.bonusAmount ?? 0) > 0)
         newHistory.push({ date: today, amount: result.bonusAmount, type: "bonus" as const });
+      const curMM = stateRef.current.game.treeGrowthMM ?? 0;
       onStateChange({
         ...cur,
         balances: {
@@ -662,7 +663,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           ...cur.game,
           pendingBaseReward: 0,
           pendingBonusReward: 0,
-          treeGrowthMM: result.treeGrowthMM ?? cur.game.treeGrowthMM,
+          treeGrowthMM: Math.max(result.treeGrowthMM ?? 0, curMM),
           treeGrowthRemainder: result.treeGrowthRemainder ?? cur.game.treeGrowthRemainder,
         },
         history: newHistory.slice(-30),
