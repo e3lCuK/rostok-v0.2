@@ -610,6 +610,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
               </div>
             </div>
           </div>
+          <AnimatePresence>
+            {showMmPopup && sessionScores && sessionScores.mm > 0 && (
+              <motion.div
+                className="topbar-reward-popup topbar-reward-popup-mm"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                +{sessionScores.mm} мм.
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Col 2: Уровень */}
@@ -617,6 +630,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           <div className="game-left-widgets">
             <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
           </div>
+          <AnimatePresence>
+            {showXpPopup && sessionScores && (
+              <motion.div
+                className="topbar-reward-popup topbar-reward-popup-xp"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                +{sessionScores.xp} оп.
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Col 3: Энергия */}
@@ -673,34 +699,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
       <div className="game-area" ref={gameAreaRef}>
         <span className="game-beta-floating">{APP_VERSION}</span>
         <GameAreaBg />
-
-        {/* XP / MM reward popups — anchored inside play field */}
-        <AnimatePresence>
-          {showMmPopup && sessionScores && sessionScores.mm > 0 && (
-            <motion.div
-              className="reward-popup-field reward-popup-field-mm"
-              initial={{ opacity: 0, y: 0 }}
-              animate={{ opacity: 1, y: -28 }}
-              exit={{ opacity: 0, y: -52 }}
-              transition={{ duration: 0.55, ease: "easeOut" }}
-            >
-              +{sessionScores.mm} мм.
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {showXpPopup && sessionScores && (
-            <motion.div
-              className="reward-popup-field reward-popup-field-xp"
-              initial={{ opacity: 0, y: 0 }}
-              animate={{ opacity: 1, y: -28 }}
-              exit={{ opacity: 0, y: -52 }}
-              transition={{ duration: 0.55, ease: "easeOut" }}
-            >
-              +{sessionScores.xp} оп.
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {floaters.map(fl => (
           <div key={fl.id} className="game-floater" style={{ left: fl.x, top: fl.y }}>
