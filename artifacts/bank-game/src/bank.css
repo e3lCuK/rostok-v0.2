@@ -3031,15 +3031,15 @@ body.modal-open {
 }
 
 .onboarding-info {
-  background: rgba(90,172,84,0.07);
-  border: 1px solid rgba(90,172,84,0.25);
-  border-radius: 14px;
-  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
   text-align: center;
-  margin-top: -22px;
+  margin-top: -12px;
 }
 
 .onboarding-info-toggle {
@@ -3172,16 +3172,12 @@ body.modal-open {
   color: var(--text2);
 }
 
-.capital-option-stats {
+.capital-option-inline-stat {
+  font-size: 0.82rem;
+  color: var(--text2);
   display: flex;
-  gap: 16px;
-  margin-top: 4px;
-}
-
-.capital-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 4px;
 }
 
 .capital-stat-label {

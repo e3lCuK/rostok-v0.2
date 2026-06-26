@@ -82,19 +82,10 @@ export default function OnboardingPage({ onComplete }: Props) {
           whileTap={{ scale: 0.97 }}
         >
           <div className="capital-option-header">
-            <div>
-              <p className="capital-option-label">Стартовый капитал</p>
-              <p className="capital-option-amount">{formatCapital(DEFAULT_CAPITAL)}</p>
-            </div>
+            <p className="capital-option-amount">{formatCapital(DEFAULT_CAPITAL)}</p>
             <div className={`capital-option-radio${isSelected ? " capital-option-radio-active" : ""}`} />
           </div>
-          <p className="capital-option-desc">Весь капитал — в активный вклад</p>
-          <div className="capital-option-stats">
-            <div className="capital-stat">
-              <p className="capital-stat-label">В день</p>
-              <p className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</p>
-            </div>
-          </div>
+          <p className="capital-option-inline-stat">В день &nbsp;<span className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></p>
         </motion.button>
       </div>
 
