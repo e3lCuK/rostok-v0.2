@@ -7,7 +7,6 @@ import { UserState } from "@/lib/engine";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
-import DebugPanel from "@/components/DebugPanel";
 import "@/bank.css";
 
 // ---- Main app shell (authenticated) ----
@@ -97,19 +96,9 @@ function AppShell() {
           onStateChange={handleStateChange}
           notif={false}
           onClearNotif={() => {}}
+          onResetAccount={() => { setState(null); setOnboarding(true); }}
         />
       </main>
-
-      {state && (
-        <DebugPanel
-          state={state}
-          onStateChange={handleStateChange}
-          onResetAccount={() => {
-            setState(null); setOnboarding(true);
-          }}
-          onSignOut={logout}
-        />
-      )}
     </div>
   );
 }

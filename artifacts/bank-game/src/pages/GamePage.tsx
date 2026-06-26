@@ -28,6 +28,7 @@ import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 import SettingsWidget from "@/components/SettingsWidget";
+import DebugPanel from "@/components/DebugPanel";
 import { APP_VERSION } from "@/lib/engine";
 
 interface Props {
@@ -35,6 +36,7 @@ interface Props {
   onStateChange: (s: UserState) => void;
   notif?: boolean;
   onClearNotif?: () => void;
+  onResetAccount?: () => void;
 }
 
 interface Floater {
@@ -61,7 +63,7 @@ const APPLE_POSITIONS: [number, number][][] = [
 ];
 const APPLE_SIZES = [4, 5, 6, 7, 8];
 
-export default function GamePage({ state, onStateChange, notif, onClearNotif }: Props) {
+export default function GamePage({ state, onStateChange, notif, onClearNotif, onResetAccount }: Props) {
   const { user, logout, updateNickname } = useAuth();
   const [now, setNow] = useState(Date.now());
   const [floaters, setFloaters] = useState<Floater[]>([]);
@@ -1050,18 +1052,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
         )}
         </div>
 
-        {game.sessionInProgress && !showCompletionStage && (
-          <div className="debug-panel">
-            <button
-              className="debug-btn-dev"
-              onClick={handleDebugCompleteAll}
-              disabled={actionLoading}
-            >
-              🔧 100%
-            </button>
-          </div>
-        )}
-
       </div>
 
       <nav className="game-bottom-nav">
@@ -1455,6 +1445,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif }: 
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DebugPanel
+        state={state}
+        onStateChange={onStateChange}
+        onResetAccount={onResetAccount ?? (() => {})}
+        onSignOut={logout}
+        onCompleteAll={handleDebugCompleteAll}
+      />
     </div>
   );
 }

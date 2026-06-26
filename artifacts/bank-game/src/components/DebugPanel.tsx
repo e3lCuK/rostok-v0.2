@@ -8,9 +8,10 @@ interface Props {
   onStateChange: (s: UserState) => void;
   onResetAccount: () => void;
   onSignOut: () => Promise<void>;
+  onCompleteAll?: () => Promise<void>;
 }
 
-export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut }: Props) {
+export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -143,6 +144,16 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
             <button className="debug-btn" onClick={addOneSession} disabled={busy}>
               Увеличение сессий
             </button>
+
+            {onCompleteAll && (
+              <button
+                className="debug-btn"
+                onClick={async () => { setBusy(true); try { await onCompleteAll(); } finally { setBusy(false); } }}
+                disabled={busy || !state.game.sessionInProgress}
+              >
+                Выполнить активности
+              </button>
+            )}
 
             <button className="debug-btn" onClick={resetTreeGrowth} disabled={busy}>
               Сброс роста
