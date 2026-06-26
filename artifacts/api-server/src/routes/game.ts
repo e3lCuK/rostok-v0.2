@@ -265,7 +265,7 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
 
       // New economy formula — single source of truth
       // daily = activeBalance * rate / 365 | session = daily / SESSIONS_PER_DAY
-      // IMPORTANT: use activeBalance only — standard earns separately via /accrue
+      // IMPORTANT: use activeBalance only — all income is via active sessions
       // totalBalance is only used for capital tier in calcBonusPercent
       const missedSessions = g.missed_sessions || 0;
       storedSessionsResult = 1 + missedSessions;

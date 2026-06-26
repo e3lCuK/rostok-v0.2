@@ -28,9 +28,7 @@ export interface AuthUser {
 export interface GameStateResponse {
   exists: boolean;
   balances?: {
-    standard: number;
     active: number;
-    standardEarned: number;
     activeEarned: number;
     totalDaysEarned: number;
     startDate: number;
@@ -52,7 +50,7 @@ export interface GameStateResponse {
     playerLevel: number;
     xpHistory?: import("@/lib/engine").XpHistoryEntry[];
   };
-  history?: { amount: number; type: "standard" | "active" | "base" | "bonus"; date: string }[];
+  history?: { amount: number; type: "active" | "base" | "bonus"; date: string }[];
 }
 
 export const api = {

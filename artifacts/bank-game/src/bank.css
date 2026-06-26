@@ -465,7 +465,6 @@ body {
   border: 1.5px solid transparent;
 }
 
-.deposit-card-standard { border-color: var(--blue-mid); }
 .deposit-card-green { border-color: var(--green-mid); cursor: pointer; }
 
 .deposit-header {
