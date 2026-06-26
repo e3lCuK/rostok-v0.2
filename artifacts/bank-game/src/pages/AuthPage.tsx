@@ -75,9 +75,9 @@ export default function AuthPage() {
 
         <div className="auth-logo">
           <span style={{ fontSize: "2.8rem", lineHeight: 1 }}>🌳</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1, alignItems: "center" }}>
             <span className="auth-logo-text">Росток</span>
-            <span style={{ fontSize: "0.72rem", color: "#5a7a40", fontWeight: 500 }}>Растите капитал играючи</span>
+            <span style={{ fontSize: "0.72rem", color: "#5a7a40", fontWeight: 500 }}>Копи. Играй. Расти.</span>
           </div>
         </div>
 

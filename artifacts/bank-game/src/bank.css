@@ -3033,6 +3033,7 @@ body.modal-open {
   color: #5a7a40;
   font-weight: 500;
   margin-top: 2px;
+  text-align: center;
 }
 
 .onboarding-title {
