@@ -702,7 +702,7 @@ body {
 .game-session-detail {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #166534;
+  color: #111;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -716,10 +716,10 @@ body {
   justify-content: center;
   font-size: 0.82rem;
   font-weight: 700;
-  color: #166534;
+  color: #111;
   gap: 2px;
 }
-.game-session-detail .session-timer svg { color: #4d7c0f; }
+.game-session-detail .session-timer svg { color: #111; }
 
 .game-area-bg-wrap {
   position: absolute;
@@ -3550,12 +3550,12 @@ canvas {
 
 .session-status-ready {
   background: none;
-  color: #166534;
+  color: #111;
 }
 
 .session-status-locked {
   background: none;
-  color: #166534;
+  color: #111;
 }
 
 
