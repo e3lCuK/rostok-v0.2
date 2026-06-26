@@ -498,8 +498,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }
 
   async function handleDebugCompleteAll() {
-    if (!game.sessionInProgress || actionLoading) return;
+    if (actionLoading) return;
     setActionLoading(true);
+    if (!stateRef.current.game.sessionInProgress) {
+      try {
+        await api.startSession();
+        onStateChange({
+          ...stateRef.current,
+          game: { ...stateRef.current.game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
+        });
+      } catch {
+        setActionLoading(false);
+        return;
+      }
+    }
     waterScoreRef.current = 80;
     sunScoreRef.current = 80;
     fertilizerScoreRef.current = 80;

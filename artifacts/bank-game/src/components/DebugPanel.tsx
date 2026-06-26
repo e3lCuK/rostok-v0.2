@@ -149,7 +149,7 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
               <button
                 className="debug-btn"
                 onClick={async () => { setBusy(true); try { await onCompleteAll(); } finally { setBusy(false); } }}
-                disabled={busy || !state.game.sessionInProgress}
+                disabled={busy}
               >
                 Выполнить активности
               </button>
