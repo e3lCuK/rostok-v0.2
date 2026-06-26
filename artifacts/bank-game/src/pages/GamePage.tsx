@@ -1075,11 +1075,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <Trophy size={18} strokeWidth={2.5} />
         </button>
         <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+        <button className="game-bottom-nav-btn" onClick={() => {}}>
           <Medal size={18} strokeWidth={2.5} />
         </button>
         <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn game-bottom-nav-btn-disabled">
+        <button className="game-bottom-nav-btn" onClick={() => {}}>
           <ShoppingCart size={18} strokeWidth={2.5} fill="none" />
         </button>
       </nav>
