@@ -143,12 +143,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
   useEffect(() => { onDoneRef.current = onComplete; }, [onComplete]);
 
   function forceClose() {
-    if (doneRef.current) return;
-    doneRef.current = true;
-    procRef.current = false;
-    const m = matchRef.current;
-    const skillScore = Math.round(Math.min(1, m / MAX_MATCHES) * 100);
-    onDoneRef.current(skillScore);
+    endGame();
   }
 
   function endGame() {
