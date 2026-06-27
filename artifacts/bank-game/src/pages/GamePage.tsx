@@ -726,6 +726,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         history: newHistory.slice(-30),
       });
       setHistoryNotif(true);
+      api.getLeaderboard()
+        .then(r => setLeaderboard(r.players))
+        .catch(() => {});
     } catch (err) {
       console.error("[Claim all] failed:", err);
     } finally {
