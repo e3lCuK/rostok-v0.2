@@ -288,7 +288,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
           trackColor="#dcfce7"
         />
         <div className="mini-game-counter">
-          <span>🌱</span>
+          <span>🍃</span>
           <span className="mini-game-counter-val">{matchCount}</span>
         </div>
       </div>

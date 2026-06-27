@@ -174,7 +174,7 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
       ctx.textBaseline = "alphabetic";
       ctx.font         = "bold 13px sans-serif";
       ctx.fillStyle    = CFG.scoreFg;
-      ctx.fillText(`🌱 ${catches}`, 10, 22);
+      ctx.fillText(`🍃 ${catches}`, 10, 22);
 
       // ---- hint text ----
       ctx.textAlign    = "center";
