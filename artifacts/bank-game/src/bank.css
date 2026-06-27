@@ -4334,10 +4334,6 @@ canvas {
 .game-page-tutorial .game-nav-h-divider {
   display: none;
 }
-.game-page-tutorial .game-bottom-nav {
-  background: rgba(141, 198, 63, 0.35);
-  border-top: none;
-}
 .game-page-tutorial .game-bottom-nav-btn,
 .game-page-tutorial .game-bottom-nav-divider {
   opacity: 0;
