@@ -1175,7 +1175,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               ? { icon: "☀️", text: "Теперь добавьте\nсолнечного света!", hint: "Нажмите на кнопку ☀️" }
               : tutorialStep === "fertilizer-intro"
               ? { icon: "🍃", text: "Последний шаг —\nсоберите листву!", hint: "Нажмите на кнопку 🍃" }
-              : { icon: "🌱", text: "Отлично! Все три\nэтапа пройдены!", hint: "Нажмите кнопку ухода 🪴" };
+              : { icon: "🌱", text: "Отлично! Все три\nэтапа пройдены!", hint: "" };
           return (
             <div className="tutorial-intro-overlay">
               <div className="tutorial-intro-card">
@@ -1183,7 +1183,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <p className="tutorial-intro-text">
                   {cfg.text.split("\n").map((line, i) => <span key={i}>{line}{i === 0 && <br/>}</span>)}
                 </p>
-                <span className="tutorial-intro-hint">{cfg.hint}</span>
+                {cfg.hint && <span className="tutorial-intro-hint">{cfg.hint}</span>}
               </div>
             </div>
           );
