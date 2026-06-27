@@ -1115,15 +1115,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       {!tutorialDone && (
         <div className="tutorial-sky-strip">
           <div className="tutorial-hint-text">
-            <span className="tutorial-hint-label">
-              {tutorialStep === "welcome" ? "Добро пожаловать в Росток! 🌱"
-               : tutorialStep === "intro" ? "Добро пожаловать в Росток! 🌱"
-               : tutorialStep === "water" ? "💧 Поймай капли воды!"
-               : tutorialStep === "sun-intro" ? "☀️ Теперь собери солнечный свет!"
-               : tutorialStep === "sun" ? "☀️ Поймай солнечный свет!"
-               : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
-               : "🍃 Собери листики с дерева!"}
-            </span>
+            {tutorialStep !== "welcome" && tutorialStep !== "intro" && (
+              <span className="tutorial-hint-label">
+                {tutorialStep === "water" ? "💧 Поймай капли воды!"
+                 : tutorialStep === "sun-intro" ? "☀️ Теперь собери солнечный свет!"
+                 : tutorialStep === "sun" ? "☀️ Поймай солнечный свет!"
+                 : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
+                 : "🍃 Собери листики с дерева!"}
+              </span>
+            )}
             {tutorialStep !== "welcome" && (
               <div className="tutorial-step-dots">
                 {(["water", "sun", "fertilizer"] as const).map((s) => {
