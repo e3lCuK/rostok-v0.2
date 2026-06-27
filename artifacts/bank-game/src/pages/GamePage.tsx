@@ -240,22 +240,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   function handleTutorialFinish() {
     // Dismiss the "complete" intro card first
     setShowTutorialCompletionCard(false);
-    // Play tree care animations
-    animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
-    setActiveAnim("water");
-    void treeControls.start({
-      filter: ["brightness(1)", "brightness(1.45)", "brightness(1)"],
-      scale: [1, 1.06, 1],
-      transition: { duration: 0.5, ease: "easeInOut" },
-    });
-    setTimeout(() => {
-      setActiveAnim("fertilizer");
-      animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
-    }, 900);
-    setTimeout(() => setActiveAnim(null), 2600);
-
-    // Show final congratulations window after animations
-    setTimeout(() => setShowTutorialComplete(true), 1400);
+    // Show final congratulations window
+    setTimeout(() => setShowTutorialComplete(true), 300);
   }
 
   function handleTutorialDismiss() {
