@@ -182,10 +182,9 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
       if (cells.size === 0) break;
 
       const newCount = count + events;
-      const display = Math.min(newCount, MAX_MATCHES);
-      matchRef.current = display;
+      matchRef.current = newCount;
       count = newCount;
-      setMatchCount(display);
+      setMatchCount(newCount);
 
       setHighlighted(cells);
       await sleep(220);
@@ -204,11 +203,6 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
       gridRef.current = cur;
       setGrid(clone(cur));
       await sleep(150);
-
-      if (newCount >= MAX_MATCHES) {
-        matchRef.current = MAX_MATCHES;
-        setMatchCount(MAX_MATCHES);
-      }
 
       if (!hasMove(cur)) {
         cur = makeGrid();

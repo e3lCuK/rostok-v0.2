@@ -179,7 +179,7 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
             d.caught = true;
             d.active = false;
             catches++;
-            setCatchCount(Math.min(catches, TOTAL_DROPS));
+            setCatchCount(catches);
             continue;
           }
         }
