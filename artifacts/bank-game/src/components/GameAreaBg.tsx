@@ -1,7 +1,13 @@
-export default function GameAreaBg() {
+interface Props {
+  purchasedItems?: string[];
+}
+
+export default function GameAreaBg({ purchasedItems = [] }: Props) {
+  const has = (id: string) => purchasedItems.includes(id);
+
   return (
     <div className="game-area-bg-wrap">
-      {/* Sky layer — preserved aspect ratio, nature elements never distort */}
+      {/* Sky layer */}
       <svg
         className="game-area-bg-sky"
         viewBox="0 0 340 600"
@@ -9,7 +15,7 @@ export default function GameAreaBg() {
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        {/* Sun — very top */}
+        {/* Sun */}
         <g opacity="0.35" className="bg-sun">
           <circle cx="298" cy="28" r="9" fill="#fde68a" />
           <line x1="310" y1="28"  x2="316" y2="28"  stroke="#f59e0b" strokeWidth="1.5" />
@@ -22,39 +28,63 @@ export default function GameAreaBg() {
           <line x1="307" y1="19"  x2="311" y2="15"  stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
-        {/* Clouds — below sun */}
+        {/* Rainbow (purchased) */}
+        {has("rainbow") && (
+          <g className="bg-rainbow" opacity="0.55">
+            <path d="M30,320 Q170,140 310,320" stroke="#ef4444" strokeWidth="5" fill="none" />
+            <path d="M42,320 Q170,155 298,320" stroke="#f97316" strokeWidth="5" fill="none" />
+            <path d="M54,320 Q170,170 286,320" stroke="#eab308" strokeWidth="5" fill="none" />
+            <path d="M66,320 Q170,185 274,320" stroke="#22c55e" strokeWidth="5" fill="none" />
+            <path d="M78,320 Q170,200 262,320" stroke="#3b82f6" strokeWidth="5" fill="none" />
+            <path d="M90,320 Q170,215 250,320" stroke="#8b5cf6" strokeWidth="5" fill="none" />
+          </g>
+        )}
+
+        {/* Clouds */}
         <g opacity="0.55" className="bg-cloud-left">
           <ellipse cx="55" cy="65" rx="22" ry="13" fill="#fff" />
           <ellipse cx="39" cy="71" rx="14" ry="10" fill="#fff" />
-          <ellipse cx="72" cy="71" rx="13" ry="9" fill="#fff" />
+          <ellipse cx="72" cy="71" rx="13" ry="9"  fill="#fff" />
         </g>
         <g opacity="0.45" className="bg-cloud-right">
           <ellipse cx="200" cy="55" rx="18" ry="10" fill="#fff" />
-          <ellipse cx="186" cy="60" rx="11" ry="8" fill="#fff" />
-          <ellipse cx="214" cy="60" rx="10" ry="7" fill="#fff" />
+          <ellipse cx="186" cy="60" rx="11" ry="8"  fill="#fff" />
+          <ellipse cx="214" cy="60" rx="10" ry="7"  fill="#fff" />
         </g>
 
-        {/* Birds — below clouds */}
+        {/* Birds */}
         <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
           <path d="M120 140 Q123 136 126 140" />
           <path d="M132 134 Q135 130 138 134" />
           <path d="M145 142 Q148 138 151 142" />
         </g>
 
-        {/* Butterfly — upper area, stays in sky regardless of container height */}
+        {/* Butterfly */}
         <g transform="translate(250,270)">
           <g className="bg-butterfly">
             <path d="M0,0 Q-10,-12 -18,-4 Q-10,4 0,0" fill="#fb923c" />
-            <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0" fill="#fb923c" />
-            <path d="M0,0 Q-8,8 -14,4 Q-8,0 0,0" fill="#fdba74" />
-            <path d="M0,0 Q8,8 14,4 Q8,0 0,0" fill="#fdba74" />
+            <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0"  fill="#fb923c" />
+            <path d="M0,0 Q-8,8 -14,4 Q-8,0 0,0"   fill="#fdba74" />
+            <path d="M0,0 Q8,8 14,4 Q8,0 0,0"       fill="#fdba74" />
             <line x1="0" y1="-3" x2="-4" y2="-10" stroke="#78350f" strokeWidth="0.8" />
-            <line x1="0" y1="-3" x2="4" y2="-10" stroke="#78350f" strokeWidth="0.8" />
+            <line x1="0" y1="-3" x2="4"  y2="-10" stroke="#78350f" strokeWidth="0.8" />
           </g>
         </g>
+
+        {/* Fireflies (purchased) */}
+        {has("fireflies") && (
+          <g>
+            <circle cx="80"  cy="380" r="3" fill="#fde68a" className="bg-firefly-1" />
+            <circle cx="260" cy="360" r="3" fill="#fde68a" className="bg-firefly-2" />
+            <circle cx="140" cy="420" r="2.5" fill="#fde68a" className="bg-firefly-3" />
+            <circle cx="200" cy="340" r="2.5" fill="#fde68a" className="bg-firefly-1" />
+            <circle cx="300" cy="410" r="3"   fill="#fde68a" className="bg-firefly-2" />
+            <circle cx="50"  cy="440" r="2"   fill="#fde68a" className="bg-firefly-3" />
+          </g>
+        )}
       </svg>
 
-      {/* Ground layer — stretches full width, minor distortion unnoticeable on a hill curve */}
+      {/* Ground layer */}
       <svg
         className="game-area-bg-ground"
         viewBox="0 0 430 90"
@@ -62,59 +92,101 @@ export default function GameAreaBg() {
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        {/* Hill fills corner-to-corner: x=0→430, both edges at y=45, peak at y=20 */}
         <path d="M0,90 L0,45 Q215,20 430,45 L430,90 Z" fill="#8dc63f" opacity="0.35" />
 
         {/* Grass tufts left */}
         <g fill="#5a9e1e" opacity="0.55">
           <ellipse cx="22" cy="57" rx="12" ry="7" />
-          <ellipse cx="36" cy="54" rx="9" ry="6" />
-          <ellipse cx="10" cy="54" rx="7" ry="5" />
+          <ellipse cx="36" cy="54" rx="9"  ry="6" />
+          <ellipse cx="10" cy="54" rx="7"  ry="5" />
         </g>
 
         {/* Grass tufts right */}
         <g fill="#5a9e1e" opacity="0.55">
           <ellipse cx="408" cy="57" rx="12" ry="7" />
-          <ellipse cx="394" cy="54" rx="9" ry="6" />
-          <ellipse cx="420" cy="54" rx="7" ry="5" />
+          <ellipse cx="394" cy="54" rx="9"  ry="6" />
+          <ellipse cx="420" cy="54" rx="7"  ry="5" />
         </g>
 
         {/* Bush left */}
         <g className="bg-bush-left">
           <ellipse cx="55" cy="54" rx="26" ry="10" fill="#6ab22a" />
-          <circle cx="55" cy="42" r="14" fill="#4a8f12" />
-          <circle cx="44" cy="46" r="10" fill="#5aab1a" />
-          <circle cx="66" cy="47" r="10" fill="#5aab1a" />
+          <circle  cx="55" cy="42" r="14"           fill="#4a8f12" />
+          <circle  cx="44" cy="46" r="10"           fill="#5aab1a" />
+          <circle  cx="66" cy="47" r="10"           fill="#5aab1a" />
         </g>
 
-        {/* Bush right — mirrors left at ~87% of width */}
+        {/* Bush right */}
         <g className="bg-bush-right">
           <ellipse cx="375" cy="54" rx="26" ry="10" fill="#6ab22a" />
-          <circle cx="375" cy="42" r="14" fill="#4a8f12" />
-          <circle cx="364" cy="46" r="10" fill="#5aab1a" />
-          <circle cx="386" cy="47" r="10" fill="#5aab1a" />
+          <circle  cx="375" cy="42" r="14"           fill="#4a8f12" />
+          <circle  cx="364" cy="46" r="10"           fill="#5aab1a" />
+          <circle  cx="386" cy="47" r="10"           fill="#5aab1a" />
         </g>
+
+        {/* Sunflower (purchased) — left of center */}
+        {has("sunflower") && (
+          <g transform="translate(148,62)" className="bg-sunflower">
+            <line x1="0" y1="0" x2="0" y2="28" stroke="#4d7c0f" strokeWidth="2.5" />
+            {[0,45,90,135,180,225,270,315].map(a => (
+              <ellipse
+                key={a}
+                cx={Math.round(Math.cos(a * Math.PI / 180) * 9)}
+                cy={Math.round(Math.sin(a * Math.PI / 180) * 9)}
+                rx="5" ry="3"
+                fill="#fbbf24"
+                transform={`rotate(${a}, ${Math.round(Math.cos(a * Math.PI / 180) * 9)}, ${Math.round(Math.sin(a * Math.PI / 180) * 9)})`}
+              />
+            ))}
+            <circle cx="0" cy="0" r="6" fill="#92400e" />
+          </g>
+        )}
+
+        {/* Mushroom (purchased) — right side */}
+        {has("mushroom") && (
+          <g transform="translate(320,56)" className="bg-mushroom">
+            <rect x="-4" y="0" width="8" height="14" rx="2" fill="#f5f5f4" />
+            <ellipse cx="0" cy="2" rx="14" ry="9" fill="#ef4444" />
+            <circle cx="-5" cy="-2" r="2.5" fill="#fff" opacity="0.7" />
+            <circle cx="4"  cy="-4" r="1.8" fill="#fff" opacity="0.7" />
+            <circle cx="2"  cy="2"  r="1.5" fill="#fff" opacity="0.7" />
+          </g>
+        )}
+
+        {/* Hedgehog (purchased) — base center-left */}
+        {has("hedgehog") && (
+          <g transform="translate(190,60)" className="bg-hedgehog">
+            <ellipse cx="0" cy="4" rx="14" ry="9" fill="#78716c" />
+            <ellipse cx="-3" cy="5" rx="9"  ry="6" fill="#a8a29e" />
+            <circle cx="-10" cy="4" r="4"   fill="#a8a29e" />
+            {[-8,-4,0,4,-6,2].map((x,i) => (
+              <line key={i} x1={x} y1={i < 3 ? -2 : 0} x2={x + (i%2===0?-1:1)} y2={i < 3 ? -8 : -6}
+                stroke="#57534e" strokeWidth="1.2" strokeLinecap="round" />
+            ))}
+            <circle cx="-13" cy="3" r="1.5" fill="#1c1917" />
+            <circle cx="-14" cy="1" r="1"   fill="#1c1917" />
+          </g>
+        )}
 
         {/* Flower left */}
         <g opacity="0.7" className="bg-flower-left">
-          <circle cx="95" cy="50" r="3" fill="#fbbf24" />
+          <circle cx="95" cy="50" r="3"   fill="#fbbf24" />
           <circle cx="95" cy="45" r="2.5" fill="#f9a8d4" />
           <circle cx="100" cy="48" r="2.5" fill="#f9a8d4" />
-          <circle cx="90" cy="48" r="2.5" fill="#f9a8d4" />
-          <circle cx="95" cy="53" r="2.5" fill="#f9a8d4" />
+          <circle cx="90"  cy="48" r="2.5" fill="#f9a8d4" />
+          <circle cx="95"  cy="53" r="2.5" fill="#f9a8d4" />
           <line x1="95" y1="55" x2="95" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
         </g>
 
         {/* Flower right */}
         <g opacity="0.7" className="bg-flower-right">
-          <circle cx="335" cy="50" r="3" fill="#fbbf24" />
+          <circle cx="335" cy="50" r="3"   fill="#fbbf24" />
           <circle cx="335" cy="45" r="2.5" fill="#c4b5fd" />
           <circle cx="340" cy="48" r="2.5" fill="#c4b5fd" />
           <circle cx="330" cy="48" r="2.5" fill="#c4b5fd" />
           <circle cx="335" cy="53" r="2.5" fill="#c4b5fd" />
           <line x1="335" y1="55" x2="335" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
         </g>
-
 
         {/* Stones */}
         <ellipse cx="145" cy="62" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />

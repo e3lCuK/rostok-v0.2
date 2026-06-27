@@ -101,6 +101,12 @@ export const api = {
       { method: "POST", body: JSON.stringify({ action, skillScore, count }) },
     ),
 
+  buyShopItem: (itemId: string) =>
+    request<{ success: boolean; totalApples: number; purchasedItems: string[] }>(
+      "/game/shop/buy",
+      { method: "POST", body: JSON.stringify({ itemId }) },
+    ),
+
   claim: (type: "base" | "bonus") =>
     request<{ success: boolean; amount: number; treeGrowthMM: number; treeGrowthRemainder: number }>(
       "/game/session/claim",

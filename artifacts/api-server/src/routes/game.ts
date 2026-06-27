@@ -81,6 +81,9 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
         playerXP: parseInt(game.player_xp) || 0,
         playerLevel: parseInt(game.player_level) || 1,
         totalApples: parseInt(game.total_apples) || 0,
+        purchasedItems: Array.isArray(game.purchased_items)
+          ? game.purchased_items
+          : (game.purchased_items ? JSON.parse(game.purchased_items) : []),
         xpHistory: Array.isArray(game.xp_history)
           ? game.xp_history
           : (game.xp_history ? JSON.parse(game.xp_history) : []),
@@ -710,6 +713,57 @@ router.post("/game/achievements/claim", requireAuth, async (req: any, res) => {
 });
 
 // DELETE /api/game/reset-progress — soft reset: clears all game data but keeps login + session
+// ── Shop ─────────────────────────────────────────────────────────────────────
+
+const VALID_SHOP_ITEMS: Record<string, number> = {
+  sunflower: 30,
+  mushroom:  50,
+  hedgehog:  60,
+  rainbow:   80,
+  fireflies: 120,
+};
+
+// POST /api/game/shop/buy
+router.post("/game/shop/buy", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  const { itemId } = req.body;
+
+  if (!itemId || !VALID_SHOP_ITEMS[itemId]) {
+    return res.status(400).json({ error: "Unknown item" });
+  }
+  const price = VALID_SHOP_ITEMS[itemId];
+
+  try {
+    const row = await pool.query(
+      `SELECT total_apples, purchased_items FROM game_state WHERE user_id = $1`,
+      [userId],
+    );
+    if (row.rows.length === 0) return res.status(404).json({ error: "Not found" });
+
+    const g = row.rows[0];
+    const apples = parseInt(g.total_apples) || 0;
+    const owned: string[] = Array.isArray(g.purchased_items)
+      ? g.purchased_items
+      : (g.purchased_items ? JSON.parse(g.purchased_items) : []);
+
+    if (owned.includes(itemId)) return res.status(409).json({ error: "Already owned" });
+    if (apples < price) return res.status(402).json({ error: "Not enough apples" });
+
+    const newApples  = apples - price;
+    const newOwned   = [...owned, itemId];
+
+    await pool.query(
+      `UPDATE game_state SET total_apples = $2, purchased_items = $3::jsonb, updated_at = NOW() WHERE user_id = $1`,
+      [userId, newApples, JSON.stringify(newOwned)],
+    );
+
+    return res.json({ success: true, totalApples: newApples, purchasedItems: newOwned });
+  } catch (err) {
+    req.log.error({ err }, "Error buying shop item");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/game/reset-progress", requireAuth, async (req: any, res) => {
   const userId = req.userId;
   try {

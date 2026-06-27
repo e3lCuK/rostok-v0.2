@@ -66,6 +66,7 @@ async function runMigrations() {
   await pool.query(`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS total_leaf_picks INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS claimed_achievements JSONB NOT NULL DEFAULT '[]'`);
   await pool.query(`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS last_login_date TEXT`);
+  await pool.query(`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS purchased_items JSONB NOT NULL DEFAULT '[]'`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS starting_capital NUMERIC(15,2) NOT NULL DEFAULT 0`);
   await pool.query(`
     UPDATE accounts

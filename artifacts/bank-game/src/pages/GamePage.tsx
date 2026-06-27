@@ -23,6 +23,7 @@ import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
 import AchievementsModal, { ACHIEVEMENTS } from "@/components/AchievementsModal";
+import ShopModal from "@/components/ShopModal";
 import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart, ScrollText, Star } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
@@ -117,6 +118,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showDepositInfo, setShowDepositInfo] = useState(false);
   const [showXpHistory, setShowXpHistory] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [purchasedItems, setPurchasedItems] = useState<string[]>(state.game.purchasedItems ?? []);
   const [hasPendingAchievements, setHasPendingAchievements] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
@@ -1079,7 +1082,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
         <span className="game-beta-floating">{APP_VERSION}</span>
-        <GameAreaBg />
+        <GameAreaBg purchasedItems={purchasedItems} />
 
         {floaters.map(fl => (
           <div
@@ -1355,7 +1358,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </span>
         </button>
         <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn" onClick={() => {}}>
+        <button className="game-bottom-nav-btn" onClick={() => setShowShop(true)}>
           <ShoppingCart size={18} strokeWidth={2.5} fill="none" />
         </button>
       </nav>
@@ -1539,6 +1542,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <AchievementsModal
             onClose={() => { setShowAchievements(false); checkPendingAchievements(); }}
             onApplesClaimed={(newTotal) => { setTotalApples(newTotal); checkPendingAchievements(); }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showShop && (
+          <ShopModal
+            onClose={() => setShowShop(false)}
+            totalApples={totalApples}
+            purchasedItems={purchasedItems}
+            onPurchase={(_, newApples, newItems) => {
+              setTotalApples(newApples);
+              setPurchasedItems(newItems);
+            }}
           />
         )}
       </AnimatePresence>

@@ -40,6 +40,7 @@ export interface UserState {
     playerLevel: number;
     xpHistory: XpHistoryEntry[];
     totalApples: number;
+    purchasedItems: string[];
   };
   history: {
     date: string;
