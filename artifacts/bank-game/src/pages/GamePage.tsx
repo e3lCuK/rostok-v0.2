@@ -906,9 +906,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.18" stroke="currentColor" strokeWidth="1.5"/>
-                    <text x="10" y="14.5" textAnchor="middle" fontSize="11" fontWeight="800" fill="currentColor" fontFamily="system-ui,sans-serif">₽</text>
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="5" width="16" height="11" rx="2" fill="currentColor" fillOpacity="0.15"/>
+                    <path d="M2 8h16"/>
+                    <circle cx="14.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
                   </svg>
                 </motion.span>
                 <span className="income-popup-label">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
