@@ -112,8 +112,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
   const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
   const [tutorialDone, setTutorialDone] = useState(state.game.tutorialDone ?? true);
-  const [tutorialStep, setTutorialStep] = useState<"intro" | "water" | "sun-intro" | "sun" | "fertilizer-intro" | "fertilizer" | null>(
-    (state.game.tutorialDone ?? true) ? null : "intro"
+  const [tutorialStep, setTutorialStep] = useState<"welcome" | "intro" | "water" | "sun-intro" | "sun" | "fertilizer-intro" | "fertilizer" | null>(
+    (state.game.tutorialDone ?? true) ? null : "welcome"
   );
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1114,37 +1114,34 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       {/* Tutorial sky strip — shown instead of top bar during onboarding */}
       {!tutorialDone && (
         <div className="tutorial-sky-strip">
-          <svg className="tutorial-sky-svg" viewBox="0 0 340 78" preserveAspectRatio="xMidYMid slice">
-            <circle cx="298" cy="20" r="14" fill="#fde68a" opacity="0.75" />
-            <ellipse cx="55" cy="30" rx="30" ry="16" fill="white" opacity="0.55" />
-            <ellipse cx="33" cy="37" rx="18" ry="11" fill="white" opacity="0.4" />
-            <ellipse cx="220" cy="18" rx="22" ry="11" fill="white" opacity="0.45" />
-          </svg>
           <div className="tutorial-hint-text">
             <span className="tutorial-hint-label">
-              {tutorialStep === "intro" ? "Добро пожаловать в Росток! 🌱"
+              {tutorialStep === "welcome" ? "Добро пожаловать в Росток! 🌱"
+               : tutorialStep === "intro" ? "Добро пожаловать в Росток! 🌱"
                : tutorialStep === "water" ? "💧 Поймай капли воды!"
                : tutorialStep === "sun-intro" ? "☀️ Теперь собери солнечный свет!"
                : tutorialStep === "sun" ? "☀️ Поймай солнечный свет!"
                : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
                : "🍃 Собери листики с дерева!"}
             </span>
-            <div className="tutorial-step-dots">
-              {(["water", "sun", "fertilizer"] as const).map((s) => {
-                const dotOrder: Record<string, number> = { water: 0, sun: 1, fertilizer: 2 };
-                const activeOrder: Record<string, number> = {
-                  intro: 0, water: 0,
-                  "sun-intro": 1, sun: 1,
-                  "fertilizer-intro": 2, fertilizer: 2,
-                };
-                const cur = tutorialStep ? (activeOrder[tutorialStep] ?? -1) : 3;
-                const isDone = dotOrder[s] < cur;
-                const isActive = dotOrder[s] === cur;
-                return (
-                  <span key={s} className={`tutorial-dot${isDone ? " done" : isActive ? " active" : ""}`} />
-                );
-              })}
-            </div>
+            {tutorialStep !== "welcome" && (
+              <div className="tutorial-step-dots">
+                {(["water", "sun", "fertilizer"] as const).map((s) => {
+                  const dotOrder: Record<string, number> = { water: 0, sun: 1, fertilizer: 2 };
+                  const activeOrder: Record<string, number> = {
+                    intro: 0, water: 0,
+                    "sun-intro": 1, sun: 1,
+                    "fertilizer-intro": 2, fertilizer: 2,
+                  };
+                  const cur = tutorialStep ? (activeOrder[tutorialStep] ?? -1) : 3;
+                  const isDone = dotOrder[s] < cur;
+                  const isActive = dotOrder[s] === cur;
+                  return (
+                    <span key={s} className={`tutorial-dot${isDone ? " done" : isActive ? " active" : ""}`} />
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1153,6 +1150,34 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       <div className="game-area" ref={gameAreaRef}>
         <span className="game-beta-floating">{APP_VERSION}</span>
         <GameAreaBg purchasedItems={purchasedItems} />
+
+        {/* Tutorial welcome screen — shown before anything starts */}
+        {!tutorialDone && tutorialStep === "welcome" && (
+          <div className="tutorial-welcome-overlay">
+            <div className="tutorial-welcome-card">
+              <span className="tutorial-welcome-icon">🌱</span>
+              <h3 className="tutorial-welcome-title">Как ухаживать за деревом</h3>
+              <p className="tutorial-welcome-desc">В игре три вида ухода:</p>
+              <div className="tutorial-welcome-games">
+                <div className="tutorial-welcome-game-row">
+                  <span>💧</span><span>Вода — ловить капли</span>
+                </div>
+                <div className="tutorial-welcome-game-row">
+                  <span>☀️</span><span>Свет — собирать лучи</span>
+                </div>
+                <div className="tutorial-welcome-game-row">
+                  <span>🍃</span><span>Листва — собирать листочки</span>
+                </div>
+              </div>
+              <button
+                className="tutorial-welcome-btn"
+                onClick={() => setTutorialStep("intro")}
+              >
+                Начать обучение
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tutorial step overlay — shown between minigames */}
         {!tutorialDone && (tutorialStep === "intro" || tutorialStep === "sun-intro" || tutorialStep === "fertilizer-intro") && (() => {
@@ -1314,6 +1339,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 ] as const).map(btn => {
                   // Which button is the active tutorial button?
                   const tutorialActiveBtn =
+                    tutorialStep === "welcome" ? null :
                     tutorialStep === "intro" ? "water" :
                     tutorialStep === "sun-intro" ? "sun" :
                     tutorialStep === "fertilizer-intro" ? "fertilizer" : null;
@@ -1926,7 +1952,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         onApplesChanged={setTotalApples}
         onResetTutorial={() => {
           setTutorialDone(false);
-          setTutorialStep("intro");
+          setTutorialStep("welcome");
           setActiveMinigame(null);
           setShowStreakWidget(false);
           localStorage.removeItem("streak_widget_date");
