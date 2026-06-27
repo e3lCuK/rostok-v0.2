@@ -215,7 +215,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
       <button
         className="mini-game-force-close"
         style={{ color: CFG.timerColor }}
-        onClick={() => forceFinishRef.current()}
+        onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
       >✕</button>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={CFG.timerColor} trackColor={CFG.timerBg} />
