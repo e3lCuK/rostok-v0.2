@@ -1112,9 +1112,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                         exit={{ opacity: 0, scale: 0, transition: { duration: 0.25 } }}
                         transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
                         style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
-                      >
-                        {isCoin && <span className="tree-coin-symbol">₽</span>}
-                      </motion.div>
+                      />
                     );
                   })}
                 </AnimatePresence>
