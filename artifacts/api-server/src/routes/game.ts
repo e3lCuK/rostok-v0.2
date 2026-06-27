@@ -736,7 +736,6 @@ const VALID_SHOP_ITEMS: Record<string, number> = {
   flowers:   30,
   birds:     50,
   butterfly: 70,
-  rainbow:   90,
   hedgehog:  120,
 };
 

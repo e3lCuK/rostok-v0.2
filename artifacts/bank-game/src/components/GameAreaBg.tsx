@@ -28,18 +28,6 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           <line x1="307" y1="19"  x2="311" y2="15"  stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
-        {/* Rainbow (purchased) */}
-        {has("rainbow") && (
-          <g className="bg-rainbow" opacity="0.5">
-            <path d="M0,600 C100,580 240,480 340,480" stroke="#ef4444" strokeWidth="5" fill="none" />
-            <path d="M0,600 C100,555 245,428 340,428"  stroke="#f97316" strokeWidth="5" fill="none" />
-            <path d="M0,600 C100,530 250,376 340,376"  stroke="#eab308" strokeWidth="5" fill="none" />
-            <path d="M0,600 C100,505 255,324 340,324"  stroke="#22c55e" strokeWidth="5" fill="none" />
-            <path d="M0,600 C100,480 260,272 340,272"  stroke="#3b82f6" strokeWidth="5" fill="none" />
-            <path d="M0,600 C100,455 265,220 340,220"  stroke="#8b5cf6" strokeWidth="5" fill="none" />
-          </g>
-        )}
-
         {/* Clouds */}
         <g opacity="0.55" className="bg-cloud-left">
           <ellipse cx="55" cy="65" rx="22" ry="13" fill="#fff" />
