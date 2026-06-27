@@ -273,9 +273,9 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       bonusReward = bonusPerSession * bonusMultiplier * storedSessionsResult;
 
       // XP calculation — always ×1 regardless of stored sessions
-      const wPct = Math.round(((u.session_water_score || 50) / 100) * 100);
-      const sPct = Math.round(((u.session_sun_score || 50) / 100) * 100);
-      const fPct = Math.round(((u.session_fertilizer_score || 50) / 100) * 100);
+      const wPct = Math.round((((u.session_water_score ?? 50) as number) / 100) * 100);
+      const sPct = Math.round((((u.session_sun_score ?? 50) as number) / 100) * 100);
+      const fPct = Math.round((((u.session_fertilizer_score ?? 50) as number) / 100) * 100);
       const xpGained = Math.round((wPct + sPct + fPct) / 3);
       const skillPct = xpGained; // same value — average care percent
 
