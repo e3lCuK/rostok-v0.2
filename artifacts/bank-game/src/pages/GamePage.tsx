@@ -1252,7 +1252,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               {(() => {
                 const sd = state.game.streakDays;
                 const allMaxed = sd >= 5;
-                const cycleDay = sd > 0 ? Math.min(sd - 1, 4) : 0;
+                const cycleDay = Math.min(sd, 4);
                 const days = [
                   { label: "День 1", reward: "+1 сек" },
                   { label: "День 2", reward: "+2 сек" },
