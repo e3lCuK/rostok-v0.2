@@ -1132,23 +1132,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </div>
       </div>
 
-      {/* Tutorial sky strip — shown instead of top bar during onboarding */}
-      {!tutorialDone && (
-        <div className="tutorial-sky-strip">
-          <div className="tutorial-hint-text">
-            {tutorialStep !== "welcome" && tutorialStep !== "intro" && (
-              <span className="tutorial-hint-label">
-                {tutorialStep === "water" ? "💧 Поймайте капли воды!"
-                 : tutorialStep === "sun-intro" ? "☀️ Теперь соберите солнечный свет!"
-                 : tutorialStep === "sun" ? "☀️ Поймайте солнечный свет!"
-                 : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
-                 : tutorialStep === "complete" ? "🌱 Нажмите кнопку ухода за деревом!"
-                 : "🍃 Соберите листики с дерева!"}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
@@ -1514,14 +1497,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
       </div>
 
-      {/* Tutorial ground strip — shown instead of bottom nav during onboarding */}
-      {!tutorialDone && (
-        <div className="tutorial-ground-strip">
-          <svg className="tutorial-ground-svg" viewBox="0 0 430 54" preserveAspectRatio="none">
-            <path d="M0,54 L0,22 Q108,8 215,14 Q322,20 430,10 L430,54 Z" fill="#86efac" opacity="0.55" />
-          </svg>
-        </div>
-      )}
 
       <div className="game-nav-h-divider" />
       <nav className="game-bottom-nav">
