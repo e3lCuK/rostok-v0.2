@@ -1146,25 +1146,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                  : "🍃 Соберите листики с дерева!"}
               </span>
             )}
-            {tutorialStep !== "welcome" && (
-              <div className="tutorial-step-dots">
-                {(["water", "sun", "fertilizer"] as const).map((s) => {
-                  const dotOrder: Record<string, number> = { water: 0, sun: 1, fertilizer: 2 };
-                  const activeOrder: Record<string, number> = {
-                    intro: 0, water: 0,
-                    "sun-intro": 1, sun: 1,
-                    "fertilizer-intro": 2, fertilizer: 2,
-                    complete: 3,
-                  };
-                  const cur = tutorialStep ? (activeOrder[tutorialStep] ?? -1) : 3;
-                  const isDone = dotOrder[s] < cur;
-                  const isActive = dotOrder[s] === cur;
-                  return (
-                    <span key={s} className={`tutorial-dot${isDone ? " done" : isActive ? " active" : ""}`} />
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       )}
