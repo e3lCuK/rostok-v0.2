@@ -3,7 +3,7 @@ import { Leaf } from "lucide-react";
 import GameTimer from "./GameTimer";
 
 interface Props {
-  onComplete: (skillScore: number) => void;
+  onComplete: (skillScore: number, count: number) => void;
   bonusSeconds?: number;
 }
 
@@ -158,8 +158,8 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
     setResult({ matchCount: m, skillScore });
   }
 
-  function handleContinue(skillScore: number) {
-    onDoneRef.current(skillScore);
+  function handleContinue(skillScore: number, count: number) {
+    onDoneRef.current(skillScore, count);
   }
 
   useEffect(() => {
@@ -277,7 +277,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
         <button
           className="mini-game-force-close"
           style={{ color: "#16a34a" }}
-          onClick={() => result ? handleContinue(result.skillScore) : forceClose()}
+          onClick={() => result ? handleContinue(result.skillScore, result.matchCount) : forceClose()}
         >✕</button>
       </div>
       <div className="mini-game-header">
@@ -323,7 +323,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
         <div
           className="mini-game-result"
           style={{ background: "rgba(240,253,244,0.97)" }}
-          onClick={() => handleContinue(result.skillScore)}
+          onClick={() => handleContinue(result.skillScore, result.matchCount)}
         >
           <span className="mini-game-result-emoji">🌱</span>
           <p className="mini-game-result-count" style={{ color: "#166534" }}>

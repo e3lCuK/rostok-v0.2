@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 interface Props {
-  onComplete: (skillScore: number) => void;
+  onComplete: (skillScore: number, count: number) => void;
 }
 
 // ---- canvas dimensions ----
@@ -260,7 +260,7 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
       <button
         className="mini-game-force-close"
         style={{ color: CFG.timerColor }}
-        onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
+        onClick={() => result ? onComplete(result.skillScore, result.catches) : forceFinishRef.current()}
       >✕</button>
       <canvas
         ref={canvasRef}
@@ -277,7 +277,7 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
         <div
           className="mini-game-result"
           style={{ background: CFG.bg }}
-          onClick={() => onComplete(result.skillScore)}
+          onClick={() => onComplete(result.skillScore, result.catches)}
         >
           <span className="mini-game-result-emoji">🌱</span>
           <p className="mini-game-result-count" style={{ color: CFG.resultColor }}>

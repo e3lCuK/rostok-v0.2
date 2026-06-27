@@ -199,10 +199,13 @@ router.post("/game/session/start", requireAuth, async (req: any, res) => {
 // POST /api/game/session/action — perform water/sun/fertilizer
 router.post("/game/session/action", requireAuth, async (req: any, res) => {
   const userId = req.userId;
-  const { action, skillScore: rawSkillScore } = req.body;
+  const { action, skillScore: rawSkillScore, count: rawCount } = req.body;
   const skillScore: number = typeof rawSkillScore === "number" && !isNaN(rawSkillScore) && rawSkillScore >= 0 && rawSkillScore <= 100
     ? rawSkillScore
     : 40;
+  const itemCount: number = typeof rawCount === "number" && !isNaN(rawCount) && rawCount >= 0 && rawCount <= 10000
+    ? Math.round(rawCount)
+    : 1;
 
   if (!["water", "sun", "fertilizer"].includes(action)) {
     return res.status(400).json({ error: "Invalid action" });
@@ -234,11 +237,11 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       [userId, skillScore],
     );
 
-    // Increment per-action counter
+    // Increment per-action counter by actual items collected
     const counterCol = action === "water" ? "total_water_drops" : action === "sun" ? "total_sun_catches" : "total_leaf_picks";
     await pool.query(
-      `UPDATE game_state SET ${counterCol} = COALESCE(${counterCol}, 0) + 1 WHERE user_id = $1`,
-      [userId],
+      `UPDATE game_state SET ${counterCol} = COALESCE(${counterCol}, 0) + $2 WHERE user_id = $1`,
+      [userId, itemCount],
     );
 
     // Check if all 3 actions done

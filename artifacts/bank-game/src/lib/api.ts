@@ -84,7 +84,7 @@ export const api = {
   startSession: () =>
     request<{ success: boolean }>("/game/session/start", { method: "POST" }),
 
-  doAction: (action: "water" | "sun" | "fertilizer", skillScore?: number) =>
+  doAction: (action: "water" | "sun" | "fertilizer", skillScore?: number, count?: number) =>
     request<{
       success: boolean;
       sessionComplete: boolean;
@@ -98,7 +98,7 @@ export const api = {
       xpHistory?: import("@/lib/engine").XpHistoryEntry[];
     }>(
       "/game/session/action",
-      { method: "POST", body: JSON.stringify({ action, skillScore }) },
+      { method: "POST", body: JSON.stringify({ action, skillScore, count }) },
     ),
 
   claim: (type: "base" | "bonus") =>

@@ -618,7 +618,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     growthIntervalRef.current = growthInterval;
   }
 
-  function handleMinigameComplete(type: GameType, skillScore: number) {
+  function handleMinigameComplete(type: GameType, skillScore: number, count: number) {
     setActiveMinigame(null);
     const safe = typeof skillScore === "number" && !isNaN(skillScore) ? skillScore : 40;
     if (type === "water")      waterScoreRef.current = safe;
@@ -650,7 +650,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const x = (rect?.width ?? 200) / 2;
     const y = (rect?.height ?? 200) / 2;
-    doAction(type, x, y, safe);
+    doAction(type, x, y, safe, count);
   }
 
   async function handleDebugCompleteAll() {
@@ -746,12 +746,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     doAction(action, x, y);
   }
 
-  async function doAction(action: "water" | "sun" | "fertilizer", x: number, y: number, scoreOverride?: number) {
+  async function doAction(action: "water" | "sun" | "fertilizer", x: number, y: number, scoreOverride?: number, count?: number) {
     if (game[action] || actionLoading) return;
 
     setActionLoading(true);
     try {
-      const result = await api.doAction(action, scoreOverride ?? skillScoreRef.current);
+      const result = await api.doAction(action, scoreOverride ?? skillScoreRef.current, count);
       const labels: Record<string, string> = { water: "💧", sun: "☀️", fertilizer: "🌱" };
       addFloater(labels[action], x, y);
 
@@ -1440,18 +1440,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <div className="water-game-overlay">
           {activeMinigame === "sun" ? (
             <ClickGameSun
-              onComplete={(score) => handleMinigameComplete("sun", score)}
+              onComplete={(score, count) => handleMinigameComplete("sun", score, count)}
               bonusSeconds={getStreakBonusSeconds(game.streakDays)}
             />
           ) : activeMinigame === "fertilizer" ? (
             <FertilizerMatchGame
-              onComplete={(score) => handleMinigameComplete("fertilizer", score)}
+              onComplete={(score, count) => handleMinigameComplete("fertilizer", score, count)}
               bonusSeconds={getStreakBonusSeconds(game.streakDays)}
             />
           ) : (
             <FallingGameWater
               type={activeMinigame}
-              onComplete={(score) => handleMinigameComplete(activeMinigame, score)}
+              onComplete={(score, count) => handleMinigameComplete(activeMinigame, score, count)}
               bonusSeconds={getStreakBonusSeconds(game.streakDays)}
             />
           )}

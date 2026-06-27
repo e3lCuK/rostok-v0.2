@@ -5,7 +5,7 @@ export type GameType = "water" | "sun" | "fertilizer";
 
 interface Props {
   type?: GameType;
-  onComplete: (skillScore: number) => void;
+  onComplete: (skillScore: number, count: number) => void;
   bonusSeconds?: number;
 }
 
@@ -242,7 +242,7 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
         <button
           className="mini-game-force-close"
           style={{ color: cfg.timerColor }}
-          onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
+          onClick={() => result ? onComplete(result.skillScore, result.catches) : forceFinishRef.current()}
         >✕</button>
       </div>
       <div className="mini-game-header">
@@ -265,7 +265,7 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
         <div
           className="mini-game-result"
           style={{ background: cfg.bg }}
-          onClick={() => onComplete(result.skillScore)}
+          onClick={() => onComplete(result.skillScore, result.catches)}
         >
           <span className="mini-game-result-emoji">{cfg.scoreEmoji}</span>
           <p className="mini-game-result-count" style={{ color: cfg.resultColor }}>
