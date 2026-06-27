@@ -374,39 +374,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     collectedAppleIndicesRef.current = next;
     setCollectedAppleIndices(next);
 
-    const redCount = appleCountRef.current - 1;
     const isGolden = appleIdx === appleCountRef.current - 1;
-    const redCollected = next.filter(idx => idx < redCount).length;
-    const isLastRed = !isGolden && redCollected === redCount;
-    const isLastOverall = next.length === appleCountRef.current;
-
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const cx = (rect?.width ?? 200) / 2;
     const cy = (rect?.height ?? 300) * 0.38;
 
-    if (isLastOverall) {
-      if (isLastRed) {
-        addFloater("🍎", cx - 20, cy + 10, { big: true });
-        addFloater("🍎", cx + 20, cy, { big: true });
-      } else if (isGolden) {
-        addFloater("💛", cx - 12, cy + 5, { gold: true });
-        addFloater("💛", cx + 14, cy - 8, { gold: true });
-      }
+    if (isGolden) {
       claimApplesAndIncome(1);
     } else {
       setTotalApples(t => t + 1);
       setApplePopupCount(1);
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1200);
-      if (isLastRed) {
-        addFloater("🍎", cx - 22, cy + 8, { big: true });
-        addFloater("🍎", cx + 22, cy - 5, { big: true });
-        addFloater("🍎", cx, cy - 18, { big: true });
-      } else if (isGolden) {
-        addFloater("💛", cx - 14, cy - 10, { gold: true });
-        addFloater("💛", cx + 16, cy + 4, { gold: true });
-        addFloater("💛", cx, cy - 22, { gold: true });
-      }
+      addFloater("🍎", cx + (Math.random() * 28 - 14), cy + (Math.random() * 20 - 10));
     }
   }
 
