@@ -900,43 +900,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     <span className="progress-val-num">{rubNum}</span>
                     <span className="progress-val-unit">{rubUnit}</span>
                     <button className="growth-info-btn" onClick={() => setShowDepositInfo(true)}>?</button>
-                    <AnimatePresence>
-                      {showIncomePopup && (
-                        <motion.div className="row-reward-overlay topbar-reward-popup-income-wrap"
-                          initial={{ opacity: 0, scale: 0.75 }} animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.75 }} transition={{ duration: 0.22, ease: "easeOut" }}>
-                          <motion.span className="income-popup-icon"
-                            initial={{ scale: 0.5, rotate: 15 }} animate={{ scale: 1, rotate: 0 }}
-                            transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}>
-                            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="2" y="5" width="16" height="11" rx="2" fill="currentColor" fillOpacity="0.15"/>
-                              <path d="M2 8h16"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
-                            </svg>
-                          </motion.span>
-                          <span className="income-popup-label">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                   <div className="progress-row">
                     <span className="progress-row-icon"><TreePine size={16} strokeWidth={2.2} fill="currentColor" /></span>
                     <span className="progress-val-num">{treeNum}</span>
                     <span className="progress-val-unit">{treeUnit}</span>
                     <button className="growth-info-btn" onClick={() => setShowTreeInfo(true)}>?</button>
-                    <AnimatePresence>
-                      {showMmPopup && sessionScores && sessionScores.mm > 0 && (
-                        <motion.div className="row-reward-overlay topbar-reward-popup-mm"
-                          initial={{ opacity: 0, scale: 0.75 }} animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.75 }} transition={{ duration: 0.25, ease: "easeOut" }}>
-                          <motion.span className="mm-popup-icon"
-                            initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
-                            transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}>
-                            <TreePine size={15} strokeWidth={2.2} fill="currentColor" />
-                          </motion.span>
-                          <span className="mm-popup-label">+{sessionScores.mm} мм</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                   <div className="progress-row progress-row-apples">
                     <span className="progress-row-icon">
@@ -948,27 +917,59 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     <span className="progress-val-num">{apples}</span>
                     <span className="progress-val-unit">{pluralApples()}</span>
                     <button className="growth-info-btn growth-info-btn-plus">+</button>
-                    <AnimatePresence>
-                      {showApplePopup && (
-                        <motion.div className="row-reward-overlay topbar-reward-popup-apple"
-                          initial={{ opacity: 0, scale: 0.75 }} animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.75 }} transition={{ duration: 0.22, ease: "easeOut" }}>
-                          <motion.span className="apple-popup-icon"
-                            initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
-                            transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}>
-                            <svg width="15" height="17" viewBox="-1 -1 15 17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6.5 4C6.5 4 7 2 9 1" />
-                              <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" fill="currentColor" />
-                            </svg>
-                          </motion.span>
-                          <span className="apple-popup-label">+{applePopupCount} ябл</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </>;
               })()}
 
+          <AnimatePresence>
+            {showMmPopup && sessionScores && sessionScores.mm > 0 && (
+              <motion.div className="widget-below-popup topbar-reward-popup-mm"
+                initial={{ opacity: 0, y: -4, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.8 }} transition={{ duration: 0.25, ease: "easeOut" }}>
+                <motion.span className="mm-popup-icon"
+                  initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}>
+                  <TreePine size={15} strokeWidth={2.2} fill="currentColor" />
+                </motion.span>
+                <span className="mm-popup-label">+{sessionScores.mm} мм</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {(showApplePopup || showIncomePopup) && (
+              <motion.div className="widget-below-popup"
+                initial={{ opacity: 0, y: -4, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.8 }} transition={{ duration: 0.22, ease: "easeOut" }}
+                style={{ flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {showIncomePopup && (
+                  <div className="topbar-reward-popup-income-wrap" style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <motion.span className="income-popup-icon"
+                      initial={{ scale: 0.5, rotate: 15 }} animate={{ scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}>
+                      <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="5" width="16" height="11" rx="2" fill="currentColor" fillOpacity="0.15"/>
+                        <path d="M2 8h16"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+                      </svg>
+                    </motion.span>
+                    <span className="income-popup-label">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
+                  </div>
+                )}
+                {showApplePopup && applePopupCount > 0 && (
+                  <div className="topbar-reward-popup-apple" style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <motion.span className="apple-popup-icon"
+                      initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}>
+                      <svg width="14" height="16" viewBox="-1 -1 15 17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6.5 4C6.5 4 7 2 9 1" />
+                        <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" fill="currentColor" />
+                      </svg>
+                    </motion.span>
+                    <span className="apple-popup-label">+{applePopupCount} ябл</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
           </div>{/* end progress-widget */}
           </div>{/* end growth-label-wrap */}
         </div>

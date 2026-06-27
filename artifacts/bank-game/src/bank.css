@@ -1097,11 +1097,28 @@ body {
   gap: 3px;
   pointer-events: none;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.92);
   border-radius: 4px;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.widget-below-popup {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 30;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.13);
   white-space: nowrap;
 }
 
