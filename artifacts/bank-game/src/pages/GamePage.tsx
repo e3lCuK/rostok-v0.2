@@ -347,10 +347,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
     }
-    // Golden apple (index = appleCount-1) never counts toward red apple counter
-    const goldenIdx = appleCountRef.current - 1;
-    const goldenUncollected = !collectedAppleIndicesRef.current.includes(goldenIdx);
-    const redRemaining = goldenUncollected ? Math.max(0, remaining - 1) : remaining;
+    // Coin (index = appleCount-1) never counts toward red apple counter
+    const coinIdx = appleCountRef.current - 1;
+    const coinUncollected = !collectedAppleIndicesRef.current.includes(coinIdx);
+    const redRemaining = coinUncollected ? Math.max(0, remaining - 1) : remaining;
     const cur = stateRef.current;
     const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
     if (total > 0) setLastIncomeAmount(total);
@@ -364,7 +364,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
     setShowRewards(true);
-    // Save only red apples (golden excluded from lifetime counter)
+    // Save only red apples (coin excluded from lifetime counter)
     void handleClaimAll(appleCountRef.current - 1);
     // Hide overlay only when all apples are collected
     const allCollected = collectedAppleIndicesRef.current.length >= appleCountRef.current;
@@ -394,12 +394,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     collectedAppleIndicesRef.current = next;
     setCollectedAppleIndices(next);
 
-    const isGolden = appleIdx === appleCountRef.current - 1;
+    const isCoin = appleIdx === appleCountRef.current - 1;
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const cx = (rect?.width ?? 200) / 2;
     const cy = (rect?.height ?? 300) * 0.38;
 
-    if (isGolden) {
+    if (isCoin) {
       claimApplesAndIncome(0);
     } else {
       setTotalApples(t => t + 1);
@@ -1097,22 +1097,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <AnimatePresence>
                   {Array.from({ length: appleCount }, (_, i) => {
                     if (collectedAppleIndices.includes(i)) return null;
-                    const isGolden = i === appleCount - 1;
-                    const posIdx = isGolden ? 3 : i;
+                    const isCoin = i === appleCount - 1;
+                    const posIdx = isCoin ? 3 : i;
                     const [xPct, yPct] = APPLE_POSITIONS[currentStage][posIdx];
                     const baseR = APPLE_SIZES[currentStage];
-                    const r = isGolden ? Math.round(baseR * 1.3) : baseR;
+                    const r = isCoin ? Math.round(baseR * 1.3) : baseR;
                     return (
                       <motion.div
                         key={i}
-                        className={`tree-apple tree-apple-pending${isGolden ? " tree-apple-golden" : ""}`}
+                        className={`tree-apple tree-apple-pending${isCoin ? " tree-apple-coin" : ""}`}
                         onClick={() => handleAppleClick(i)}
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0, transition: { duration: 0.25 } }}
                         transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
                         style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
-                      />
+                      >
+                        {isCoin && <span className="tree-coin-symbol">₽</span>}
+                      </motion.div>
                     );
                   })}
                 </AnimatePresence>
