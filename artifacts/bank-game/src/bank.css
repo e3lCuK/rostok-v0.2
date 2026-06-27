@@ -4334,10 +4334,12 @@ canvas {
 .game-page-tutorial .game-nav-h-divider {
   display: none;
 }
-.game-page-tutorial .game-bottom-nav-btn,
-.game-page-tutorial .game-bottom-nav-divider {
-  opacity: 0;
+.game-page-tutorial .game-bottom-nav-btn {
+  color: rgba(100, 160, 40, 0.35);
   pointer-events: none;
+}
+.game-page-tutorial .game-bottom-nav-divider {
+  background: rgba(100, 160, 40, 0.18);
 }
 
 /* ── Tutorial intro overlay (game area) ─────────────────────── */
