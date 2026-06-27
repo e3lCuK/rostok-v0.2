@@ -31,12 +31,12 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
         {/* Rainbow (purchased) */}
         {has("rainbow") && (
           <g className="bg-rainbow" opacity="0.5">
-            <path d="M70,600 Q-70,345 340,360" stroke="#ef4444" strokeWidth="5" fill="none" />
-            <path d="M70,600 Q-54,352 340,360"  stroke="#f97316" strokeWidth="5" fill="none" />
-            <path d="M70,600 Q-38,359 340,360"  stroke="#eab308" strokeWidth="5" fill="none" />
-            <path d="M70,600 Q-22,366 340,360"  stroke="#22c55e" strokeWidth="5" fill="none" />
-            <path d="M70,600 Q-6,373 340,360"   stroke="#3b82f6" strokeWidth="5" fill="none" />
-            <path d="M70,600 Q10,380 340,360"   stroke="#8b5cf6" strokeWidth="5" fill="none" />
+            <path d="M0,600 C100,580 240,480 340,480" stroke="#ef4444" strokeWidth="5" fill="none" />
+            <path d="M0,600 C100,555 245,428 340,428"  stroke="#f97316" strokeWidth="5" fill="none" />
+            <path d="M0,600 C100,530 250,376 340,376"  stroke="#eab308" strokeWidth="5" fill="none" />
+            <path d="M0,600 C100,505 255,324 340,324"  stroke="#22c55e" strokeWidth="5" fill="none" />
+            <path d="M0,600 C100,480 260,272 340,272"  stroke="#3b82f6" strokeWidth="5" fill="none" />
+            <path d="M0,600 C100,455 265,220 340,220"  stroke="#8b5cf6" strokeWidth="5" fill="none" />
           </g>
         )}
 
