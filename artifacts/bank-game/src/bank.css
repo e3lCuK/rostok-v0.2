@@ -4510,3 +4510,63 @@ canvas {
   transition: opacity 0.15s;
 }
 .tutorial-welcome-btn:hover { opacity: 0.9; }
+
+/* Tutorial completion overlay */
+.tutorial-complete-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(220, 240, 210, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.tutorial-complete-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(100, 160, 40, 0.55);
+  border-radius: 24px;
+  padding: 28px 28px 22px;
+  box-shadow: 0 4px 40px rgba(60,120,30,0.18);
+  max-width: 280px;
+  width: 90%;
+  text-align: center;
+}
+.tutorial-complete-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #a3c98a;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+.tutorial-complete-close:hover { color: #4a7c25; }
+.tutorial-complete-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.tutorial-complete-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #166534;
+}
+.tutorial-complete-desc {
+  margin: 0;
+  font-size: 0.83rem;
+  color: #4b7c25;
+  font-weight: 500;
+  line-height: 1.45;
+}

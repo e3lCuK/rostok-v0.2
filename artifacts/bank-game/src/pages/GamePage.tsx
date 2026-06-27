@@ -123,6 +123,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showXpHistory, setShowXpHistory] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showTutorialComplete, setShowTutorialComplete] = useState(false);
   const [purchasedItems, setPurchasedItems] = useState<string[]>(state.game.purchasedItems ?? []);
   const [hasPendingAchievements, setHasPendingAchievements] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -236,7 +237,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   // (Tutorial minigames are opened by user interaction or handleMinigameComplete, not auto-opened)
 
   function handleTutorialFinish() {
-    // Play tree care animation
+    // Play tree care animations
     animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
     setActiveAnim("water");
     void treeControls.start({
@@ -250,15 +251,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }, 900);
     setTimeout(() => setActiveAnim(null), 2600);
 
-    // Complete tutorial after animations finish
+    // Show final congratulations window after animations
+    setTimeout(() => setShowTutorialComplete(true), 1400);
+  }
+
+  function handleTutorialDismiss() {
+    setShowTutorialComplete(false);
     setTimeout(() => {
       setTutorialStep(null);
+      setShowCareButton(false);
       api.tutorialComplete().catch(() => {});
       setTutorialDone(true);
       onStateChange({ ...stateRef.current, game: { ...stateRef.current.game, tutorialDone: true } });
       localStorage.removeItem("streak_widget_date");
       setShowStreakWidget(true);
-    }, 2200);
+    }, 400);
   }
 
   useEffect(() => {
@@ -1200,6 +1207,33 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             </div>
           );
         })()}
+
+        {/* Tutorial completion congratulations window */}
+        <AnimatePresence>
+          {showTutorialComplete && (
+            <motion.div
+              className="tutorial-complete-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <motion.div
+                className="tutorial-complete-card"
+                initial={{ opacity: 0, scale: 0.82, y: 24 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.88, y: 16 }}
+                transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.05 }}
+              >
+                <button className="tutorial-complete-close" onClick={handleTutorialDismiss}>✕</button>
+                <span className="tutorial-complete-icon">🌳</span>
+                <h3 className="tutorial-complete-title">Обучение пройдено!</h3>
+                <p className="tutorial-complete-desc">Ухаживайте за деревом каждый день — оно будет расти, а ваш вклад приносить доход.</p>
+                <button className="tutorial-welcome-btn" onClick={handleTutorialDismiss}>Начать играть</button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {floaters.map(fl => (
           <div
