@@ -4343,9 +4343,6 @@ canvas {
 .game-page-tutorial .game-top-bar::after {
   background: rgba(100, 160, 40, 0.18) !important;
 }
-.game-page-tutorial .game-top-bar {
-  border-bottom-color: rgba(100, 160, 40, 0.18) !important;
-}
 .game-page-tutorial .game-bottom-nav-btn {
   color: rgba(100, 160, 40, 0.35);
   pointer-events: none;
