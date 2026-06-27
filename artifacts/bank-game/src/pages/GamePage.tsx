@@ -112,7 +112,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
   const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
   const [tutorialDone, setTutorialDone] = useState(state.game.tutorialDone ?? true);
-  const [tutorialStep, setTutorialStep] = useState<"welcome" | "intro" | "water" | "sun-intro" | "sun" | "fertilizer-intro" | "fertilizer" | null>(
+  const [tutorialStep, setTutorialStep] = useState<"welcome" | "intro" | "water" | "sun-intro" | "sun" | "fertilizer-intro" | "fertilizer" | "complete" | null>(
     (state.game.tutorialDone ?? true) ? null : "welcome"
   );
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
@@ -223,6 +223,32 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
 
   // (Tutorial minigames are opened by user interaction or handleMinigameComplete, not auto-opened)
+
+  function handleTutorialFinish() {
+    // Play tree care animation
+    animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
+    setActiveAnim("water");
+    void treeControls.start({
+      filter: ["brightness(1)", "brightness(1.45)", "brightness(1)"],
+      scale: [1, 1.06, 1],
+      transition: { duration: 0.5, ease: "easeInOut" },
+    });
+    setTimeout(() => {
+      setActiveAnim("fertilizer");
+      animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
+    }, 900);
+    setTimeout(() => setActiveAnim(null), 2600);
+
+    // Complete tutorial after animations finish
+    setTimeout(() => {
+      setTutorialStep(null);
+      api.tutorialComplete().catch(() => {});
+      setTutorialDone(true);
+      onStateChange({ ...stateRef.current, game: { ...stateRef.current.game, tutorialDone: true } });
+      localStorage.removeItem("streak_widget_date");
+      setShowStreakWidget(true);
+    }, 2200);
+  }
 
   useEffect(() => {
     if (!autoClaimedOnLoadRef.current && hasPendingInit && notInSessionInit) {
@@ -669,13 +695,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setTutorialStep("fertilizer-intro");
         setActiveMinigame(null);
       } else {
-        // All tutorial games done — reveal panels and show streak widget
-        setTutorialStep(null);
-        api.tutorialComplete().catch(() => {});
-        setTutorialDone(true);
-        onStateChange({ ...stateRef.current, game: { ...stateRef.current.game, tutorialDone: true } });
-        localStorage.removeItem("streak_widget_date");
-        setShowStreakWidget(true);
+        // All tutorial minigames done — show care button next
+        setTutorialStep("complete");
       }
       return;
     }
@@ -1121,6 +1142,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                  : tutorialStep === "sun-intro" ? "☀️ Теперь соберите солнечный свет!"
                  : tutorialStep === "sun" ? "☀️ Поймайте солнечный свет!"
                  : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
+                 : tutorialStep === "complete" ? "🌱 Нажмите кнопку ухода за деревом!"
                  : "🍃 Соберите листики с дерева!"}
               </span>
             )}
@@ -1132,6 +1154,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     intro: 0, water: 0,
                     "sun-intro": 1, sun: 1,
                     "fertilizer-intro": 2, fertilizer: 2,
+                    complete: 3,
                   };
                   const cur = tutorialStep ? (activeOrder[tutorialStep] ?? -1) : 3;
                   const isDone = dotOrder[s] < cur;
@@ -1323,6 +1346,37 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <div className="session-actions-wrap">
         {!game.sessionInProgress && !showCompletionStage && !showRewards && !showActivityGhost ? (
           <AnimatePresence mode="wait">
+            {!tutorialDone && tutorialStep === "complete" ? (
+              <motion.div
+                key="tutorial-complete"
+                className="session-actions"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="action-buttons-row">
+                  {([
+                    { key: "water", color: "#3b82f6" },
+                    { key: "sun",   color: "#f59e0b" },
+                    { key: "fertilizer", color: "#22c55e" },
+                  ] as const).map(btn => (
+                    <div key={btn.key} className="action-btn-bank action-btn-done">
+                      <div className="action-btn-top"><CheckCircle2 size={20} /></div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+                  <div className="action-buttons-row" style={{ justifyContent: "center" }}>
+                    <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
+                    <button className="care-btn" onClick={handleTutorialFinish}>
+                      <Shovel size={20} />
+                    </button>
+                    <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
             <motion.div
               key={locked ? "cooldown" : "ready"}
               className="session-actions"
@@ -1339,7 +1393,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 ] as const).map(btn => {
                   // Which button is the active tutorial button?
                   const tutorialActiveBtn =
-                    tutorialStep === "welcome" ? null :
+                    tutorialStep === "welcome" || tutorialStep === "complete" ? null :
                     tutorialStep === "intro" ? "water" :
                     tutorialStep === "sun-intro" ? "sun" :
                     tutorialStep === "fertilizer-intro" ? "fertilizer" : null;
@@ -1366,6 +1420,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 })}
               </div>
             </motion.div>
+            )}
           </AnimatePresence>
         ) : (
           <AnimatePresence mode="wait">
