@@ -872,12 +872,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             {showApplePopup && !showIncomePopup && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-apple"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: -6, scale: 0.7 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.7 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                +{applePopupCount} ябл
+                <motion.span
+                  className="apple-popup-icon"
+                  initial={{ scale: 0.5, rotate: -15 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                >
+                  <svg width="18" height="20" viewBox="-1 -1 15 17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6.5 4C6.5 4 7 2 9 1" />
+                    <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" fill="currentColor" />
+                  </svg>
+                </motion.span>
+                <span className="apple-popup-label">+{applePopupCount} ябл</span>
               </motion.div>
             )}
           </AnimatePresence>

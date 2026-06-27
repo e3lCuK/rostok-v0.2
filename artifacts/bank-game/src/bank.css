@@ -1328,6 +1328,21 @@ body.modal-open {
 }
 .topbar-reward-popup-apple {
   color: #c0392b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.apple-popup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 3px rgba(192,57,43,0.35));
+}
+.apple-popup-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 .topbar-reward-popup-income {
   color: #c9920a;
