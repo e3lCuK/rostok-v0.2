@@ -1133,6 +1133,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       </div>
 
 
+      {/* Tutorial sky strip — shown instead of top bar during onboarding */}
+      {!tutorialDone && (
+        <div className="tutorial-sky-strip">
+          <div className="tutorial-hint-text">
+            {tutorialStep !== "welcome" && tutorialStep !== "intro" && (
+              <span className="tutorial-hint-label">
+                {tutorialStep === "water" ? "💧 Поймайте капли воды!"
+                 : tutorialStep === "sun-intro" ? "☀️ Теперь соберите солнечный свет!"
+                 : tutorialStep === "sun" ? "☀️ Поймайте солнечный свет!"
+                 : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
+                 : tutorialStep === "complete" ? "🌱 Нажмите кнопку ухода за деревом!"
+                 : "🍃 Соберите листики с дерева!"}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
         {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
@@ -1498,6 +1516,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       </div>
 
 
+
+      <div className="game-nav-h-divider" />
+      <nav className="game-bottom-nav">
+        <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
+          <Trophy size={18} strokeWidth={2.5} />
+        </button>
+        <div className="game-bottom-nav-divider" />
+        <button className="game-bottom-nav-btn" onClick={() => setShowAchievements(true)}>
+          <span className="ach-medal-btn">
+            <Medal size={18} strokeWidth={2.5} />
+            {hasPendingAchievements && <span className="ach-fire-dot" />}
+          </span>
+        </button>
+        <div className="game-bottom-nav-divider" />
+        <button className="game-bottom-nav-btn" onClick={() => setShowShop(true)}>
+          <ShoppingCart size={18} strokeWidth={2.5} fill="none" />
+        </button>
+      </nav>
 
       {false && showCompletionStage && !showRewards && (
         <button className="transition-btn" onClick={handleGoToRewards}>
