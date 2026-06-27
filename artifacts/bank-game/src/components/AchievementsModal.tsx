@@ -28,7 +28,7 @@ interface AchievementDef {
   prevId: string | null;
 }
 
-const ACHIEVEMENTS: AchievementDef[] = [
+export const ACHIEVEMENTS: AchievementDef[] = [
   // Tier 1 — 1 яблоко
   { id: "sessions_1",  label: "Завершил 1 сессию",   icon: "🌿", family: "sessions", tier: 1, threshold: 1,     reward: 1,   countKey: "total_sessions",    prevId: null },
   { id: "days_1",      label: "Зашёл в игру 1 день",  icon: "📅", family: "days",     tier: 1, threshold: 1,     reward: 1,   countKey: "total_login_days",  prevId: null },

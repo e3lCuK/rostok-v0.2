@@ -22,7 +22,7 @@ import TreeSVG, { STAGE_DIMS } from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import AchievementsModal from "@/components/AchievementsModal";
+import AchievementsModal, { ACHIEVEMENTS } from "@/components/AchievementsModal";
 import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart, ScrollText, Star } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
@@ -116,6 +116,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showDepositInfo, setShowDepositInfo] = useState(false);
   const [showXpHistory, setShowXpHistory] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [hasPendingAchievements, setHasPendingAchievements] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -279,6 +280,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       stageTransTimers.current = [t1, t2];
     }
   }, [game.treeGrowthMM]);
+
+  // Check for claimable achievements (show fire dot on Medal button)
+  function checkPendingAchievements() {
+    api.getAchievements().then(data => {
+      const counts = data.counts as Record<string, number>;
+      const claimed = data.claimed;
+      const hasPending = ACHIEVEMENTS.some(a => {
+        if (claimed.includes(a.id)) return false;
+        const prevOk = a.prevId === null || claimed.includes(a.prevId);
+        if (!prevOk) return false;
+        return (counts[a.countKey] ?? 0) >= a.threshold;
+      });
+      setHasPendingAchievements(hasPending);
+    }).catch(() => {});
+  }
+  useEffect(() => { checkPendingAchievements(); }, []);
 
   const locked = isSessionLocked(game.lastSessionTime, now);
   const nextTime = getNextSessionTime(game.lastSessionTime);
@@ -1294,8 +1311,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <Trophy size={18} strokeWidth={2.5} />
         </button>
         <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn" onClick={() => setShowAchievements(true)}>
+        <button className="game-bottom-nav-btn ach-medal-btn" onClick={() => setShowAchievements(true)}>
           <Medal size={18} strokeWidth={2.5} />
+          {hasPendingAchievements && <span className="ach-fire-dot">🔥</span>}
         </button>
         <div className="game-bottom-nav-divider" />
         <button className="game-bottom-nav-btn" onClick={() => {}}>
@@ -1480,8 +1498,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       <AnimatePresence>
         {showAchievements && (
           <AchievementsModal
-            onClose={() => setShowAchievements(false)}
-            onApplesClaimed={(newTotal) => setTotalApples(newTotal)}
+            onClose={() => { setShowAchievements(false); checkPendingAchievements(); }}
+            onApplesClaimed={(newTotal) => { setTotalApples(newTotal); checkPendingAchievements(); }}
           />
         )}
       </AnimatePresence>
