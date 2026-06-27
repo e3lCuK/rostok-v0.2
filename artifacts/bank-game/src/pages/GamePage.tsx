@@ -646,8 +646,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       for (const action of toComplete) {
         const result = await api.doAction(action, 100);
         addFloater(labels[action], x, y);
+        animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
+        setActiveAnim(action);
+        void treeControls.start({
+          filter: ["brightness(1)", "brightness(1.35)", "brightness(1)"],
+          scale: [1, 1.04, 1],
+          transition: { duration: 0.38, ease: "easeInOut" },
+        });
+        if (animTimerRef.current) clearTimeout(animTimerRef.current);
+        animTimerRef.current = setTimeout(() => setActiveAnim(null), 2800);
         const cur = stateRef.current;
         trackedGame = { ...trackedGame, [action]: true };
+        onStateChange({ ...cur, game: trackedGame });
+        if (!result.sessionComplete) {
+          await new Promise(r => setTimeout(r, 620));
+        }
         if (result.sessionComplete) {
           const finishedTime = Date.now();
           trackedGame = {
@@ -679,8 +692,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             newRemainder: remAfter,
           };
           setShowCompletionStage(true);
-          onStateChange({ ...cur, game: trackedGame });
-        } else {
           onStateChange({ ...cur, game: trackedGame });
         }
       }
