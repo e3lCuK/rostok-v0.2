@@ -1133,9 +1133,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       </div>
 
 
-      {/* Tutorial sky strip — placeholder matching top-bar height during onboarding */}
-      {!tutorialDone && <div className="tutorial-sky-strip" />}
-
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
         {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
