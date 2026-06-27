@@ -3573,8 +3573,8 @@ canvas {
 ==============================*/
 .mini-game-force-close {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 16px;
+  right: 16px;
   left: auto;
   transform: none;
   background: none;
@@ -3614,6 +3614,8 @@ canvas {
   width: 100%;
   margin-bottom: 8px;
   flex-shrink: 0;
+  padding-right: 34px;
+  box-sizing: border-box;
 }
 
 .game-timer {
@@ -3669,7 +3671,6 @@ canvas {
   gap: 4px;
   flex-shrink: 0;
   font-size: 0.9rem;
-  margin-top: 14px;
 }
 
 .mini-game-counter-val {
