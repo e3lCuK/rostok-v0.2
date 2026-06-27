@@ -65,8 +65,6 @@ export default function OnboardingPage({ onComplete }: Props) {
             </div>
             <div className="capital-option-stats">
               <span className="capital-option-stat"><span className="capital-stat-label">За сессию</span><span className="capital-stat-value">до {sessionAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
-              <span className="capital-option-stat"><span className="capital-stat-label">Сутки</span><span className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
-              <span className="capital-option-stat"><span className="capital-stat-label">Месяц</span><span className="capital-stat-value">до {monthlyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
               <span className="capital-option-stat"><span className="capital-stat-label">Год</span><span className="capital-stat-value">до {annualAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
             </div>
           </motion.button>
