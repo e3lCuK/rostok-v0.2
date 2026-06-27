@@ -379,17 +379,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowApplePopup(true);
     }
     setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
-
-    // Флоатеры авто-сбора — деньги и яблоки одновременно, яблоки строкой ниже
-    const rect = gameAreaRef.current?.getBoundingClientRect();
-    const cx = (rect?.width ?? 200) / 2;
-    const cy = (rect?.height ?? 300) * 0.32;
-    if (total > 0) {
-      addFloater(`+${total < 1 ? total.toFixed(2) : total.toFixed(0)} ₽`, cx, cy, { big: true, gold: true });
-    }
-    if (redRemaining > 0) {
-      addFloater(`+${redRemaining} 🍎`, cx, cy + 32, { big: true });
-    }
     setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
@@ -968,20 +957,44 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.7 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
+                style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}
               >
-                <motion.span
-                  className="income-popup-icon"
-                  initial={{ scale: 0.5, rotate: 15 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="5" width="16" height="11" rx="2" fill="currentColor" fillOpacity="0.15"/>
-                    <path d="M2 8h16"/>
-                    <circle cx="14.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
-                  </svg>
-                </motion.span>
-                <span className="income-popup-label">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <motion.span
+                    className="income-popup-icon"
+                    initial={{ scale: 0.5, rotate: 15 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="5" width="16" height="11" rx="2" fill="currentColor" fillOpacity="0.15"/>
+                      <path d="M2 8h16"/>
+                      <circle cx="14.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+                    </svg>
+                  </motion.span>
+                  <span className="income-popup-label">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
+                </div>
+                {showApplePopup && applePopupCount > 0 && (
+                  <motion.div
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                  >
+                    <motion.span
+                      className="apple-popup-icon"
+                      initial={{ scale: 0.5, rotate: -15 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                    >
+                      <svg width="18" height="20" viewBox="-1 -1 15 17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6.5 4C6.5 4 7 2 9 1" />
+                        <path d="M6.5 4.5C3.5 4.5 1 7 1 10C1 12.5 2.5 14 4.5 14C5.5 14 6 13.5 6.5 13.5C7 13.5 7.5 14 8.5 14C10.5 14 12 12.5 12 10C12 7 9.5 4.5 6.5 4.5Z" fill="currentColor" />
+                      </svg>
+                    </motion.span>
+                    <span className="apple-popup-label">+{applePopupCount} ябл</span>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
