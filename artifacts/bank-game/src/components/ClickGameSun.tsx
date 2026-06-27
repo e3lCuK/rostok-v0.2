@@ -11,7 +11,7 @@ const SUN_R          = 26;
 const SUN_VISIBLE_MS = 800;
 const SPAWN_MIN      = 400;
 const SPAWN_MAX      = 900;
-const SKILL_DENOM    = 15;
+const SKILL_DENOM    = 16;
 const W              = 296;
 const H              = 348;
 

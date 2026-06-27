@@ -49,7 +49,7 @@ const CONFIGS = {
 } as const;
 
 const GAME_MS     = 15_000;
-const TOTAL_DROPS = 30;
+const TOTAL_DROPS = 32;
 const DROP_R      = 11;
 const BAR_W       = 88;
 const BAR_H       = 11;
