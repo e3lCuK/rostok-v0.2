@@ -238,10 +238,6 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
           style={{ background: CFG.bg }}
           onClick={() => onComplete(result.skillScore)}
         >
-          <button
-            className="mini-game-result-close"
-            onClick={e => { e.stopPropagation(); onComplete(result.skillScore); }}
-          >✕</button>
           <span className="mini-game-result-emoji">☀️</span>
           <p className="mini-game-result-count" style={{ color: CFG.resultColor }}>
             Поймано: {result.catches}

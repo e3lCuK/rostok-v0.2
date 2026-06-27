@@ -328,10 +328,6 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
           style={{ background: "rgba(240,253,244,0.97)" }}
           onClick={() => handleContinue(result.skillScore)}
         >
-          <button
-            className="mini-game-result-close"
-            onClick={e => { e.stopPropagation(); handleContinue(result.skillScore); }}
-          >✕</button>
           <span className="mini-game-result-emoji">🌱</span>
           <p className="mini-game-result-count" style={{ color: "#166534" }}>
             Собрано: {result.matchCount}

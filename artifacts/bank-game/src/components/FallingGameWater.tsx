@@ -265,10 +265,6 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
           style={{ background: cfg.bg }}
           onClick={() => onComplete(result.skillScore)}
         >
-          <button
-            className="mini-game-result-close"
-            onClick={e => { e.stopPropagation(); onComplete(result.skillScore); }}
-          >✕</button>
           <span className="mini-game-result-emoji">{cfg.scoreEmoji}</span>
           <p className="mini-game-result-count" style={{ color: cfg.resultColor }}>
             Поймано: {result.catches}
