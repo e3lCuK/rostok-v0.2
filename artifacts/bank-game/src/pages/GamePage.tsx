@@ -558,7 +558,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const x = (rect?.width ?? 200) / 2;
     const y = (rect?.height ?? 200) / 2;
-    doAction(type, x, y);
+    doAction(type, x, y, safe);
   }
 
   async function handleDebugCompleteAll() {
@@ -642,12 +642,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     doAction(action, x, y);
   }
 
-  async function doAction(action: "water" | "sun" | "fertilizer", x: number, y: number) {
+  async function doAction(action: "water" | "sun" | "fertilizer", x: number, y: number, scoreOverride?: number) {
     if (game[action] || actionLoading) return;
 
     setActionLoading(true);
     try {
-      const result = await api.doAction(action, skillScoreRef.current);
+      const result = await api.doAction(action, scoreOverride ?? skillScoreRef.current);
       const labels: Record<string, string> = { water: "💧", sun: "☀️", fertilizer: "🌱" };
       addFloater(labels[action], x, y);
 
