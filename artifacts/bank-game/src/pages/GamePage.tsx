@@ -1117,11 +1117,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <div className="tutorial-hint-text">
             {tutorialStep !== "welcome" && tutorialStep !== "intro" && (
               <span className="tutorial-hint-label">
-                {tutorialStep === "water" ? "💧 Поймай капли воды!"
-                 : tutorialStep === "sun-intro" ? "☀️ Теперь собери солнечный свет!"
-                 : tutorialStep === "sun" ? "☀️ Поймай солнечный свет!"
+                {tutorialStep === "water" ? "💧 Поймайте капли воды!"
+                 : tutorialStep === "sun-intro" ? "☀️ Теперь соберите солнечный свет!"
+                 : tutorialStep === "sun" ? "☀️ Поймайте солнечный свет!"
                  : tutorialStep === "fertilizer-intro" ? "🍃 Осталось собрать листики!"
-                 : "🍃 Собери листики с дерева!"}
+                 : "🍃 Соберите листики с дерева!"}
               </span>
             )}
             {tutorialStep !== "welcome" && (
@@ -1183,10 +1183,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         {!tutorialDone && (tutorialStep === "intro" || tutorialStep === "sun-intro" || tutorialStep === "fertilizer-intro") && (() => {
           const cfg =
             tutorialStep === "intro"
-              ? { icon: "🌳", text: "Нужно ухаживать\nза деревом", hint: "Нажми на кнопку 💧" }
+              ? { icon: "🌳", text: "Нужно ухаживать\nза деревом", hint: "Нажмите на кнопку 💧" }
               : tutorialStep === "sun-intro"
-              ? { icon: "☀️", text: "Теперь добавь\nсолнечного света!", hint: "Нажми на кнопку ☀️" }
-              : { icon: "🍃", text: "Последний шаг —\nсобери листву!", hint: "Нажми на кнопку 🍃" };
+              ? { icon: "☀️", text: "Теперь добавьте\nсолнечного света!", hint: "Нажмите на кнопку ☀️" }
+              : { icon: "🍃", text: "Последний шаг —\nсоберите листву!", hint: "Нажмите на кнопку 🍃" };
           return (
             <div className="tutorial-intro-overlay">
               <div className="tutorial-intro-card">
