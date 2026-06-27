@@ -1250,19 +1250,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               <p className="streak-widget-sub">Заходите каждый день, чтобы получать бонусы</p>
 
               {(() => {
-                const cycleDay = state.game.streakDays > 0 ? (state.game.streakDays - 1) % 5 : 0; // 0-indexed today's slot
+                const sd = state.game.streakDays;
+                const allMaxed = sd >= 5;
+                const cycleDay = sd > 0 ? Math.min(sd - 1, 4) : 0;
                 const days = [
                   { label: "День 1", reward: "+1 сек" },
                   { label: "День 2", reward: "+2 сек" },
                   { label: "День 3", reward: "+3 сек" },
                   { label: "День 4", reward: "+4 сек" },
-                  { label: "День 5", reward: "+5 сек" },
+                  { label: "День 5", reward: "20 сек" },
                 ];
                 return (
                   <div className="streak-days-row">
                     {days.map((d, i) => {
-                      const done = i < cycleDay;
-                      const active = i === cycleDay;
+                      const done = allMaxed || i < cycleDay;
+                      const active = !allMaxed && sd > 0 && i === cycleDay;
                       return (
                         <div key={i} className={`streak-day-slot${done ? " streak-day-done" : active ? " streak-day-active" : " streak-day-upcoming"}`}>
                           <div className="streak-day-icon">
