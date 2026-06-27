@@ -858,12 +858,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-mm"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: -6, scale: 0.7 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.7 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
               >
-                +{sessionScores.mm} мм
+                <motion.span
+                  className="mm-popup-icon"
+                  initial={{ scale: 0.5, rotate: -15 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                >
+                  <svg width="16" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 1C7 1 7.5 3.5 5 6C2.5 8.5 2 11 2 13C2 15.2 4.2 17 7 17C9.8 17 12 15.2 12 13C12 11 11.5 8.5 9 6C6.5 3.5 7 1 7 1Z" fill="currentColor" fillOpacity="0.18"/>
+                    <path d="M7 1C7 1 7.5 3.5 5 6C2.5 8.5 2 11 2 13C2 15.2 4.2 17 7 17C9.8 17 12 15.2 12 13C12 11 11.5 8.5 9 6C6.5 3.5 7 1 7 1Z"/>
+                  </svg>
+                </motion.span>
+                <span className="mm-popup-label">+{sessionScores.mm} мм</span>
               </motion.div>
             )}
           </AnimatePresence>

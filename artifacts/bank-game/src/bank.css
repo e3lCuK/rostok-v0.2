@@ -1322,6 +1322,22 @@ body.modal-open {
 }
 .topbar-reward-popup-mm {
   color: #15803d;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.mm-popup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 3px rgba(21,128,61,0.35));
+}
+.mm-popup-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 .topbar-reward-popup-xp {
   color: #4d7c0f;
