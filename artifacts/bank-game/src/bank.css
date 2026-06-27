@@ -1329,9 +1329,10 @@ body.modal-open {
 .topbar-reward-popup-apple {
   color: #c0392b;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 4px;
 }
 .apple-popup-icon {
   display: flex;
@@ -1340,7 +1341,7 @@ body.modal-open {
   filter: drop-shadow(0 1px 3px rgba(192,57,43,0.35));
 }
 .apple-popup-label {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }

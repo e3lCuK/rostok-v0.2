@@ -406,7 +406,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setApplePopupCount(1);
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1200);
-      addFloater("🍎", cx + (Math.random() * 28 - 14), cy + (Math.random() * 20 - 10));
       // If all apples now collected (golden was clicked first), hide overlay
       if (next.length === appleCountRef.current) {
         if (appleAutoCollectTimerRef.current) {
