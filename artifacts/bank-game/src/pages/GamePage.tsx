@@ -711,6 +711,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setActiveMinigame(null);
       } else {
         // All tutorial minigames done — trigger same ghost→care animation as normal game
+        setActiveMinigame(null);
         setTutorialStep("complete");
         setShowTutorialCompletionCard(true);
         setTimeout(() => setShowActivityGhost(true), 800);
