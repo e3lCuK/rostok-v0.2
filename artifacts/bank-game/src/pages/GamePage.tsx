@@ -1365,7 +1365,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 return (
                   <div className="xp-leaderboard-list">
                     {sorted.map((p, i) => (
-                      <div key={p.nickname} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
+                      <div key={p.rank} className={`xp-lb-row${p.isMe ? " xp-lb-row-me" : ""}`}>
                         <span className="xp-lb-rank">
                           #{i + 1}
                         </span>
