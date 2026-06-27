@@ -222,6 +222,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
 
+  // Tutorial "complete" step: ghost buttons → merging → care button (mirrors normal game timing)
+  useEffect(() => {
+    if (tutorialStep !== "complete") return;
+    const t1 = setTimeout(() => setMerging(true), 2200);
+    const t2 = setTimeout(() => {
+      setShowActivityGhost(false);
+      setShowCareButton(true);
+    }, 2700);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [tutorialStep]);
+
   // (Tutorial minigames are opened by user interaction or handleMinigameComplete, not auto-opened)
 
   function handleTutorialFinish() {
@@ -695,8 +706,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setTutorialStep("fertilizer-intro");
         setActiveMinigame(null);
       } else {
-        // All tutorial minigames done — show care button next
+        // All tutorial minigames done — trigger same ghost→care animation as normal game
         setTutorialStep("complete");
+        setTimeout(() => setShowActivityGhost(true), 800);
       }
       return;
     }
@@ -1310,39 +1322,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
 
         <div className="session-actions-wrap">
-        {!game.sessionInProgress && !showCompletionStage && !showRewards && !showActivityGhost ? (
+        {!game.sessionInProgress && !showCompletionStage && !showRewards && !showActivityGhost && !(tutorialStep === "complete" && showCareButton) ? (
           <AnimatePresence mode="wait">
-            {!tutorialDone && tutorialStep === "complete" ? (
-              <motion.div
-                key="tutorial-complete"
-                className="session-actions"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="action-buttons-row">
-                  {([
-                    { key: "water", color: "#3b82f6" },
-                    { key: "sun",   color: "#f59e0b" },
-                    { key: "fertilizer", color: "#22c55e" },
-                  ] as const).map(btn => (
-                    <div key={btn.key} className="action-btn-bank action-btn-done">
-                      <div className="action-btn-top"><CheckCircle2 size={20} /></div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-                  <div className="action-buttons-row" style={{ justifyContent: "center" }}>
-                    <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
-                    <button className="care-btn" onClick={handleTutorialFinish}>
-                      <Shovel size={20} />
-                    </button>
-                    <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
             <motion.div
               key={locked ? "cooldown" : "ready"}
               className="session-actions"
@@ -1386,7 +1367,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 })}
               </div>
             </motion.div>
-            )}
           </AnimatePresence>
         ) : (
           <AnimatePresence mode="wait">
@@ -1432,13 +1412,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
                     <button
                       className={`care-btn${careClicked ? " care-btn-clicked" : ""}`}
-                      onClick={careClicked ? undefined : handleGoToRewards}
+                      onClick={careClicked ? undefined : (!tutorialDone && tutorialStep === "complete" ? handleTutorialFinish : handleGoToRewards)}
                     >
-                      {!careClicked && (() => {
+                      {!careClicked && !tutorialDone && tutorialStep === "complete" ? null : (!careClicked && (() => {
                         const pts = [waterResultPct, lightResultPct, fertilizerResultPct];
                         const avg = Math.round(pts.reduce<number>((s, p) => s + (p ?? 0), 0) / 3);
                         return <div className="action-btn-fill" style={{ height: `${avg}%`, background: "#92400e" }} />;
-                      })()}
+                      })())}
                       <Shovel size={20} />
                     </button>
                     <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
