@@ -3605,14 +3605,12 @@ canvas {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
 }
 
-/* ---- header: timer left + counter right ---- */
+/* ---- header: timer full-width, X button absolute top-right ---- */
 .mini-game-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   flex-shrink: 0;
   padding-right: 34px;
   box-sizing: border-box;
@@ -3664,13 +3662,18 @@ canvas {
   min-height: 0;
 }
 
-/* ---- top-right counter ---- */
+/* ---- counter row below header ---- */
 .mini-game-counter {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
   font-size: 0.9rem;
+  width: 100%;
+  justify-content: flex-end;
+  padding-right: 8px;
+  box-sizing: border-box;
+  margin-bottom: 6px;
 }
 
 .mini-game-counter-val {

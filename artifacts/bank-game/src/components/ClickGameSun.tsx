@@ -219,10 +219,10 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
       >✕</button>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={CFG.timerColor} trackColor={CFG.timerBg} />
-        <div className="mini-game-counter">
-          <span>☀️</span>
-          <span className="mini-game-counter-val">{catchCount}</span>
-        </div>
+      </div>
+      <div className="mini-game-counter">
+        <span>☀️</span>
+        <span className="mini-game-counter-val">{catchCount}</span>
       </div>
       <div className="game-content">
         <canvas

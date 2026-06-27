@@ -245,10 +245,10 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
       >✕</button>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={cfg.timerColor} trackColor={cfg.timerBg} />
-        <div className="mini-game-counter">
-          <span>{cfg.scoreEmoji}</span>
-          <span className="mini-game-counter-val">{catchCount}</span>
-        </div>
+      </div>
+      <div className="mini-game-counter">
+        <span>{cfg.scoreEmoji}</span>
+        <span className="mini-game-counter-val">{catchCount}</span>
       </div>
       <div className="game-content">
         <canvas
