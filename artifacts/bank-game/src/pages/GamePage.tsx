@@ -44,6 +44,8 @@ interface Floater {
   x: number;
   y: number;
   label: string;
+  big?: boolean;
+  gold?: boolean;
 }
 
 const TREE_STAGE_DATA = [
@@ -55,11 +57,11 @@ const TREE_STAGE_DATA = [
 ];
 
 const APPLE_POSITIONS: [number, number][][] = [
-  [[32, 40], [63, 44], [46, 47]],
-  [[20, 52], [75, 52], [44, 57]],
-  [[16, 50], [77, 50], [43, 55]],
-  [[14, 50], [80, 50], [42, 54]],
-  [[12, 48], [81, 48], [41, 52]],
+  [[32, 40], [63, 44], [46, 47], [46, 16]],
+  [[20, 52], [75, 52], [44, 57], [45, 22]],
+  [[16, 50], [77, 50], [43, 55], [45, 20]],
+  [[14, 50], [80, 50], [42, 54], [44, 20]],
+  [[12, 48], [81, 48], [41, 52], [43, 18]],
 ];
 const APPLE_SIZES = [4, 5, 6, 7, 8];
 
@@ -301,9 +303,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const pendingBase = game.pendingBaseReward ?? 0;
   const pendingBonus = game.pendingBonusReward ?? 0;
 
-  function addFloater(label: string, x: number, y: number) {
+  function addFloater(label: string, x: number, y: number, opts?: { big?: boolean; gold?: boolean }) {
     const id = ++floaterRef.current;
-    setFloaters(f => [...f, { id, x, y, label }]);
+    setFloaters(f => [...f, { id, x, y, label, ...opts }]);
     setTimeout(() => setFloaters(f => f.filter(fl => fl.id !== id)), 1200);
   }
 
@@ -372,15 +374,39 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     collectedAppleIndicesRef.current = next;
     setCollectedAppleIndices(next);
 
-    if (next.length < appleCountRef.current) {
-      // Intermediate apple — just +1 popup
+    const redCount = appleCountRef.current - 1;
+    const isGolden = appleIdx === appleCountRef.current - 1;
+    const redCollected = next.filter(idx => idx < redCount).length;
+    const isLastRed = !isGolden && redCollected === redCount;
+    const isLastOverall = next.length === appleCountRef.current;
+
+    const rect = gameAreaRef.current?.getBoundingClientRect();
+    const cx = (rect?.width ?? 200) / 2;
+    const cy = (rect?.height ?? 300) * 0.38;
+
+    if (isLastOverall) {
+      if (isLastRed) {
+        addFloater("🍎", cx - 20, cy + 10, { big: true });
+        addFloater("🍎", cx + 20, cy, { big: true });
+      } else if (isGolden) {
+        addFloater("💛", cx - 12, cy + 5, { gold: true });
+        addFloater("💛", cx + 14, cy - 8, { gold: true });
+      }
+      claimApplesAndIncome(1);
+    } else {
+      setTotalApples(t => t + 1);
       setApplePopupCount(1);
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1200);
-      setTotalApples(t => t + 1);
-    } else {
-      // Last apple — claim income
-      claimApplesAndIncome(1);
+      if (isLastRed) {
+        addFloater("🍎", cx - 22, cy + 8, { big: true });
+        addFloater("🍎", cx + 22, cy - 5, { big: true });
+        addFloater("🍎", cx, cy - 18, { big: true });
+      } else if (isGolden) {
+        addFloater("💛", cx - 14, cy - 10, { gold: true });
+        addFloater("💛", cx + 16, cy + 4, { gold: true });
+        addFloater("💛", cx, cy - 22, { gold: true });
+      }
     }
   }
 
@@ -474,7 +500,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const timerSecs = Math.max(5, scores?.mm ?? 9);
     const avgPct = ([waterResultPct, lightResultPct, fertilizerResultPct]
       .reduce<number>((s, p) => s + (p ?? 0), 0)) / 3;
-    const newAppleCount = avgPct >= 90 ? 3 : avgPct >= 70 ? 2 : 1;
+    const newAppleCount = (avgPct >= 90 ? 3 : avgPct >= 70 ? 2 : 1) + 1;
     setAppleCount(newAppleCount);
     appleCountRef.current = newAppleCount;
     setShowApples(false);
@@ -958,7 +984,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <GameAreaBg />
 
         {floaters.map(fl => (
-          <div key={fl.id} className="game-floater" style={{ left: fl.x, top: fl.y }}>
+          <div
+            key={fl.id}
+            className={`game-floater${fl.big ? " game-floater-big" : ""}${fl.gold ? " game-floater-gold" : ""}`}
+            style={{ left: fl.x, top: fl.y }}
+          >
             {fl.label}
           </div>
         ))}
@@ -1019,12 +1049,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <AnimatePresence>
                   {Array.from({ length: appleCount }, (_, i) => {
                     if (collectedAppleIndices.includes(i)) return null;
-                    const [xPct, yPct] = APPLE_POSITIONS[currentStage][i];
-                    const r = APPLE_SIZES[currentStage];
+                    const isGolden = i === appleCount - 1;
+                    const posIdx = isGolden ? 3 : i;
+                    const [xPct, yPct] = APPLE_POSITIONS[currentStage][posIdx];
+                    const baseR = APPLE_SIZES[currentStage];
+                    const r = isGolden ? Math.round(baseR * 1.3) : baseR;
                     return (
                       <motion.div
                         key={i}
-                        className="tree-apple tree-apple-pending"
+                        className={`tree-apple tree-apple-pending${isGolden ? " tree-apple-golden" : ""}`}
                         onClick={() => handleAppleClick(i)}
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
