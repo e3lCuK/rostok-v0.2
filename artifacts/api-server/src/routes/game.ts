@@ -550,11 +550,13 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
 
   try {
     const result = await pool.query(`
-      SELECT u.id::text AS user_id, u.nickname,
+      SELECT gs.user_id,
+             COALESCE(u.nickname, 'Игрок ' || gs.user_id) AS nickname,
              gs.player_xp, gs.player_level, gs.streak_days,
              gs.tree_growth_mm, gs.xp_history
       FROM game_state gs
-      JOIN users u ON u.id::text = gs.user_id
+      LEFT JOIN users u ON u.id::text = gs.user_id
+      WHERE gs.player_xp > 0 OR gs.tree_growth_mm > 0
       ORDER BY gs.player_xp DESC
       LIMIT 100
     `);
