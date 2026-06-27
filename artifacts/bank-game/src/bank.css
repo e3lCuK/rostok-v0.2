@@ -3692,6 +3692,7 @@ canvas {
   cursor: pointer;
   border-radius: inherit;
   animation: mgFadeIn 0.22s ease;
+  z-index: 5;
 }
 
 @keyframes mgFadeIn {
