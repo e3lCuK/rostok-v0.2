@@ -49,7 +49,7 @@ const ACHIEVEMENTS: AchievementDef[] = [
   { id: "leaf_10000",  label: "Собрал 10000 листиков", icon: "🍃", family: "leaf",     tier: 3, threshold: 10000, reward: 100, countKey: "total_leaf_picks",  prevId: "leaf_1000" },
 ];
 
-const TIER_LABELS: Record<number, string> = { 1: "Бронзовые", 2: "Серебряные", 3: "Золотые" };
+const TIER_LABELS: Record<number, string> = { 1: "Простые", 2: "Средние", 3: "Сложные" };
 
 export default function AchievementsModal({ onClose, onApplesClaimed }: Props) {
   const [counts, setCounts] = useState<Counts | null>(null);
