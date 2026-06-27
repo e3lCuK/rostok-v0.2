@@ -4320,8 +4320,8 @@ canvas {
   height: 70px;
   position: relative;
   overflow: visible;
-  background: rgba(134, 239, 172, 0.55);
-  margin-top: -40px;
+  background: transparent;
+  margin-top: -24px;
   z-index: 10;
 }
 .tutorial-ground-svg {
