@@ -1502,6 +1502,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
 
 
+      {!tutorialDone && <div className="tutorial-sky-strip" />}
+
       <div className="game-nav-h-divider" />
       <nav className="game-bottom-nav">
         <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
