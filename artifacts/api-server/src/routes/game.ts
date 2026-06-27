@@ -581,6 +581,20 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
   }
 });
 
+// DELETE /api/game/reset-progress — soft reset: clears all game data but keeps login + session
+router.delete("/game/reset-progress", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  try {
+    await pool.query("DELETE FROM income_history WHERE user_id = $1", [userId]);
+    await pool.query("DELETE FROM game_state WHERE user_id = $1", [userId]);
+    await pool.query("DELETE FROM accounts WHERE user_id = $1", [userId]);
+    return res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error resetting progress");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // DELETE /api/game/debug/reset-all — wipe all user data including the user record itself
 router.delete("/game/debug/reset-all", requireAuth, async (req: any, res) => {
   const userId = req.userId;

@@ -144,6 +144,9 @@ export const api = {
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ success: boolean }>("/auth/password", { method: "PATCH", body: JSON.stringify({ currentPassword, newPassword }) }),
 
+  resetProgress: () =>
+    request<{ success: boolean }>("/game/reset-progress", { method: "DELETE" }),
+
   debugResetAll: () =>
     request<{ success: boolean }>("/game/debug/reset-all", { method: "DELETE" }),
 

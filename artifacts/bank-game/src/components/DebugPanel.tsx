@@ -81,9 +81,9 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
     if (busy) return;
     setBusy(true);
     try {
-      await api.debugResetAll();
+      await api.resetProgress();
     } catch (e) {
-      console.warn("[Debug] reset-all failed", e);
+      console.warn("[Debug] reset-progress failed", e);
     }
     localStorage.clear();
     setBusy(false);
