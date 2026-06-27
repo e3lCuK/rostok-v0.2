@@ -1203,13 +1203,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         )}
 
         {/* Tutorial step overlay — shown between minigames */}
-        {!tutorialDone && (tutorialStep === "intro" || tutorialStep === "sun-intro" || tutorialStep === "fertilizer-intro") && (() => {
+        {!tutorialDone && (tutorialStep === "intro" || tutorialStep === "sun-intro" || tutorialStep === "fertilizer-intro" || tutorialStep === "complete") && (() => {
           const cfg =
             tutorialStep === "intro"
               ? { icon: "🌳", text: "Нужно ухаживать\nза деревом", hint: "Нажмите на кнопку 💧" }
               : tutorialStep === "sun-intro"
               ? { icon: "☀️", text: "Теперь добавьте\nсолнечного света!", hint: "Нажмите на кнопку ☀️" }
-              : { icon: "🍃", text: "Последний шаг —\nсоберите листву!", hint: "Нажмите на кнопку 🍃" };
+              : tutorialStep === "fertilizer-intro"
+              ? { icon: "🍃", text: "Последний шаг —\nсоберите листву!", hint: "Нажмите на кнопку 🍃" }
+              : { icon: "🌱", text: "Отлично! Все три\nэтапа пройдены!", hint: "Нажмите кнопку ухода 🪴" };
           return (
             <div className="tutorial-intro-overlay">
               <div className="tutorial-intro-card">
