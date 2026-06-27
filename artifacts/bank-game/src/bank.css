@@ -4153,16 +4153,13 @@ canvas {
 }
 .ach-fire-dot {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  font-size: 0.7rem;
-  line-height: 1;
-  animation: ach-fire-blink 1.1s ease-in-out infinite;
+  top: -3px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #92B34D;
   pointer-events: none;
-}
-@keyframes ach-fire-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.35; transform: scale(0.82); }
 }
 
 /* Bell notification dot */

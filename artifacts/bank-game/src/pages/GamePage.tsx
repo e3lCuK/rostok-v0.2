@@ -1351,7 +1351,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <button className="game-bottom-nav-btn" onClick={() => setShowAchievements(true)}>
           <span className="ach-medal-btn">
             <Medal size={18} strokeWidth={2.5} />
-            {hasPendingAchievements && <span className="ach-fire-dot">🔥</span>}
+            {hasPendingAchievements && <span className="ach-fire-dot" />}
           </span>
         </button>
         <div className="game-bottom-nav-divider" />
