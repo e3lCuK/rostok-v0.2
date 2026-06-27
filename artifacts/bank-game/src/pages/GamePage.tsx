@@ -112,8 +112,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
   const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
   const [tutorialDone, setTutorialDone] = useState(state.game.tutorialDone ?? true);
-  const [tutorialStep, setTutorialStep] = useState<"water" | "sun" | "fertilizer" | null>(
-    (state.game.tutorialDone ?? true) ? null : "water"
+  const [tutorialStep, setTutorialStep] = useState<"intro" | "water" | "sun" | "fertilizer" | null>(
+    (state.game.tutorialDone ?? true) ? null : "intro"
   );
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -222,13 +222,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
 
-  // Tutorial: auto-open first minigame on mount if tutorial not done
-  useEffect(() => {
-    if (!tutorialDone && tutorialStep) {
-      setActiveMinigame(tutorialStep);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // (Tutorial minigames are opened by user interaction or handleMinigameComplete, not auto-opened)
 
   useEffect(() => {
     if (!autoClaimedOnLoadRef.current && hasPendingInit && notInSessionInit) {
@@ -684,6 +678,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       return;
     }
 
+
+
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const x = (rect?.width ?? 200) / 2;
     const y = (rect?.height ?? 200) / 2;
@@ -1124,14 +1120,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </svg>
           <div className="tutorial-hint-text">
             <span className="tutorial-hint-label">
-              {tutorialStep === "water" ? "🫧 Поймай капли воды!"
+              {tutorialStep === "intro" ? "Добро пожаловать в Росток! 🌱"
+               : tutorialStep === "water" ? "🫧 Поймай капли воды!"
                : tutorialStep === "sun" ? "☀️ Собери солнечный свет!"
                : "🍃 Собери листики с дерева!"}
             </span>
             <div className="tutorial-step-dots">
               {(["water", "sun", "fertilizer"] as const).map((s) => {
-                const stepOrder = { water: 0, sun: 1, fertilizer: 2 };
-                const currentOrder = tutorialStep ? stepOrder[tutorialStep] : 3;
+                const stepOrder: Record<string, number> = { water: 0, sun: 1, fertilizer: 2 };
+                const currentOrder = (tutorialStep && tutorialStep !== "intro") ? stepOrder[tutorialStep] : (tutorialStep === "intro" ? -1 : 3);
                 const isDone = stepOrder[s] < currentOrder;
                 const isActive = s === tutorialStep;
                 return (
@@ -1147,6 +1144,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       <div className="game-area" ref={gameAreaRef}>
         <span className="game-beta-floating">{APP_VERSION}</span>
         <GameAreaBg purchasedItems={purchasedItems} />
+
+        {/* Tutorial intro overlay */}
+        {!tutorialDone && tutorialStep === "intro" && (
+          <div className="tutorial-intro-overlay">
+            <div className="tutorial-intro-card">
+              <span className="tutorial-intro-tree">🌳</span>
+              <p className="tutorial-intro-text">Нужно ухаживать<br/>за деревом</p>
+              <div className="tutorial-intro-arrow">
+                <svg width="22" height="30" viewBox="0 0 22 30" fill="none">
+                  <path d="M11 0 L11 22" stroke="#166534" strokeWidth="2.5" strokeLinecap="round"/>
+                  <path d="M3 16 L11 26 L19 16" stroke="#166534" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="tutorial-intro-hint">Нажми на кнопку 💧</span>
+            </div>
+          </div>
+        )}
 
         {floaters.map(fl => (
           <div
@@ -1284,19 +1298,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   { key: "water", icon: <Droplets size={22} />, label: "Вода", color: "#3b82f6" },
                   { key: "sun",   icon: <Sun size={22} />,      label: "Свет", color: "#f59e0b" },
                   { key: "fertilizer", icon: <Leaf size={22} />, label: "Листики", color: "#22c55e" },
-                ] as const).map(btn => (
-                  <button
-                    key={btn.key}
-                    className="action-btn-bank"
-                    style={locked ? undefined : { "--ac": btn.color } as React.CSSProperties}
-                    onClick={locked ? undefined : () => handleStartSession(btn.key)}
-                    disabled={locked || actionLoading}
-                  >
-                    <div className="action-btn-content">
-                      {btn.icon}
-                    </div>
-                  </button>
-                ))}
+                ] as const).map(btn => {
+                  const isTutorialIntro = !tutorialDone && tutorialStep === "intro";
+                  const isWaterPulse = isTutorialIntro && btn.key === "water";
+                  const isSuppressed = isTutorialIntro && btn.key !== "water";
+                  return (
+                    <button
+                      key={btn.key}
+                      className={`action-btn-bank${isWaterPulse ? " tutorial-water-pulse" : ""}`}
+                      style={(locked || isSuppressed) ? { opacity: isSuppressed ? 0.25 : undefined } : { "--ac": btn.color } as React.CSSProperties}
+                      onClick={
+                        isTutorialIntro
+                          ? btn.key === "water" ? () => { setTutorialStep("water"); setActiveMinigame("water"); } : undefined
+                          : locked ? undefined : () => handleStartSession(btn.key)
+                      }
+                      disabled={locked || actionLoading || isSuppressed}
+                    >
+                      <div className="action-btn-content">
+                        {btn.icon}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -1517,6 +1540,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       {/* Full-screen mini-game modal — outside game-area to avoid clipping */}
       {activeMinigame && (
         <div className="water-game-overlay">
+          {!tutorialDone && (
+            <div className="tutorial-minigame-banner">
+              {activeMinigame === "water" ? "Ловите воду! 🫧"
+               : activeMinigame === "sun" ? "Собирайте солнечный свет! ☀️"
+               : "Собирайте листики! 🍃"}
+            </div>
+          )}
           {activeMinigame === "sun" ? (
             <ClickGameSun
               onComplete={(score, count) => handleMinigameComplete("sun", score, count)}
@@ -1878,10 +1908,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         onApplesChanged={setTotalApples}
         onResetTutorial={() => {
           setTutorialDone(false);
-          setTutorialStep("water");
+          setTutorialStep("intro");
+          setActiveMinigame(null);
           localStorage.removeItem("streak_widget_date");
           setShowStreakWidget(false);
-          setTimeout(() => setActiveMinigame("water"), 50);
         }}
       />
     </div>
