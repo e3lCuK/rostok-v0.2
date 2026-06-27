@@ -1045,7 +1045,7 @@ body {
   animation: apple-pulse 1.1s ease-in-out infinite;
 }
 .tree-apple-golden {
-  background: #d97706;
+  background: #fbbf24;
   opacity: 0.92;
   animation: gold-pulse 0.9s ease-in-out infinite !important;
 }

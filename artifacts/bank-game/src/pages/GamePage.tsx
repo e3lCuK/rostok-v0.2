@@ -347,20 +347,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
     }
-    // Show ябл + ₽ together in two lines
-    setApplePopupCount(remaining);
+    // Golden apple (index = appleCount-1) never counts toward red apple counter
+    const goldenIdx = appleCountRef.current - 1;
+    const goldenUncollected = !collectedAppleIndicesRef.current.includes(goldenIdx);
+    const redRemaining = goldenUncollected ? Math.max(0, remaining - 1) : remaining;
+    setApplePopupCount(redRemaining);
     const cur = stateRef.current;
     const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
     if (total > 0) setLastIncomeAmount(total);
     setShowIncomePopup(true);
     setShowApplePopup(true);
     setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
-    setTotalApples(t => t + remaining);
+    setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
     setShowRewards(true);
-    // Save ALL apples from this session (not just uncollected remaining)
-    void handleClaimAll(appleCountRef.current);
+    // Save only red apples (golden excluded from lifetime counter)
+    void handleClaimAll(appleCountRef.current - 1);
     setTimeout(() => {
       setShowApples(false);
       collectedAppleIndicesRef.current = [];
@@ -380,7 +383,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const cy = (rect?.height ?? 300) * 0.38;
 
     if (isGolden) {
-      claimApplesAndIncome(1);
+      claimApplesAndIncome(0);
     } else {
       setTotalApples(t => t + 1);
       setApplePopupCount(1);
