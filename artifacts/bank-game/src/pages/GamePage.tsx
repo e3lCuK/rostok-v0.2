@@ -415,23 +415,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     const isCoin = appleIdx === appleCountRef.current - 1;
     const rect = gameAreaRef.current?.getBoundingClientRect();
-    const posIdx = isCoin ? 3 : appleIdx;
-    const [xPct, yPct] = APPLE_POSITIONS[currentStage][posIdx] ?? [50, 40];
-    const w = rect?.width ?? 200;
-    const h = rect?.height ?? 300;
-    const fx = w * xPct / 100;
-    const fy = h * yPct / 100;
+    const cx = (rect?.width ?? 200) / 2;
+    const cy = (rect?.height ?? 300) * 0.38;
 
     if (isCoin) {
-      addFloater("🪙", fx, fy, { big: true, gold: true });
-      triggerTreeAnim();
       claimApplesAndIncome(0);
     } else {
-      addFloater("🍎", fx, fy);
-      void treeControls.start({
-        filter: ["brightness(1)", "brightness(1.28)", "brightness(1)"],
-        transition: { duration: 0.3, ease: "easeInOut" },
-      });
       setTotalApples(t => t + 1);
       setApplePopupCount(1);
       setShowApplePopup(true);
