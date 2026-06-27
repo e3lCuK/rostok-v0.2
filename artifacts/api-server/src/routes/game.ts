@@ -49,8 +49,8 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
     return res.json({
       exists: true,
       balances: {
-        active: parseFloat(acc.active_balance),
-        activeEarned: parseFloat(acc.active_earned),
+        balance: parseFloat(acc.active_balance),
+        earned: parseFloat(acc.active_earned),
         totalDaysEarned: acc.total_days_earned,
         startDate: parseInt(acc.start_date),
       },

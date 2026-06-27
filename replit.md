@@ -43,10 +43,10 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - `income_history` — audit log of all earnings
 
 ### Economy Formulas
-- Standard daily: `balance × 0.12 / 365` (auto-accrued)
+- Daily auto-accrual: `balance × 0.12 / 365`
 - `storedSessions = 1 + missedSessions` — sessions accumulate, never lost
-- Base reward: `(activeBalance × 0.12 / 365 / 3) × storedSessions`
-- Bonus reward: `(activeBalance × bonusPercent / 365 / 3) × bonusMultiplier × storedSessions`
+- Base reward: `(balance × 0.12 / 365 / 3) × storedSessions`
+- Bonus reward: `(balance × bonusPercent / 365 / 3) × bonusMultiplier × storedSessions`
   - `bonusPercent = 0.03 × min(skillPart + capitalPart + randomPart, 1)` (fixed cap 3%)
   - `bonusMultiplier = max(1 - missedSessions × 0.1, 0.1)` (degrades only bonus, not base)
   - `skillPart = (avgSkillScore/80) × 0.75`; `capitalPart`: 0.16/0.18/0.20; `randomPart`: 0–0.04
@@ -73,7 +73,6 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
   - **200 000 ₽** — «Стандартный»
   - **2 000 000 ₽** — «Премиум»
 - Chosen amount stored in `accounts.starting_capital` at account creation (immutable)
-- Capital split 50/50 between standard and active deposits
 - Tree growth speed depends on total balance magnitude
 
 ### XP / Leaderboard Modal

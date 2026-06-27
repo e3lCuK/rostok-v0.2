@@ -12,10 +12,10 @@ export default function OnboardingPage({ onComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const isSubmitting = useRef(false);
 
-  const sessionAct = DEFAULT_CAPITAL * 0.5 * 0.15 / 365 / SESSIONS_PER_DAY;
-  const dailyAct   = DEFAULT_CAPITAL * 0.5 * 0.15 / 365;
-  const monthlyAct = DEFAULT_CAPITAL * 0.5 * 0.15 / 12;
-  const annualAct  = DEFAULT_CAPITAL * 0.5 * 0.15;
+  const sessionAct = DEFAULT_CAPITAL * 0.15 / 365 / SESSIONS_PER_DAY;
+  const dailyAct   = DEFAULT_CAPITAL * 0.15 / 365;
+  const monthlyAct = DEFAULT_CAPITAL * 0.15 / 12;
+  const annualAct  = DEFAULT_CAPITAL * 0.15;
   const isSelected = selected === DEFAULT_CAPITAL;
 
   async function handleStart() {
@@ -51,7 +51,7 @@ export default function OnboardingPage({ onComplete }: Props) {
           Вкладывать ничего не нужно — это демо-счёт. Играйте в мини-игры каждые 8 часов, чтобы получать доход и растить дерево.
         </p>
 
-        <span className="onboarding-rate-badge">Активный вклад до <strong>15%</strong> годовых</span>
+        <span className="onboarding-rate-badge">До <strong>15%</strong> годовых</span>
 
         <div className="onboarding-options">
           <motion.button

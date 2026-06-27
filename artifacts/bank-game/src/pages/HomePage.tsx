@@ -20,25 +20,25 @@ interface Props {
 export default function HomePage({ state, notif, onClearNotif }: Props) {
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const { active, activeEarned } = state.balances;
+  const { balance, earned } = state.balances;
 
   const treeGrowthMM = state.game.treeGrowthMM ?? 0;
   const stage = getTreeStage(treeGrowthMM);
   const treeGrowthPct = getTreeProgressFromMM(treeGrowthMM) * 100;
   void treeGrowthPct;
 
-  const dailyAct = active * 0.15 / 365;
+  const dailyMax = balance * 0.15 / 365;
 
   return (
     <div className="home-page">
       <div className="hero-card">
         <div className="hero-card-inner">
           <div className="hero-left">
-            <p className="hero-label">Активный вклад</p>
-            <h1 className="hero-balance">{formatRub(active)}</h1>
+            <p className="hero-label">Накопительный счёт</p>
+            <h1 className="hero-balance">{formatRub(balance)}</h1>
             <div className="hero-earned">
               <TrendingUp size={14} />
-              <span>+{formatRub(activeEarned)} всего заработано</span>
+              <span>+{formatRub(earned)} всего заработано</span>
             </div>
           </div>
           <div className="hero-tree">
@@ -54,7 +54,7 @@ export default function HomePage({ state, notif, onClearNotif }: Props) {
             </span>
             <span className="tree-growth-pct">{formatTreeGrowth(treeGrowthMM)}</span>
           </div>
-          <p className="tree-growth-caption">Дерево растёт вместе с активным доходом</p>
+          <p className="tree-growth-caption">Дерево растёт вместе с доходом</p>
         </div>
       </div>
 
@@ -64,9 +64,9 @@ export default function HomePage({ state, notif, onClearNotif }: Props) {
             <Zap size={18} />
           </div>
           <div>
-            <p className="stat-label">Активный вклад</p>
-            <p className="stat-value">{formatRub(active)}</p>
-            <p className="stat-sub">до {formatRub(dailyAct)}/день</p>
+            <p className="stat-label">Счёт</p>
+            <p className="stat-value">{formatRub(balance)}</p>
+            <p className="stat-sub">до {formatRub(dailyMax)}/день</p>
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function HomePage({ state, notif, onClearNotif }: Props) {
                   {items.map((item, idx) => (
                     <div key={idx} className="history-item">
                       <div className="history-cell-left">
-                        <span className="history-type">Активный вклад</span>
+                        <span className="history-type">Доход</span>
                         <span className="history-date">{item.date}</span>
                       </div>
                       <span className="history-amount">+{formatRub(item.amount)}</span>

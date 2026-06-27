@@ -239,7 +239,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }, [showCompletionStage]);
 
   const { balances, game } = state;
-  const totalBalance = balances.active;
+  const totalBalance = balances.balance;
 
   const apples = totalApples;
   const pluralApples = () => "ябл";
@@ -280,7 +280,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const nextTime = getNextSessionTime(game.lastSessionTime);
   const msLeft = nextTime ? Math.max(0, nextTime - now) : null;
 
-  const sessionMax = balances.active * 0.15 / 365 / 3;
+  const sessionMax = balances.balance * 0.15 / 365 / 3;
   const actionsLeft = getSessionActionsLeft(game);
 
   // Compute stored sessions dynamically (missed sessions accumulate until played)
@@ -713,8 +713,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         ...cur,
         balances: {
           ...cur.balances,
-          active: cur.balances.active + total,
-          activeEarned: cur.balances.activeEarned + total,
+          balance: cur.balances.balance + total,
+          earned: cur.balances.earned + total,
         },
         game: {
           ...cur.game,
@@ -786,7 +786,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   const i = s.lastIndexOf(' ');
                   return i === -1 ? [s, ''] : [s.slice(0, i), s.slice(i + 1)];
                 };
-                const rubNum = Math.floor(balances.active).toLocaleString("ru-RU");
+                const rubNum = Math.floor(balances.balance).toLocaleString("ru-RU");
                 const rubUnit = "₽";
                 const [treeNum, treeUnit] = splitVal(formatTreeGrowth(displayGrowthMM));
                 return <>
@@ -1556,12 +1556,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
               <div className="deposit-modal-summary">
                 <div className="deposit-modal-row">
-                  <span className="deposit-modal-label">Накопительный счет</span>
-                  <span className="deposit-modal-value">{formatRub(balances.active)}</span>
+                  <span className="deposit-modal-label">Счёт</span>
+                  <span className="deposit-modal-value">{formatRub(balances.balance)}</span>
                 </div>
                 <div className="deposit-modal-row">
                   <span className="deposit-modal-label">Заработано всего</span>
-                  <span className="deposit-modal-value deposit-modal-earned">+{formatRub(balances.activeEarned)}</span>
+                  <span className="deposit-modal-value deposit-modal-earned">+{formatRub(balances.earned)}</span>
                 </div>
               </div>
 

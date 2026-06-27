@@ -18,8 +18,8 @@ export const DEFAULT_CAPITAL = 100_000;
 // ---- Canonical user state shape ----
 export interface UserState {
   balances: {
-    active: number;
-    activeEarned: number;
+    balance: number;
+    earned: number;
     totalDaysEarned: number;
     startDate: number;
   };
@@ -44,7 +44,7 @@ export interface UserState {
   history: {
     date: string;
     amount: number;
-    type: "active" | "base" | "bonus";
+    type: "base" | "bonus";
   }[];
 }
 
