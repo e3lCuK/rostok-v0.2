@@ -6,9 +6,9 @@ const SESSIONS_PER_DAY = 3; // 1 session per 8 hours
 
 // ---- New economy helpers ----
 
-// skillScore: 0–80 average from mini-games
+// skillScore: 0–100 average from mini-games
 function calcBonusPercent(skillScore: number): number {
-  const skillFactor = Math.min(Math.max(skillScore, 0), 80) / 80; // 0–1
+  const skillFactor = Math.min(Math.max(skillScore, 0), 100) / 100; // 0–1
   const skillPart = skillFactor * 0.75;                            // 0–0.75
   const capitalPart = 0.16;                                        // статичный
   const randomPart = Math.random() * 0.08;                         // 0–0.08
@@ -189,7 +189,7 @@ router.post("/game/session/start", requireAuth, async (req: any, res) => {
 router.post("/game/session/action", requireAuth, async (req: any, res) => {
   const userId = req.userId;
   const { action, skillScore: rawSkillScore } = req.body;
-  const skillScore: number = typeof rawSkillScore === "number" && !isNaN(rawSkillScore) && rawSkillScore >= 0 && rawSkillScore <= 80
+  const skillScore: number = typeof rawSkillScore === "number" && !isNaN(rawSkillScore) && rawSkillScore >= 0 && rawSkillScore <= 100
     ? rawSkillScore
     : 40;
 
@@ -273,9 +273,9 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       bonusReward = bonusPerSession * bonusMultiplier * storedSessionsResult;
 
       // XP calculation — always ×1 regardless of stored sessions
-      const wPct = Math.round(((u.session_water_score || 40) / 80) * 100);
-      const sPct = Math.round(((u.session_sun_score || 40) / 80) * 100);
-      const fPct = Math.round(((u.session_fertilizer_score || 40) / 80) * 100);
+      const wPct = Math.round(((u.session_water_score || 50) / 100) * 100);
+      const sPct = Math.round(((u.session_sun_score || 50) / 100) * 100);
+      const fPct = Math.round(((u.session_fertilizer_score || 50) / 100) * 100);
       const xpGained = Math.round((wPct + sPct + fPct) / 3);
       const skillPct = xpGained; // same value — average care percent
 

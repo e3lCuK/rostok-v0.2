@@ -150,7 +150,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
     setProcessing(false);
     const m = matchRef.current;
     const skillFactor = Math.min(1, m / MAX_MATCHES);
-    const skillScore = Math.round(skillFactor * 80);
+    const skillScore = Math.round(skillFactor * 100);
     setResult({ matchCount: m, skillScore });
   }
 

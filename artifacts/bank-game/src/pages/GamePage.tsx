@@ -532,7 +532,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     if (type === "water")      waterScoreRef.current = safe;
     if (type === "sun")        sunScoreRef.current = safe;
     if (type === "fertilizer") fertilizerScoreRef.current = safe;
-    const pct = Math.min(100, Math.max(0, Math.round((safe / 80) * 100)));
+    const pct = Math.min(100, Math.max(0, Math.round((safe / 100) * 100)));
     if (type === "water")      setWaterResultPct(pct);
     if (type === "sun")        setLightResultPct(pct);
     if (type === "fertilizer") setFertilizerResultPct(pct);
@@ -551,7 +551,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const sunScore        = sunScoreRef.current || 0;
     const fertilizerScore = fertilizerScoreRef.current || 0;
     // Combined score 0-80: average of three normalized scores
-    const combined = Math.min(80, Math.round((waterScore + sunScore + fertilizerScore) / 3));
+    const combined = Math.min(100, Math.round((waterScore + sunScore + fertilizerScore) / 3));
     skillScoreRef.current = combined;
 
     console.log({ waterScore, sunScore, fertilizerScore, skillScore: combined });
@@ -576,10 +576,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         return;
       }
     }
-    waterScoreRef.current = 80;
-    sunScoreRef.current = 80;
-    fertilizerScoreRef.current = 80;
-    skillScoreRef.current = 80;
+    waterScoreRef.current = 100;
+    sunScoreRef.current = 100;
+    fertilizerScoreRef.current = 100;
+    skillScoreRef.current = 100;
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const x = (rect?.width ?? 200) / 2;
     const y = (rect?.height ?? 200) / 2;
@@ -588,7 +588,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     try {
       const toComplete = (["water", "sun", "fertilizer"] as const).filter(a => !trackedGame[a]);
       for (const action of toComplete) {
-        const result = await api.doAction(action, 80);
+        const result = await api.doAction(action, 100);
         addFloater(labels[action], x, y);
         const cur = stateRef.current;
         trackedGame = { ...trackedGame, [action]: true };
@@ -667,9 +667,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           // XP/level applied later in handleGoToRewards
         };
         console.log(`[Session complete] base=${result.baseReward} bonus=${result.bonusReward} xp=+${result.xpGained} level=${result.newLevel}`);
-        const wPct = Math.round((waterScoreRef.current / 80) * 100);
-        const sPct = Math.round((sunScoreRef.current / 80) * 100);
-        const fPct = Math.round((fertilizerScoreRef.current / 80) * 100);
+        const wPct = Math.round((waterScoreRef.current / 100) * 100);
+        const sPct = Math.round((sunScoreRef.current / 100) * 100);
+        const fPct = Math.round((fertilizerScoreRef.current / 100) * 100);
         const totalReward = (result.baseReward ?? 0) + (result.bonusReward ?? 0);
         const { newMM: mmAfter, newRemainder: remAfter } = applyTreeGrowth(totalReward, game.treeGrowthMM ?? 0, game.treeGrowthRemainder ?? 0);
         const mmGained = mmAfter - (game.treeGrowthMM ?? 0);

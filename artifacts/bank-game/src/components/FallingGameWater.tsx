@@ -144,8 +144,8 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
       doneRef.current = true;
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
-      const skillScore = Math.min(80, Math.round((Math.min(catches, TOTAL_DROPS) / TOTAL_DROPS) * 80));
-      console.log(`[FallingGame:${type}] catches: ${catches}/${TOTAL_DROPS}  skillScore: ${skillScore}/80`);
+      const skillScore = Math.min(100, Math.round((Math.min(catches, TOTAL_DROPS) / TOTAL_DROPS) * 100));
+      console.log(`[FallingGame:${type}] catches: ${catches}/${TOTAL_DROPS}  skillScore: ${skillScore}/100`);
       setResult({ catches, skillScore });
     }
 

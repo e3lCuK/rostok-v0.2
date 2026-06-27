@@ -93,8 +93,8 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
       doneRef.current = true;
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
-      const skillScore = Math.min(80, Math.round((catches / SKILL_DENOM) * 80));
-      console.log(`[ClickGameSun] catches: ${catches}  skillScore: ${skillScore}/80`);
+      const skillScore = Math.min(100, Math.round((catches / SKILL_DENOM) * 100));
+      console.log(`[ClickGameSun] catches: ${catches}  skillScore: ${skillScore}/100`);
       setResult({ catches, skillScore });
     }
 
