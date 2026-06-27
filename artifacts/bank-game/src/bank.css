@@ -3313,21 +3313,26 @@ body.modal-open {
   color: var(--text2);
 }
 
-.capital-option-inline-stat {
-  font-size: 0.82rem;
-  color: var(--text2);
+.capital-option-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+  margin-top: 6px;
+}
+
+.capital-option-stat {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .capital-stat-label {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: var(--text3);
 }
 
 .capital-stat-value {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #3d9e38;
 }

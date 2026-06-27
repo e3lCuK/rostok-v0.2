@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { DEFAULT_CAPITAL, formatCapital } from "@/lib/engine";
+import { DEFAULT_CAPITAL, SESSIONS_PER_DAY, formatCapital } from "@/lib/engine";
 
 interface Props {
   onComplete: (capital: number) => Promise<void>;
@@ -12,7 +12,10 @@ export default function OnboardingPage({ onComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const isSubmitting = useRef(false);
 
-  const dailyAct = DEFAULT_CAPITAL * 0.15 / 365;
+  const sessionAct = DEFAULT_CAPITAL * 0.5 * 0.15 / 365 / SESSIONS_PER_DAY;
+  const dailyAct   = DEFAULT_CAPITAL * 0.5 * 0.15 / 365;
+  const monthlyAct = DEFAULT_CAPITAL * 0.5 * 0.15 / 12;
+  const annualAct  = DEFAULT_CAPITAL * 0.5 * 0.15;
   const isSelected = selected === DEFAULT_CAPITAL;
 
   async function handleStart() {
@@ -60,7 +63,12 @@ export default function OnboardingPage({ onComplete }: Props) {
               <p className="capital-option-amount">{formatCapital(DEFAULT_CAPITAL)}</p>
               <div className={`capital-option-radio${isSelected ? " capital-option-radio-active" : ""}`} />
             </div>
-            <p className="capital-option-inline-stat">В день &nbsp;<span className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></p>
+            <div className="capital-option-stats">
+              <span className="capital-option-stat"><span className="capital-stat-label">За сессию</span><span className="capital-stat-value">до {sessionAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
+              <span className="capital-option-stat"><span className="capital-stat-label">Сутки</span><span className="capital-stat-value">до {dailyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
+              <span className="capital-option-stat"><span className="capital-stat-label">Месяц</span><span className="capital-stat-value">до {monthlyAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
+              <span className="capital-option-stat"><span className="capital-stat-label">Год</span><span className="capital-stat-value">до {annualAct.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽</span></span>
+            </div>
           </motion.button>
         </div>
 
