@@ -22,6 +22,7 @@ import TreeSVG, { STAGE_DIMS } from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
+import AchievementsModal from "@/components/AchievementsModal";
 import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart, ScrollText, Star } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
@@ -114,6 +115,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showTreeInfo, setShowTreeInfo] = useState(false);
   const [showDepositInfo, setShowDepositInfo] = useState(false);
   const [showXpHistory, setShowXpHistory] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -1292,7 +1294,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <Trophy size={18} strokeWidth={2.5} />
         </button>
         <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn" onClick={() => {}}>
+        <button className="game-bottom-nav-btn" onClick={() => setShowAchievements(true)}>
           <Medal size={18} strokeWidth={2.5} />
         </button>
         <div className="game-bottom-nav-divider" />
@@ -1472,6 +1474,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               })()}
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAchievements && (
+          <AchievementsModal
+            onClose={() => setShowAchievements(false)}
+            onApplesClaimed={(newTotal) => setTotalApples(newTotal)}
+          />
         )}
       </AnimatePresence>
 

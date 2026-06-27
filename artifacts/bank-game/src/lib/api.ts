@@ -144,6 +144,25 @@ export const api = {
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ success: boolean }>("/auth/password", { method: "PATCH", body: JSON.stringify({ currentPassword, newPassword }) }),
 
+  getAchievements: () =>
+    request<{
+      counts: {
+        total_sessions: number;
+        total_login_days: number;
+        total_water_drops: number;
+        total_sun_catches: number;
+        total_leaf_picks: number;
+      };
+      claimed: string[];
+      totalApples: number;
+    }>("/game/achievements"),
+
+  claimAchievement: (id: string) =>
+    request<{ success: boolean; applesAwarded: number; totalApples: number }>(
+      "/game/achievements/claim",
+      { method: "POST", body: JSON.stringify({ id }) },
+    ),
+
   resetProgress: () =>
     request<{ success: boolean }>("/game/reset-progress", { method: "DELETE" }),
 

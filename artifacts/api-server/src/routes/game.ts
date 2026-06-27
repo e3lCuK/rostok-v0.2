@@ -46,6 +46,17 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
     const acc = accRow.rows[0];
     const game = gameRow.rows[0] || {};
 
+    // Track daily login (once per calendar day)
+    if (gameRow.rows.length > 0) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (game.last_login_date !== todayStr) {
+        await pool.query(
+          `UPDATE game_state SET total_login_days = COALESCE(total_login_days, 0) + 1, last_login_date = $2 WHERE user_id = $1`,
+          [userId, todayStr],
+        ).catch(() => {});
+      }
+    }
+
     return res.json({
       exists: true,
       balances: {
@@ -223,6 +234,13 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       [userId, skillScore],
     );
 
+    // Increment per-action counter
+    const counterCol = action === "water" ? "total_water_drops" : action === "sun" ? "total_sun_catches" : "total_leaf_picks";
+    await pool.query(
+      `UPDATE game_state SET ${counterCol} = COALESCE(${counterCol}, 0) + 1 WHERE user_id = $1`,
+      [userId],
+    );
+
     // Check if all 3 actions done
     const updated = await pool.query("SELECT * FROM game_state WHERE user_id = $1", [userId]);
     const u = updated.rows[0];
@@ -324,6 +342,7 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
           player_xp = $8,
           player_level = $9,
           xp_history = $10::jsonb,
+          total_sessions = COALESCE(total_sessions, 0) + 1,
           updated_at = NOW()
          WHERE user_id = $7`,
         [now, newStreak, todayUTC, storedSessionsResult, baseReward, bonusReward, userId, newTotalXP, newLevel, JSON.stringify(newXpHistory)],
@@ -583,6 +602,106 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
     return res.json({ players: rows });
   } catch (err) {
     req.log.error({ err }, "Error fetching leaderboard");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/game/achievements — return current activity counts + claimed list
+router.get("/game/achievements", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  try {
+    const row = await pool.query(
+      `SELECT total_sessions, total_login_days, total_water_drops, total_sun_catches, total_leaf_picks, claimed_achievements, total_apples FROM game_state WHERE user_id = $1`,
+      [userId],
+    );
+    if (row.rows.length === 0) return res.json({ counts: {}, claimed: [], totalApples: 0 });
+    const g = row.rows[0];
+    const claimed: string[] = Array.isArray(g.claimed_achievements)
+      ? g.claimed_achievements
+      : (g.claimed_achievements ? JSON.parse(g.claimed_achievements) : []);
+    return res.json({
+      counts: {
+        total_sessions: parseInt(g.total_sessions) || 0,
+        total_login_days: parseInt(g.total_login_days) || 0,
+        total_water_drops: parseInt(g.total_water_drops) || 0,
+        total_sun_catches: parseInt(g.total_sun_catches) || 0,
+        total_leaf_picks: parseInt(g.total_leaf_picks) || 0,
+      },
+      claimed,
+      totalApples: parseInt(g.total_apples) || 0,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error fetching achievements");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const ACHIEVEMENT_REWARDS: Record<string, number> = {
+  sessions_1: 1, sessions_10: 30, sessions_100: 100,
+  days_1: 1, days_10: 30, days_100: 100,
+  water_100: 1, water_1000: 30, water_10000: 100,
+  sun_100: 1, sun_1000: 30, sun_10000: 100,
+  leaf_100: 1, leaf_1000: 30, leaf_10000: 100,
+};
+
+const ACHIEVEMENT_THRESHOLDS: Record<string, { field: string; threshold: number }> = {
+  sessions_1:   { field: "total_sessions",    threshold: 1 },
+  sessions_10:  { field: "total_sessions",    threshold: 10 },
+  sessions_100: { field: "total_sessions",    threshold: 100 },
+  days_1:       { field: "total_login_days",  threshold: 1 },
+  days_10:      { field: "total_login_days",  threshold: 10 },
+  days_100:     { field: "total_login_days",  threshold: 100 },
+  water_100:    { field: "total_water_drops", threshold: 100 },
+  water_1000:   { field: "total_water_drops", threshold: 1000 },
+  water_10000:  { field: "total_water_drops", threshold: 10000 },
+  sun_100:      { field: "total_sun_catches", threshold: 100 },
+  sun_1000:     { field: "total_sun_catches", threshold: 1000 },
+  sun_10000:    { field: "total_sun_catches", threshold: 10000 },
+  leaf_100:     { field: "total_leaf_picks",  threshold: 100 },
+  leaf_1000:    { field: "total_leaf_picks",  threshold: 1000 },
+  leaf_10000:   { field: "total_leaf_picks",  threshold: 10000 },
+};
+
+// POST /api/game/achievements/claim — claim one achievement, award apples
+router.post("/game/achievements/claim", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  const { id } = req.body;
+
+  if (!ACHIEVEMENT_REWARDS[id] || !ACHIEVEMENT_THRESHOLDS[id]) {
+    return res.status(400).json({ error: "Invalid achievement id" });
+  }
+
+  try {
+    const row = await pool.query(
+      `SELECT total_sessions, total_login_days, total_water_drops, total_sun_catches, total_leaf_picks, claimed_achievements, total_apples FROM game_state WHERE user_id = $1`,
+      [userId],
+    );
+    if (row.rows.length === 0) return res.status(404).json({ error: "Not found" });
+    const g = row.rows[0];
+
+    const claimed: string[] = Array.isArray(g.claimed_achievements)
+      ? g.claimed_achievements
+      : (g.claimed_achievements ? JSON.parse(g.claimed_achievements) : []);
+
+    if (claimed.includes(id)) return res.status(409).json({ error: "Already claimed" });
+
+    const { field, threshold } = ACHIEVEMENT_THRESHOLDS[id];
+    const currentVal = parseInt(g[field]) || 0;
+    if (currentVal < threshold) return res.status(409).json({ error: "Not yet reached" });
+
+    const applesAwarded = ACHIEVEMENT_REWARDS[id];
+    const newClaimed = [...claimed, id];
+    const newTotalApples = (parseInt(g.total_apples) || 0) + applesAwarded;
+
+    await pool.query(
+      `UPDATE game_state SET claimed_achievements = $2::jsonb, total_apples = $3, updated_at = NOW() WHERE user_id = $1`,
+      [userId, JSON.stringify(newClaimed), newTotalApples],
+    );
+
+    req.log.info({ id, applesAwarded, newTotalApples }, "Achievement claimed");
+    return res.json({ success: true, applesAwarded, totalApples: newTotalApples });
+  } catch (err) {
+    req.log.error({ err }, "Error claiming achievement");
     return res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -4001,6 +4001,109 @@ canvas {
 }
 .daily-reward-msg-ok { color: #166534; }
 
+/* ============================
+   ACHIEVEMENTS MODAL
+==============================*/
+.ach-modal {
+  max-height: 88vh;
+}
+
+.ach-apples-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin-bottom: 18px;
+}
+.ach-apples-icon { font-size: 1.25rem; line-height: 1; }
+.ach-apples-count { font-size: 1.1rem; font-weight: 700; color: #166534; }
+.ach-apples-label { font-size: 0.78rem; color: #4ade80; margin-left: 2px; }
+
+.ach-tiers { display: flex; flex-direction: column; gap: 20px; }
+
+.ach-tier-group { display: flex; flex-direction: column; gap: 8px; }
+
+.ach-tier-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+.ach-tier-label { font-size: 0.78rem; font-weight: 700; color: #4d7c0f; text-transform: uppercase; letter-spacing: 0.04em; }
+.ach-tier-reward { font-size: 0.78rem; color: #65a30d; }
+
+.ach-list { display: flex; flex-direction: column; gap: 8px; }
+
+.ach-item {
+  background: #fff;
+  border: 1.5px solid #d9f99d;
+  border-radius: 14px;
+  padding: 10px 12px 8px;
+}
+.ach-item-done {
+  background: #f0fdf4;
+  border-color: #86efac;
+  opacity: 0.85;
+}
+.ach-item-frozen {
+  opacity: 0.55;
+}
+
+.ach-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.ach-item-icon { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.ach-item-label { flex: 1; font-size: 0.84rem; font-weight: 500; color: #1a2e05; }
+.ach-item-check { font-size: 0.85rem; color: #16a34a; font-weight: 700; flex-shrink: 0; }
+.ach-item-lock { font-size: 0.8rem; flex-shrink: 0; }
+
+.ach-claim-btn {
+  flex-shrink: 0;
+  background: #4ade80;
+  border: none;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #14532d;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ach-claim-btn:hover { background: #22c55e; }
+.ach-claim-btn:disabled { opacity: 0.6; cursor: default; }
+
+.ach-bar-track {
+  height: 6px;
+  border-radius: 99px;
+  background: #e9fbd8;
+  overflow: hidden;
+}
+.ach-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+  transition: width 0.4s ease;
+}
+.ach-bar-done { background: linear-gradient(90deg, #86efac, #4ade80); }
+.ach-bar-frozen {
+  height: 100%;
+  width: 100%;
+  background: repeating-linear-gradient(90deg, #d1fae5 0px, #d1fae5 6px, transparent 6px, transparent 12px);
+}
+
+.ach-bar-count {
+  font-size: 0.72rem;
+  color: #86a35a;
+  margin-top: 4px;
+  text-align: right;
+}
+
 /* Bell notification dot */
 .settings-bell-btn {
   position: relative;
