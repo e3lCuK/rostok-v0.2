@@ -869,10 +869,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
                 >
-                  <svg width="16" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M7 1C7 1 7.5 3.5 5 6C2.5 8.5 2 11 2 13C2 15.2 4.2 17 7 17C9.8 17 12 15.2 12 13C12 11 11.5 8.5 9 6C6.5 3.5 7 1 7 1Z" fill="currentColor" fillOpacity="0.18"/>
-                    <path d="M7 1C7 1 7.5 3.5 5 6C2.5 8.5 2 11 2 13C2 15.2 4.2 17 7 17C9.8 17 12 15.2 12 13C12 11 11.5 8.5 9 6C6.5 3.5 7 1 7 1Z"/>
-                  </svg>
+                  <TreePine size={18} strokeWidth={2.2} fill="currentColor" />
                 </motion.span>
                 <span className="mm-popup-label">+{sessionScores.mm} мм</span>
               </motion.div>
