@@ -131,6 +131,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
     if (!(state.game.tutorialDone ?? true)) return false; // suppress during tutorial
     const todayStr = new Date().toISOString().slice(0, 10);
+    // Suppress on first day — only show starting from the second calendar day
+    const accountStartStr = new Date(state.balances.startDate).toISOString().slice(0, 10);
+    if (accountStartStr === todayStr) return false;
     const seen = localStorage.getItem("streak_widget_date");
     const notMidSession = !state.game.sessionInProgress;
     const noPending = (state.game.pendingBaseReward ?? 0) === 0 && (state.game.pendingBonusReward ?? 0) === 0;
@@ -252,8 +255,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       api.tutorialComplete().catch(() => {});
       setTutorialDone(true);
       onStateChange({ ...stateRef.current, game: { ...stateRef.current.game, tutorialDone: true } });
-      localStorage.removeItem("streak_widget_date");
-      setShowStreakWidget(true);
+      // Only open streak widget if it's not the first day
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const accountStartStr = new Date(stateRef.current.balances.startDate).toISOString().slice(0, 10);
+      if (accountStartStr !== todayStr) {
+        localStorage.removeItem("streak_widget_date");
+        setShowStreakWidget(true);
+      }
     }, 400);
   }
 
