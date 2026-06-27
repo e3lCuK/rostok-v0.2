@@ -126,7 +126,7 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
 
         {/* Sunflower (purchased) — left of center */}
         {has("sunflower") && (
-          <g transform="translate(148,62)" className="bg-sunflower">
+          <g transform="translate(148,6)">
             <line x1="0" y1="0" x2="0" y2="28" stroke="#4d7c0f" strokeWidth="2.5" />
             {[0,45,90,135,180,225,270,315].map(a => (
               <ellipse

@@ -4270,11 +4270,6 @@ canvas {
 .bg-firefly-2 { animation: firefly-pulse 2.8s ease-in-out infinite 0.7s; }
 .bg-firefly-3 { animation: firefly-pulse 1.9s ease-in-out infinite 1.4s; }
 
-@keyframes sunflower-sway {
-  0%, 100% { transform: rotate(-4deg); }
-  50%       { transform: rotate(4deg); }
-}
-.bg-sunflower { transform-origin: 148px 90px; animation: sunflower-sway 3s ease-in-out infinite; }
 
 @keyframes mushroom-bob {
   0%, 100% { transform: translateY(0); }
