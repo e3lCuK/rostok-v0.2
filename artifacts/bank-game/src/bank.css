@@ -4269,12 +4269,8 @@ canvas {
 .tutorial-sky-strip {
   flex-shrink: 0;
   height: 78px;
-  background: linear-gradient(to bottom, #bae6fd 0%, #d4edaa 100%);
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .tutorial-sky-svg {
   position: absolute;
