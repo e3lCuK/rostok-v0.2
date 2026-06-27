@@ -1,118 +1,182 @@
-# Workspace
+# Росток — Игровое банковское приложение
 
-## Overview
+## Обзор
 
-pnpm workspace monorepo using TypeScript. Two main products:
-1. **Tree Idle Game** (`artifacts/tree-idle-game`) — simple SVG tree idle game at `/`
-2. **Росток** (`artifacts/bank-game`) — gamified banking app at `/bank/` with custom session auth + PostgreSQL
+pnpm workspace монорепозиторий на TypeScript. Основной продукт — **Росток** (`artifacts/bank-game`), геймифицированное банковское приложение по адресу `/bank/`. Игрок ухаживает за виртуальным деревом, которое растёт по мере роста вклада, и получает ежедневный доход от трёх мини-игр.
 
-## Stack
+## Технический стек
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
+- **Monorepo**: pnpm workspaces
+- **Node.js**: 24
+- **TypeScript**: 5.9
 - **API framework**: Express 5
-- **Database**: PostgreSQL + raw `pg` pool (game state); Drizzle ORM (shared lib)
-- **Auth**: custom session-based auth (email+password, cookie sessions via `SESSION_SECRET`)
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **База данных**: PostgreSQL + raw `pg` pool (игровое состояние); Drizzle ORM (shared lib)
+- **Аутентификация**: собственная сессионная авторизация (email + пароль, cookie-сессии через `SESSION_SECRET`)
+- **Валидация**: Zod (`zod/v4`), `drizzle-zod`
+- **API codegen**: Orval (из OpenAPI spec)
+- **Сборка**: esbuild (CJS bundle)
 
-## Key Commands
+## Основные команды
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm run typecheck` — полная проверка типов по всем пакетам
+- `pnpm run build` — typecheck + сборка всех пакетов
+- `pnpm --filter @workspace/api-spec run codegen` — регенерация API-хуков и Zod-схем из OpenAPI spec
+- `pnpm --filter @workspace/db run push` — применить изменения схемы БД (только dev)
+- `pnpm --filter @workspace/api-server run dev` — запустить API-сервер локально
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Архитектура банкового приложения
 
-## Bank App Architecture
-
-### Authentication
-- Custom session auth (email + password), cookie-based
-- Sessions managed by api-server; `SESSION_SECRET` env var required
+### Аутентификация
+- Собственная сессионная авторизация (email + пароль), cookie-based
+- Сессии управляются api-server; нужна переменная окружения `SESSION_SECRET`
 - Vite dev proxy: `/api` → `http://localhost:8080`
 
-### Database Schema (raw SQL, not Drizzle)
-- `users` — credentials, nickname
-- `accounts` — user balances, start date, accrual tracking, `starting_capital`
-- `game_state` — session state (water/sun/fertilizer flags, last session time, pending rewards, XP, level, streak, tree growth)
-- `income_history` — audit log of all earnings
+### Database Schema (raw SQL, не Drizzle)
+- `users` — учётные данные, никнейм
+- `accounts` — балансы пользователя, дата старта, учёт начислений, `starting_capital`
+- `game_state` — состояние сессии (флаги воды/солнца/удобрения, время последней сессии, накопленные награды, XP, уровень, серия, рост дерева, флаг прохождения туториала)
+- `income_history` — журнал всех начислений
 
-### Economy Formulas
-- Daily auto-accrual: `balance × 0.12 / 365`
-- `storedSessions = 1 + missedSessions` — sessions accumulate, never lost
-- Base reward: `(balance × 0.12 / 365 / 3) × storedSessions`
-- Bonus reward: `(balance × bonusPercent / 365 / 3) × bonusMultiplier × storedSessions`
-  - `bonusPercent = 0.03 × min(skillPart + capitalPart + randomPart, 1)` (fixed cap 3%)
-  - `bonusMultiplier = max(1 - missedSessions × 0.1, 0.1)` (degrades only bonus, not base)
+### Экономические формулы
+- Ежедневное авто-начисление: `balance × 0.12 / 365`
+- `storedSessions = 1 + missedSessions` — сессии накапливаются, не теряются
+- Базовая награда: `(balance × 0.12 / 365 / 3) × storedSessions`
+- Бонусная награда: `(balance × bonusPercent / 365 / 3) × bonusMultiplier × storedSessions`
+  - `bonusPercent = 0.03 × min(skillPart + capitalPart + randomPart, 1)` (потолок 3%)
+  - `bonusMultiplier = max(1 - missedSessions × 0.1, 0.1)` (деградирует только бонус, не база)
   - `skillPart = (avgSkillScore/80) × 0.75`; `capitalPart`: 0.16/0.18/0.20; `randomPart`: 0–0.04
-- Super session: shown when `storedSessions > 1`; button/status text turns red
+- Супер-сессия: отображается при `storedSessions > 1`; кнопка и статус становятся красными
 
-### Reward Claim Flow
-1. Player completes all 3 mini-games (water, sun, fertilizer)
-2. Backend calculates base + bonus rewards, stores in `game_state`:
+### Поток получения наград
+1. Игрок завершает все 3 мини-игры (вода, солнце, листва)
+2. Бэкенд вычисляет базовую + бонусную награды и сохраняет в `game_state`:
    - `pending_base_reward` NUMERIC
    - `pending_bonus_reward` NUMERIC
-3. Frontend shows single button **"Доход за сессию ×N"** (N = storedSessions)
-4. Button calls `POST /api/game/session/claimAll` — claims both base + bonus in one request
-5. Rewards persist in DB until claimed (survive page reload)
+3. Фронтенд показывает кнопку **«Доход за сессию ×N»** (N = storedSessions)
+4. Кнопка вызывает `POST /api/game/session/claimAll` — получает базу и бонус одним запросом
+5. Награды хранятся в БД до получения (выживают перезагрузку страницы)
 
 ### State Flow
-- API-first: all state lives in PostgreSQL, fetched on load
-- Optimistic offline accrual for day-boundary crossings
-- Single 8-hour cooldown between sessions
-- Pending rewards stored in DB, not just in-memory
+- API-first: всё состояние живёт в PostgreSQL, загружается при входе
+- Оптимистичное офлайн-начисление при переходе через границу суток
+- Одна 8-часовая перезарядка между сессиями
+- Накопленные награды хранятся в БД, не только в памяти
 
-### Starting Capital & Leaderboard Tiers
-- First login shows onboarding screen with 3 options:
+### Начальный капитал и тиры лидерборда
+- При первом входе показывается онбординг с 3 вариантами:
   - **20 000 ₽** — «Начальный»
   - **200 000 ₽** — «Стандартный»
   - **2 000 000 ₽** — «Премиум»
-- Chosen amount stored in `accounts.starting_capital` at account creation (immutable)
-- Tree growth speed depends on total balance magnitude
+- Выбранная сумма сохраняется в `accounts.starting_capital` при создании аккаунта (неизменна)
+- Скорость роста дерева зависит от величины общего баланса
 
-### XP / Leaderboard Modal
-- Two main tabs: **История** (session XP log) and **Рейтинг**
-- Рейтинг has 4 sub-tabs:
-  | Sub-tab | Filter | Sort |
-  |---------|--------|------|
-  | Опыт | all players | player_xp DESC |
+### XP / Модальное окно рейтинга
+- Две основные вкладки: **История** (журнал XP сессий) и **Рейтинг**
+- Рейтинг имеет 4 подвкладки:
+
+  | Подвкладка | Фильтр | Сортировка |
+  |------------|--------|------------|
+  | Опыт | все игроки | player_xp DESC |
   | Малый | starting_capital ≤ 50 000 | tree_growth_mm DESC |
   | Средний | starting_capital 50 001–500 000 | tree_growth_mm DESC |
   | Крупный | starting_capital > 500 000 | tree_growth_mm DESC |
-- Capital tabs show tree growth in mm/m (toFixed(1)) instead of XP
-- Leaderboard row shows nickname + «Ур.X» only (no fire emoji, no session XP delta)
 
-### Tree Visual System
-- 5 growth stages (0–4), each with a dedicated SVG and clipped `viewBox`
-- Container dimensions grow per stage: [82×74] → [82×90] → [115×118] → [130×143] → [148×166] px
-- SVGs use `preserveAspectRatio="xMidYMax meet"` — tree root anchored to container bottom
-- Game layout: `.game-tree-wrap` is `position:absolute; bottom:56px` — root stays at nav top level, canopy grows upward
-- `DailyRewardModal` removed; replaced by the streak widget (opened via bell button in SettingsWidget)
+- Вкладки капитала показывают рост дерева в мм/м (toFixed(1)) вместо XP
+- Строка лидерборда: никнейм + «Ур.X» (без эмодзи огня, без дельты XP сессии)
 
-### UI Components
-- **SettingsWidget** — leftmost button is a bell icon that opens the 5-day streak widget (`showStreakWidget`)
-- **LevelUpAnimation** — title «Новое достижение!», background `#ecfccb`, tree icon with `marginBottom:6px`
-- **Dividers** — consistent color `rgba(100, 160, 40, 0.55)` across all modals and panels
+### Визуальная система дерева
+- 5 стадий роста (0–4), каждая с отдельным SVG и обрезанным `viewBox`
+- Размеры контейнера растут по стадиям: [82×74] → [82×90] → [115×118] → [130×143] → [148×166] px
+- SVG используют `preserveAspectRatio="xMidYMax meet"` — корень дерева привязан к низу контейнера
+- Раскладка: `.game-tree-wrap` — `position:absolute; bottom:56px`, крона растёт вверх
 
-### Key Files
-- `artifacts/bank-game/src/lib/engine.ts` — all formulas, constants, state types
-- `artifacts/bank-game/src/lib/api.ts` — API client
-- `artifacts/bank-game/src/pages/GamePage.tsx` — main game UI
-- `artifacts/bank-game/src/pages/OnboardingPage.tsx` — starting capital selection
-- `artifacts/bank-game/src/components/TreeSVG.tsx` — tree stages, viewBox clipping, STAGE_DIMS
-- `artifacts/bank-game/src/components/SettingsWidget.tsx` — settings + bell/streak trigger
-- `artifacts/api-server/src/routes/game.ts` — all game API endpoints
-- `artifacts/api-server/src/index.ts` — server entry + DB migrations (`runMigrations()`)
+---
 
-## Artifacts
+## Туториал
 
-| Artifact | Path | Port |
+### Обзор
+Новые пользователи проходят обязательный туториал перед доступом к основной игре. Состояние хранится в поле `tutorial_done` таблицы `game_state` (по умолчанию `FALSE` для новых аккаунтов).
+
+### Шаги туториала
+```
+welcome → intro → water → sun-intro → sun → fertilizer-intro → fertilizer → complete
+```
+
+| Шаг | Что происходит |
+|-----|----------------|
+| `welcome` | Карточка «Как ухаживать за деревом» с описанием трёх видов ухода |
+| `intro` | Оверлей с подсказкой нажать кнопку 💧, кнопка пульсирует |
+| `water` | Открывается мини-игра с водой (FallingGameWater) |
+| `sun-intro` | Оверлей с подсказкой нажать ☀️ |
+| `sun` | Открывается мини-игра с солнцем (ClickGameSun) |
+| `fertilizer-intro` | Оверлей с подсказкой нажать 🍃 |
+| `fertilizer` | Открывается мини-игра с листвой (FertilizerMatchGame) |
+| `complete` | Финальная анимация → окно завершения → основная игра |
+
+### Навигация в туториале
+- Верхняя панель и нижний nav видны, но все элементы светло-зелёные и `pointer-events: none`
+- Активна только нужная кнопка (пульсирует анимацией `tutorial-water-pulse`)
+- Мини-игры открываются кнопками внизу, не через `handleStartSession` (реальная сессия не создаётся)
+
+### Финальная анимация при завершении туториала
+1. Fertilizer мини-игра завершена → 3 кнопки ✓ появляются (done-состояние)
+2. Через 800 мс → ghost-кнопки влетают пружинной анимацией
+3. Через 2200 мс → ghost-кнопки схлопываются к центру (`merging`)
+4. Через 2700 мс → появляется кнопка-лопатка 🪄
+5. Нажатие лопатки → карточка «Все три этапа пройдены!» плавно исчезает → через 300 мс открывается финальное окно «Обучение пройдено! 🌳»
+6. Нажатие «Начать играть» или ✕ → финальное окно плавно исчезает → через 400 мс туториал завершается, основная игра становится полностью активной
+
+### Ограничения туториала
+- Виджет серии (streak widget) **не показывается** в первый день создания аккаунта (ни при старте, ни после туториала); начинает появляться со второго дня
+- Кнопки активностей при `tutorialStep === "complete"` заблокированы — реальная сессия не может запуститься случайно
+- `api.tutorialComplete()` вызывается только при закрытии финального окна
+
+---
+
+## UI-компоненты
+
+### SettingsWidget
+- Крайняя левая кнопка — колокольчик, открывает 5-дневный виджет серии (`showStreakWidget`)
+- Виджет серии подавляется в туториале и в первый день аккаунта
+
+### Ресурсы (яблоки)
+- Кнопка `?` — информация о начислении
+- Кнопка `+` — открывает окно достижений
+
+### LevelUpAnimation
+- Заголовок «Новое достижение!», фон `#ecfccb`, иконка дерева с `marginBottom:6px`
+
+### Разделители
+- Единый цвет `rgba(100, 160, 40, 0.55)` во всех модальных окнах и панелях
+
+### Мини-игры
+- 💧 **Вода** (FallingGameWater) — ловить падающие капли
+- ☀️ **Свет** (ClickGameSun) — собирать солнечные лучи
+- 🍃 **Листва** (FertilizerMatchGame) — собирать листочки в ряд по три (счётчик и результат отображают 🍃)
+
+---
+
+## Key Files
+
+- `artifacts/bank-game/src/lib/engine.ts` — все формулы, константы, типы состояния
+- `artifacts/bank-game/src/lib/api.ts` — API-клиент
+- `artifacts/bank-game/src/pages/GamePage.tsx` — основной игровой UI и логика туториала
+- `artifacts/bank-game/src/pages/OnboardingPage.tsx` — выбор начального капитала
+- `artifacts/bank-game/src/components/TreeSVG.tsx` — стадии дерева, обрезка viewBox, STAGE_DIMS
+- `artifacts/bank-game/src/components/SettingsWidget.tsx` — настройки + триггер колокольчика/серии
+- `artifacts/bank-game/src/components/FertilizerMatchGame.tsx` — мини-игра листва (match-3)
+- `artifacts/bank-game/src/components/ClickGameSun.tsx` — мини-игра солнце
+- `artifacts/bank-game/src/components/FallingGameWater.tsx` — мини-игра вода
+- `artifacts/api-server/src/routes/game.ts` — все игровые API-эндпоинты
+- `artifacts/api-server/src/index.ts` — точка входа сервера + DB migrations (`runMigrations()`)
+
+## Артефакты
+
+| Artifact | Путь | Порт |
 |----------|------|------|
-| tree-idle-game | `/` | $PORT |
 | bank-game | `/bank/` | $PORT |
 | api-server | — | 8080 |
+
+## Пользовательские предпочтения
+
+- README и комментарии в коде — на русском (за исключением названий файлов, архитектурных терминов и команд)
