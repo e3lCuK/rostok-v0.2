@@ -1374,7 +1374,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
 
         <div className="session-actions-wrap">
-        {!game.sessionInProgress && !showCompletionStage && !showRewards && !showActivityGhost && !(tutorialStep === "complete" && showCareButton) ? (
+        {!game.sessionInProgress && !showCompletionStage && !showRewards && !showActivityGhost && tutorialStep !== "complete" ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={locked ? "cooldown" : "ready"}
@@ -1474,6 +1474,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       <Shovel size={20} />
                     </button>
                     <div className="action-btn-bank" style={{ opacity: 0, pointerEvents: "none" }} />
+                  </div>
+                </motion.div>
+              ) : !tutorialDone && tutorialStep === "complete" && !showCareButton ? (
+                <motion.div
+                  key="tutorial-done-3"
+                  className="session-actions"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="action-buttons-row">
+                    {(["water", "sun", "fertilizer"] as const).map(k => (
+                      <div key={k} className="action-btn-bank action-btn-done" style={{ pointerEvents: "none" }}>
+                        <div className="action-btn-top"><CheckCircle2 size={20} /></div>
+                      </div>
+                    ))}
                   </div>
                 </motion.div>
               ) : showRewards ? null : (
