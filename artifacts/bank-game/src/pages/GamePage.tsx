@@ -379,18 +379,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowApplePopup(true);
     }
     setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
-
-    // Анимации авто-сбора
-    const rect = gameAreaRef.current?.getBoundingClientRect();
-    const cx = (rect?.width ?? 200) / 2;
-    const cy = (rect?.height ?? 300) * 0.35;
-    if (total > 0) {
-      addFloater(`+${total < 1 ? total.toFixed(2) : total.toFixed(0)} ₽`, cx, cy, { big: true, gold: true });
-    }
-    if (redRemaining > 0) {
-      setTimeout(() => addFloater(`+${redRemaining} 🍎`, cx, cy, { big: true }), 220);
-    }
-    triggerTreeAnim();
     setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
@@ -411,10 +399,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         appleAutoCollectTimerRef.current = null;
         const uncollectedReds = (appleCountRef.current - 1) -
           collectedAppleIndicesRef.current.filter(i => i < appleCountRef.current - 1).length;
-        if (uncollectedReds > 0) setTotalApples(t => t + uncollectedReds);
-        setShowApples(false);
-        collectedAppleIndicesRef.current = [];
-        setCollectedAppleIndices([]);
+        if (uncollectedReds > 0) {
+          // Анимируем оставшиеся красные кружки исчезновением
+          const allIdx = Array.from({ length: appleCountRef.current }, (_, i) => i);
+          collectedAppleIndicesRef.current = allIdx;
+          setCollectedAppleIndices(allIdx);
+          setTotalApples(t => t + uncollectedReds);
+          setTimeout(() => {
+            setShowApples(false);
+            collectedAppleIndicesRef.current = [];
+            setCollectedAppleIndices([]);
+          }, 320);
+        } else {
+          setShowApples(false);
+          collectedAppleIndicesRef.current = [];
+          setCollectedAppleIndices([]);
+        }
       }, 60000);
     }
   }
@@ -585,7 +585,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           appleAutoCollectTimerRef.current = setTimeout(() => {
             appleAutoCollectTimerRef.current = null;
             const remaining = appleCountRef.current - collectedAppleIndicesRef.current.length;
-            if (remaining > 0) claimApplesAndIncome(remaining);
+            if (remaining > 0) {
+              // Анимируем все оставшиеся кружки одновременно (как при ручном сборе)
+              const allIdx = Array.from({ length: appleCountRef.current }, (_, i) => i);
+              collectedAppleIndicesRef.current = allIdx;
+              setCollectedAppleIndices(allIdx);
+              setTimeout(() => claimApplesAndIncome(remaining), 320);
+            }
           }, 60000);
         }, 1800);
         growthTimeoutsRef.current.push(appleTimer);
