@@ -52,34 +52,26 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           <ellipse cx="214" cy="60" rx="10" ry="7"  fill="#fff" />
         </g>
 
-        {/* Birds */}
-        <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
-          <path d="M120 140 Q123 136 126 140" />
-          <path d="M132 134 Q135 130 138 134" />
-          <path d="M145 142 Q148 138 151 142" />
-        </g>
-
-        {/* Butterfly */}
-        <g transform="translate(250,270)">
-          <g className="bg-butterfly">
-            <path d="M0,0 Q-10,-12 -18,-4 Q-10,4 0,0" fill="#fb923c" />
-            <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0"  fill="#fb923c" />
-            <path d="M0,0 Q-8,8 -14,4 Q-8,0 0,0"   fill="#fdba74" />
-            <path d="M0,0 Q8,8 14,4 Q8,0 0,0"       fill="#fdba74" />
-            <line x1="0" y1="-3" x2="-4" y2="-10" stroke="#78350f" strokeWidth="0.8" />
-            <line x1="0" y1="-3" x2="4"  y2="-10" stroke="#78350f" strokeWidth="0.8" />
+        {/* Birds (purchased) */}
+        {has("birds") && (
+          <g stroke="#365314" strokeWidth="1.3" fill="none" opacity="0.45" className="bg-birds">
+            <path d="M120 140 Q123 136 126 140" />
+            <path d="M132 134 Q135 130 138 134" />
+            <path d="M145 142 Q148 138 151 142" />
           </g>
-        </g>
+        )}
 
-        {/* Fireflies (purchased) */}
-        {has("fireflies") && (
-          <g>
-            <circle cx="80"  cy="380" r="3" fill="#fde68a" className="bg-firefly-1" />
-            <circle cx="260" cy="360" r="3" fill="#fde68a" className="bg-firefly-2" />
-            <circle cx="140" cy="420" r="2.5" fill="#fde68a" className="bg-firefly-3" />
-            <circle cx="200" cy="340" r="2.5" fill="#fde68a" className="bg-firefly-1" />
-            <circle cx="300" cy="410" r="3"   fill="#fde68a" className="bg-firefly-2" />
-            <circle cx="50"  cy="440" r="2"   fill="#fde68a" className="bg-firefly-3" />
+        {/* Butterfly (purchased) */}
+        {has("butterfly") && (
+          <g transform="translate(250,270)">
+            <g className="bg-butterfly">
+              <path d="M0,0 Q-10,-12 -18,-4 Q-10,4 0,0" fill="#fb923c" />
+              <path d="M0,0 Q10,-12 18,-4 Q10,4 0,0"  fill="#fb923c" />
+              <path d="M0,0 Q-8,8 -14,4 Q-8,0 0,0"   fill="#fdba74" />
+              <path d="M0,0 Q8,8 14,4 Q8,0 0,0"       fill="#fdba74" />
+              <line x1="0" y1="-3" x2="-4" y2="-10" stroke="#78350f" strokeWidth="0.8" />
+              <line x1="0" y1="-3" x2="4"  y2="-10" stroke="#78350f" strokeWidth="0.8" />
+            </g>
           </g>
         )}
       </svg>
@@ -124,36 +116,7 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           <circle  cx="386" cy="47" r="10"           fill="#5aab1a" />
         </g>
 
-        {/* Sunflower (purchased) — left of center */}
-        {has("sunflower") && (
-          <g transform="translate(148,6)">
-            <line x1="0" y1="0" x2="0" y2="28" stroke="#4d7c0f" strokeWidth="2.5" />
-            {[0,45,90,135,180,225,270,315].map(a => (
-              <ellipse
-                key={a}
-                cx={Math.round(Math.cos(a * Math.PI / 180) * 9)}
-                cy={Math.round(Math.sin(a * Math.PI / 180) * 9)}
-                rx="5" ry="3"
-                fill="#fbbf24"
-                transform={`rotate(${a}, ${Math.round(Math.cos(a * Math.PI / 180) * 9)}, ${Math.round(Math.sin(a * Math.PI / 180) * 9)})`}
-              />
-            ))}
-            <circle cx="0" cy="0" r="6" fill="#92400e" />
-          </g>
-        )}
-
-        {/* Mushroom (purchased) — right side */}
-        {has("mushroom") && (
-          <g transform="translate(320,56)" className="bg-mushroom">
-            <rect x="-4" y="0" width="8" height="14" rx="2" fill="#f5f5f4" />
-            <ellipse cx="0" cy="2" rx="14" ry="9" fill="#ef4444" />
-            <circle cx="-5" cy="-2" r="2.5" fill="#fff" opacity="0.7" />
-            <circle cx="4"  cy="-4" r="1.8" fill="#fff" opacity="0.7" />
-            <circle cx="2"  cy="2"  r="1.5" fill="#fff" opacity="0.7" />
-          </g>
-        )}
-
-        {/* Hedgehog (purchased) — base center-left */}
+        {/* Hedgehog (purchased) */}
         {has("hedgehog") && (
           <g transform="translate(190,60)" className="bg-hedgehog">
             <ellipse cx="0" cy="4" rx="14" ry="9" fill="#78716c" />
@@ -168,25 +131,27 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           </g>
         )}
 
-        {/* Flower left */}
-        <g opacity="0.7" className="bg-flower-left">
-          <circle cx="95" cy="50" r="3"   fill="#fbbf24" />
-          <circle cx="95" cy="45" r="2.5" fill="#f9a8d4" />
-          <circle cx="100" cy="48" r="2.5" fill="#f9a8d4" />
-          <circle cx="90"  cy="48" r="2.5" fill="#f9a8d4" />
-          <circle cx="95"  cy="53" r="2.5" fill="#f9a8d4" />
-          <line x1="95" y1="55" x2="95" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
-        </g>
-
-        {/* Flower right */}
-        <g opacity="0.7" className="bg-flower-right">
-          <circle cx="335" cy="50" r="3"   fill="#fbbf24" />
-          <circle cx="335" cy="45" r="2.5" fill="#c4b5fd" />
-          <circle cx="340" cy="48" r="2.5" fill="#c4b5fd" />
-          <circle cx="330" cy="48" r="2.5" fill="#c4b5fd" />
-          <circle cx="335" cy="53" r="2.5" fill="#c4b5fd" />
-          <line x1="335" y1="55" x2="335" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
-        </g>
+        {/* Flowers (purchased) */}
+        {has("flowers") && (
+          <>
+            <g opacity="0.7" className="bg-flower-left">
+              <circle cx="95" cy="50" r="3"   fill="#fbbf24" />
+              <circle cx="95" cy="45" r="2.5" fill="#f9a8d4" />
+              <circle cx="100" cy="48" r="2.5" fill="#f9a8d4" />
+              <circle cx="90"  cy="48" r="2.5" fill="#f9a8d4" />
+              <circle cx="95"  cy="53" r="2.5" fill="#f9a8d4" />
+              <line x1="95" y1="55" x2="95" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
+            </g>
+            <g opacity="0.7" className="bg-flower-right">
+              <circle cx="335" cy="50" r="3"   fill="#fbbf24" />
+              <circle cx="335" cy="45" r="2.5" fill="#c4b5fd" />
+              <circle cx="340" cy="48" r="2.5" fill="#c4b5fd" />
+              <circle cx="330" cy="48" r="2.5" fill="#c4b5fd" />
+              <circle cx="335" cy="53" r="2.5" fill="#c4b5fd" />
+              <line x1="335" y1="55" x2="335" y2="63" stroke="#4d7c0f" strokeWidth="1.2" />
+            </g>
+          </>
+        )}
 
         {/* Stones */}
         <ellipse cx="145" cy="62" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />

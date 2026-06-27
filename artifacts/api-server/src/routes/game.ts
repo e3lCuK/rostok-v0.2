@@ -733,11 +733,11 @@ router.post("/game/debug/add-apples", requireAuth, async (req: any, res) => {
 // ── Shop ─────────────────────────────────────────────────────────────────────
 
 const VALID_SHOP_ITEMS: Record<string, number> = {
-  sunflower: 30,
-  mushroom:  50,
-  hedgehog:  60,
-  rainbow:   80,
-  fireflies: 120,
+  flowers:   30,
+  birds:     50,
+  butterfly: 70,
+  rainbow:   90,
+  hedgehog:  120,
 };
 
 // POST /api/game/shop/buy

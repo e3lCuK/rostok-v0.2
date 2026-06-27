@@ -881,10 +881,6 @@ body {
   40%       { transform: rotate(3deg) translateY(-1.5px); }
   75%       { transform: rotate(-2.5deg) translateY(-0.5px); }
 }
-@keyframes bg-mushroom-glow {
-  0%, 100% { opacity: 0.5; }
-  50%       { opacity: 0.75; }
-}
 
 .bg-bush-left  {
   animation: bg-bush-sway 5s ease-in-out infinite;
@@ -907,9 +903,6 @@ body {
   animation-delay: -1.8s;
   transform-box: fill-box;
   transform-origin: bottom center;
-}
-.bg-mushroom {
-  animation: bg-mushroom-glow 3.5s ease-in-out infinite;
 }
 
 
@@ -4262,20 +4255,8 @@ canvas {
 .shop-buy-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Background decoration animations ──────────────────────── */
-@keyframes firefly-pulse {
-  0%, 100% { opacity: 0.2; r: 2.5; }
-  50%       { opacity: 1;   r: 4;   }
-}
-.bg-firefly-1 { animation: firefly-pulse 2.1s ease-in-out infinite; }
-.bg-firefly-2 { animation: firefly-pulse 2.8s ease-in-out infinite 0.7s; }
-.bg-firefly-3 { animation: firefly-pulse 1.9s ease-in-out infinite 1.4s; }
 
 
-@keyframes mushroom-bob {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-2px); }
-}
-.bg-mushroom { animation: mushroom-bob 2.4s ease-in-out infinite; }
 
 @keyframes hedgehog-walk {
   0%   { transform: translateX(0); }

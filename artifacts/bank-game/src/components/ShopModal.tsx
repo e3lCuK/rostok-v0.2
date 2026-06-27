@@ -4,11 +4,11 @@ import { X } from "lucide-react";
 import { api } from "@/lib/api";
 
 export const SHOP_ITEMS = [
-  { id: "sunflower", name: "Подсолнух", emoji: "🌻", desc: "Вырастет у левого куста", price: 30 },
-  { id: "mushroom",  name: "Гриб",      emoji: "🍄", desc: "Поселится у правого куста", price: 50 },
-  { id: "hedgehog",  name: "Ёжик",      emoji: "🦔", desc: "Пробежит к корням дерева",  price: 60 },
-  { id: "rainbow",   name: "Радуга",    emoji: "🌈", desc: "Засияет в небе над деревом", price: 80 },
-  { id: "fireflies", name: "Светлячки", emoji: "✨", desc: "Заиграют вокруг дерева",     price: 120 },
+  { id: "flowers",   name: "Цветы",   emoji: "🌸", desc: "Расцветут у кустов по обе стороны", price: 30 },
+  { id: "birds",     name: "Птицы",   emoji: "🐦", desc: "Полетят над деревом в небе",         price: 50 },
+  { id: "butterfly", name: "Бабочка", emoji: "🦋", desc: "Порхает рядом с деревом",            price: 70 },
+  { id: "rainbow",   name: "Радуга",  emoji: "🌈", desc: "Засияет в небе над деревом",         price: 90 },
+  { id: "hedgehog",  name: "Ёжик",    emoji: "🦔", desc: "Пробежит к корням дерева",           price: 120 },
 ] as const;
 
 export type ShopItemId = typeof SHOP_ITEMS[number]["id"];
