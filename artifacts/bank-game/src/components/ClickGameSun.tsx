@@ -66,6 +66,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
   const [timerMs, setTimerMs]       = useState(totalMs);
   const [catchCount, setCatchCount] = useState(0);
   const [result, setResult]         = useState<{ catches: number; skillScore: number } | null>(null);
+  const forceFinishRef              = useRef<() => void>(() => {});
 
   useEffect(() => {
     const id = setInterval(() => setTimerMs(t => Math.max(0, t - 100)), 100);
@@ -97,6 +98,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
       console.log(`[ClickGameSun] catches: ${catches}  skillScore: ${skillScore}/100`);
       setResult({ catches, skillScore });
     }
+    forceFinishRef.current = finish;
 
     function handlePointer(e: MouseEvent | TouchEvent) {
       if (doneRef.current || !sun) return;
@@ -210,6 +212,11 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
 
   return (
     <div className="mini-game-card" style={{ background: CFG.bg, border: CFG.border }}>
+      <button
+        className="mini-game-force-close"
+        style={{ color: CFG.timerColor }}
+        onClick={() => forceFinishRef.current()}
+      >✕</button>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={CFG.timerColor} trackColor={CFG.timerBg} />
         <div className="mini-game-counter">

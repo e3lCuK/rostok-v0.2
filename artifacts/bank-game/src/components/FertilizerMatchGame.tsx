@@ -142,6 +142,15 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
   const onDoneRef = useRef(onComplete);
   useEffect(() => { onDoneRef.current = onComplete; }, [onComplete]);
 
+  function forceClose() {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    procRef.current = false;
+    const m = matchRef.current;
+    const skillScore = Math.round(Math.min(1, m / MAX_MATCHES) * 100);
+    onDoneRef.current(skillScore);
+  }
+
   function endGame() {
     if (doneRef.current) return;
     doneRef.current = true;
@@ -269,6 +278,11 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
 
   return (
     <div className="mini-game-card" style={{ background: "rgba(240,253,244,0.97)", border: "2px solid #bbf7d0" }}>
+      <button
+        className="mini-game-force-close"
+        style={{ color: "#16a34a" }}
+        onClick={forceClose}
+      >✕</button>
       <div className="mini-game-header">
         <GameTimer
           timeLeftMs={timeLeft}

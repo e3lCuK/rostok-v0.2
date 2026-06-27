@@ -81,8 +81,9 @@ type Drop = ReturnType<typeof makeDrop>;
 export default function FallingGameWater({ type = "water", onComplete, bonusSeconds = 0 }: Props) {
   const totalMs = GAME_MS + bonusSeconds * 1000;
   const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const barX       = useRef(W / 2);
-  const doneRef    = useRef(false);
+  const barX            = useRef(W / 2);
+  const doneRef         = useRef(false);
+  const forceFinishRef  = useRef<() => void>(() => {});
   const [timerMs, setTimerMs]     = useState(totalMs);
   const [catchCount, setCatchCount] = useState(0);
   const [result, setResult]       = useState<{ catches: number; skillScore: number } | null>(null);
@@ -148,6 +149,7 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
       console.log(`[FallingGame:${type}] catches: ${catches}/${TOTAL_DROPS}  skillScore: ${skillScore}/100`);
       setResult({ catches, skillScore });
     }
+    forceFinishRef.current = finish;
 
     function frame(ts: number) {
       if (doneRef.current) return;
@@ -236,6 +238,11 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
 
   return (
     <div className="mini-game-card" style={{ background: cfg.bg, border: cfg.border }}>
+      <button
+        className="mini-game-force-close"
+        style={{ color: cfg.timerColor }}
+        onClick={() => forceFinishRef.current()}
+      >✕</button>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={cfg.timerColor} trackColor={cfg.timerBg} />
         <div className="mini-game-counter">
