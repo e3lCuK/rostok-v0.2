@@ -549,13 +549,19 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
   const me = req.userId;
 
   try {
+    // Clean up orphaned game_state rows (user deleted but game_state remained)
+    await pool.query(`
+      DELETE FROM game_state
+      WHERE user_id NOT IN (SELECT id::text FROM users)
+    `).catch(() => {});
+
     const result = await pool.query(`
       SELECT gs.user_id,
-             COALESCE(u.nickname, 'Игрок ' || gs.user_id) AS nickname,
+             u.nickname,
              gs.player_xp, gs.player_level, gs.streak_days,
              gs.tree_growth_mm, gs.xp_history
       FROM game_state gs
-      LEFT JOIN users u ON u.id::text = gs.user_id
+      INNER JOIN users u ON u.id::text = gs.user_id
       WHERE gs.player_xp > 0 OR gs.tree_growth_mm > 0
       ORDER BY gs.player_xp DESC
       LIMIT 100
