@@ -351,12 +351,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const goldenIdx = appleCountRef.current - 1;
     const goldenUncollected = !collectedAppleIndicesRef.current.includes(goldenIdx);
     const redRemaining = goldenUncollected ? Math.max(0, remaining - 1) : remaining;
-    setApplePopupCount(redRemaining);
     const cur = stateRef.current;
     const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
     if (total > 0) setLastIncomeAmount(total);
     setShowIncomePopup(true);
-    setShowApplePopup(true);
+    if (redRemaining > 0) {
+      setApplePopupCount(redRemaining);
+      setShowApplePopup(true);
+    }
     setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
     setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
