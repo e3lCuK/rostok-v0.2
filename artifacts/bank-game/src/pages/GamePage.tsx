@@ -913,7 +913,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 </>;
               })()}
             </div>
-          </div>
+
           <AnimatePresence>
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
               <motion.div
@@ -986,7 +986,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 </div>
                 {showApplePopup && applePopupCount > 0 && (
                   <motion.div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, color: "#c0392b" }}
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, ease: "easeOut" }}
@@ -1008,6 +1008,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </motion.div>
             )}
           </AnimatePresence>
+          </div>{/* end growth-label-wrap */}
         </div>
 
         {/* Col 2: Уровень */}

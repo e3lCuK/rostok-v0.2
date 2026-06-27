@@ -1308,8 +1308,9 @@ body.modal-open {
 .topbar-reward-popup {
   position: absolute;
   top: 100%;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
   text-align: center;
   font-size: 0.82rem;
   font-weight: 800;
