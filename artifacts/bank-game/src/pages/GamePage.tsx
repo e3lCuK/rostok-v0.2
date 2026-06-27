@@ -104,6 +104,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showApples, setShowApples] = useState(false);
   const [appleCount, setAppleCount] = useState(1);
   const [collectedAppleIndices, setCollectedAppleIndices] = useState<number[]>([]);
+  const [flyingAppleIndices, setFlyingAppleIndices] = useState<number[]>([]);
   const [showApplePopup, setShowApplePopup] = useState(false);
   const [applePopupCount, setApplePopupCount] = useState(1);
   const [showIncomePopup, setShowIncomePopup] = useState(false);
@@ -392,6 +393,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setShowApples(false);
         collectedAppleIndicesRef.current = [];
         setCollectedAppleIndices([]);
+        setFlyingAppleIndices([]);
       }, 600);
     } else {
       // Red apples still remain — restart 60s auto-clean timer (no income, just count reds)
@@ -412,11 +414,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             setShowApples(false);
             collectedAppleIndicesRef.current = [];
             setCollectedAppleIndices([]);
+            setFlyingAppleIndices([]);
           }, 320);
         } else {
           setShowApples(false);
           collectedAppleIndicesRef.current = [];
           setCollectedAppleIndices([]);
+          setFlyingAppleIndices([]);
         }
       }, 60000);
     }
@@ -424,6 +428,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   function handleAppleClick(appleIdx: number) {
     if (collectedAppleIndicesRef.current.includes(appleIdx)) return;
+    // Mark as manually clicked so exit animation flies toward resources
+    setFlyingAppleIndices(f => [...f, appleIdx]);
     const next = [...collectedAppleIndicesRef.current, appleIdx];
     collectedAppleIndicesRef.current = next;
     setCollectedAppleIndices(next);
@@ -450,6 +456,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           setShowApples(false);
           collectedAppleIndicesRef.current = [];
           setCollectedAppleIndices([]);
+          setFlyingAppleIndices([]);
         }, 600);
       }
     }
@@ -489,6 +496,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowApples(false);
       collectedAppleIndicesRef.current = [];
       setCollectedAppleIndices([]);
+      setFlyingAppleIndices([]);
       if (appleAutoCollectTimerRef.current) {
         clearTimeout(appleAutoCollectTimerRef.current);
         appleAutoCollectTimerRef.current = null;
@@ -1194,7 +1202,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                         onClick={() => handleAppleClick(i)}
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0, transition: { duration: 0.25 } }}
+                        custom={flyingAppleIndices.includes(i)}
+                        variants={{
+                          exit: (isManual: boolean) => isManual
+                            ? { opacity: 0, scale: 0.25, y: -220, x: -90, transition: { duration: 0.38, ease: "easeIn" } }
+                            : { opacity: 0, scale: 0, transition: { duration: 0.22 } }
+                        }}
+                        exit="exit"
                         transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
                         style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
                       />
@@ -1793,6 +1807,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           setShowApples(false);
           collectedAppleIndicesRef.current = [];
           setCollectedAppleIndices([]);
+          setFlyingAppleIndices([]);
           if (appleAutoCollectTimerRef.current) {
             clearTimeout(appleAutoCollectTimerRef.current);
             appleAutoCollectTimerRef.current = null;
