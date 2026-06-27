@@ -69,9 +69,10 @@ function drawRoundedRect(
 }
 
 export default function ClickGameFertilizer({ onComplete }: Props) {
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const doneRef      = useRef(false);
-  const pendingScore = useRef<number | null>(null);
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const doneRef        = useRef(false);
+  const pendingScore   = useRef<number | null>(null);
+  const forceFinishRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -108,17 +109,8 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
       ctx.fillStyle = CFG.bg;
       ctx.fillRect(0, 0, W, H);
 
-      // close button
-      ctx.beginPath();
-      ctx.arc(W - 22, 22, 14, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.fill();
       ctx.textAlign    = "center";
       ctx.textBaseline = "middle";
-      ctx.font         = "bold 15px sans-serif";
-      ctx.fillStyle    = "#6b7280";
-      ctx.fillText("✕", W - 22, 22);
-
       ctx.font = "bold 36px sans-serif";
       ctx.fillText("🌱", W / 2, H / 2 - 36);
 
@@ -265,6 +257,7 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
       rafId = requestAnimationFrame(frame);
     }
 
+    forceFinishRef.current = finish;
     rafId = requestAnimationFrame(frame);
 
     return () => {
@@ -282,19 +275,24 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
   }, [onComplete]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={W}
-      height={H}
-      onClick={handleCanvasClick}
-      style={{
-        display:      "block",
-        borderRadius: 16,
-        cursor:       "default",
-        touchAction:  "none",
-        border:       CFG.border,
-        userSelect:   "none",
-      }}
-    />
+    <div className="mini-game-card" style={{ background: CFG.bg, border: CFG.border, height: "auto" }}>
+      <button
+        className="mini-game-force-close"
+        style={{ color: CFG.timerColor }}
+        onClick={() => pendingScore.current !== null ? onComplete(pendingScore.current) : forceFinishRef.current()}
+      >✕</button>
+      <canvas
+        ref={canvasRef}
+        width={W}
+        height={H}
+        onClick={handleCanvasClick}
+        style={{
+          display:     "block",
+          touchAction: "none",
+          userSelect:  "none",
+          cursor:      "default",
+        }}
+      />
+    </div>
   );
 }
