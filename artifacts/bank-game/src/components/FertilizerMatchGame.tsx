@@ -276,7 +276,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
       <button
         className="mini-game-force-close"
         style={{ color: "#16a34a" }}
-        onClick={forceClose}
+        onClick={() => result ? handleContinue(result.skillScore) : forceClose()}
       >✕</button>
       <div className="mini-game-header">
         <GameTimer
