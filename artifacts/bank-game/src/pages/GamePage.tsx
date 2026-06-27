@@ -1149,7 +1149,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
         {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
-        {tutorialDone && <GameAreaBg purchasedItems={purchasedItems} />}
+        <GameAreaBg purchasedItems={purchasedItems} />
 
         {/* Tutorial welcome screen — shown before anything starts */}
         {!tutorialDone && tutorialStep === "welcome" && (
@@ -1481,9 +1481,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <div className="tutorial-ground-strip">
           <svg className="tutorial-ground-svg" viewBox="0 0 430 54" preserveAspectRatio="none">
             <path d="M0,54 L0,22 Q108,8 215,14 Q322,20 430,10 L430,54 Z" fill="#86efac" opacity="0.55" />
-            <ellipse cx="20" cy="24" rx="13" ry="8" fill="#4ade80" opacity="0.4" />
-            <ellipse cx="410" cy="18" rx="14" ry="8" fill="#4ade80" opacity="0.4" />
-            <ellipse cx="190" cy="14" rx="18" ry="9" fill="#86efac" opacity="0.35" />
           </svg>
         </div>
       )}
