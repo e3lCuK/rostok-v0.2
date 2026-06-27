@@ -366,11 +366,26 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setShowRewards(true);
     // Save only red apples (golden excluded from lifetime counter)
     void handleClaimAll(appleCountRef.current - 1);
-    setTimeout(() => {
-      setShowApples(false);
-      collectedAppleIndicesRef.current = [];
-      setCollectedAppleIndices([]);
-    }, 600);
+    // Hide overlay only when all apples are collected; otherwise let remaining reds stay
+    const allCollected = collectedAppleIndicesRef.current.length >= appleCountRef.current;
+    if (allCollected) {
+      setTimeout(() => {
+        setShowApples(false);
+        collectedAppleIndicesRef.current = [];
+        setCollectedAppleIndices([]);
+      }, 600);
+    } else {
+      // Remaining red apples still visible — auto-clean after 5s
+      appleAutoCollectTimerRef.current = setTimeout(() => {
+        appleAutoCollectTimerRef.current = null;
+        const uncollectedReds = (appleCountRef.current - 1) -
+          collectedAppleIndicesRef.current.filter(i => i < appleCountRef.current - 1).length;
+        if (uncollectedReds > 0) setTotalApples(t => t + uncollectedReds);
+        setShowApples(false);
+        collectedAppleIndicesRef.current = [];
+        setCollectedAppleIndices([]);
+      }, 5000);
+    }
   }
 
   function handleAppleClick(appleIdx: number) {
@@ -392,6 +407,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1200);
       addFloater("🍎", cx + (Math.random() * 28 - 14), cy + (Math.random() * 20 - 10));
+      // If all apples now collected (golden was clicked first), hide overlay
+      if (next.length === appleCountRef.current) {
+        if (appleAutoCollectTimerRef.current) {
+          clearTimeout(appleAutoCollectTimerRef.current);
+          appleAutoCollectTimerRef.current = null;
+        }
+        setTimeout(() => {
+          setShowApples(false);
+          collectedAppleIndicesRef.current = [];
+          setCollectedAppleIndices([]);
+        }, 600);
+      }
     }
   }
 
