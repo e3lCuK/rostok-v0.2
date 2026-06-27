@@ -1341,6 +1341,22 @@ body.modal-open {
 }
 .topbar-reward-popup-xp {
   color: #4d7c0f;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.xp-popup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 3px rgba(77,124,15,0.35));
+}
+.xp-popup-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 .topbar-reward-popup-apple {
   color: #c0392b;

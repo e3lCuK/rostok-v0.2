@@ -22,7 +22,7 @@ import TreeSVG, { STAGE_DIMS } from "@/components/TreeSVG";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
-import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart, ScrollText } from "lucide-react";
+import { Droplets, Sun, Leaf, Clock, Play, CheckCircle2, Shovel, Lock, X, TreePine, Wallet, Pencil, Check, Settings, Trophy, Medal, ShoppingCart, ScrollText, Star } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -935,12 +935,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             {showXpPopup && sessionScores && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-xp"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: -6, scale: 0.7 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.7 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
               >
-                +{sessionScores.xp} оп
+                <motion.span
+                  className="xp-popup-icon"
+                  initial={{ scale: 0.5, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                >
+                  <Star size={16} strokeWidth={2.2} fill="currentColor" />
+                </motion.span>
+                <span className="xp-popup-label">+{sessionScores.xp} оп</span>
               </motion.div>
             )}
           </AnimatePresence>
