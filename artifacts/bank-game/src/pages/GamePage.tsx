@@ -400,10 +400,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         const uncollectedReds = (appleCountRef.current - 1) -
           collectedAppleIndicesRef.current.filter(i => i < appleCountRef.current - 1).length;
         if (uncollectedReds > 0) {
-          // Анимируем оставшиеся красные кружки исчезновением
+          // Анимируем оставшиеся красные кружки исчезновением (монетка уже собрана)
           const allIdx = Array.from({ length: appleCountRef.current }, (_, i) => i);
           collectedAppleIndicesRef.current = allIdx;
           setCollectedAppleIndices(allIdx);
+          setApplePopupCount(uncollectedReds);
+          setShowApplePopup(true);
+          setTimeout(() => setShowApplePopup(false), 1500);
           setTotalApples(t => t + uncollectedReds);
           setTimeout(() => {
             setShowApples(false);
@@ -584,13 +587,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           // Автосбор через 60 секунд если пользователь не собрал
           appleAutoCollectTimerRef.current = setTimeout(() => {
             appleAutoCollectTimerRef.current = null;
-            const remaining = appleCountRef.current - collectedAppleIndicesRef.current.length;
+            const total = appleCountRef.current;
+            const collected = collectedAppleIndicesRef.current.length;
+            const remaining = total - collected;
             if (remaining > 0) {
+              // Считаем сколько красных ДО пометки всех как собранных
+              const coinIdx = total - 1;
+              const coinWasUncollected = !collectedAppleIndicesRef.current.includes(coinIdx);
+              const redRemaining = coinWasUncollected ? remaining - 1 : remaining;
               // Анимируем все оставшиеся кружки одновременно (как при ручном сборе)
-              const allIdx = Array.from({ length: appleCountRef.current }, (_, i) => i);
+              const allIdx = Array.from({ length: total }, (_, i) => i);
               collectedAppleIndicesRef.current = allIdx;
               setCollectedAppleIndices(allIdx);
-              setTimeout(() => claimApplesAndIncome(remaining), 320);
+              // Передаём скорректированное кол-во: без монетки
+              setTimeout(() => claimApplesAndIncome(redRemaining), 320);
             }
           }, 60000);
         }, 1800);
