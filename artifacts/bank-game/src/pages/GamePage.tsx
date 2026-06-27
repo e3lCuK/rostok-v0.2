@@ -1160,7 +1160,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 {([
                   { key: "water", icon: <Droplets size={22} />, label: "Вода", color: "#3b82f6" },
                   { key: "sun",   icon: <Sun size={22} />,      label: "Свет", color: "#f59e0b" },
-                  { key: "fertilizer", icon: <Leaf size={22} />, label: "Удобрение", color: "#22c55e" },
+                  { key: "fertilizer", icon: <Leaf size={22} />, label: "Листики", color: "#22c55e" },
                 ] as const).map(btn => (
                   <button
                     key={btn.key}
@@ -1246,7 +1246,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     {([
                       { key: "water" as const, icon: <Droplets size={22} />, label: "Вода", color: "#3b82f6", done: game.water, pct: waterResultPct },
                       { key: "sun" as const, icon: <Sun size={22} />, label: "Свет", color: "#f59e0b", done: game.sun, pct: lightResultPct },
-                      { key: "fertilizer" as const, icon: <Leaf size={22} />, label: "Удобрение", color: "#22c55e", done: game.fertilizer, pct: fertilizerResultPct },
+                      { key: "fertilizer" as const, icon: <Leaf size={22} />, label: "Листики", color: "#22c55e", done: game.fertilizer, pct: fertilizerResultPct },
                     ] as const).map((btn, i) => {
                       const mergeY = [80, 0, -80][i];
                       return (
