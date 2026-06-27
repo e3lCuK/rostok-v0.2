@@ -4121,20 +4121,20 @@ canvas {
 .ach-bar-track {
   height: 6px;
   border-radius: 99px;
-  background: #e9fbd8;
+  background: rgba(0,0,0,0.08);
   overflow: hidden;
 }
 .ach-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #4ade80, #22c55e);
+  background: #16a34a;
   transition: width 0.4s ease;
 }
-.ach-bar-done { background: linear-gradient(90deg, #86efac, #4ade80); }
+.ach-bar-done { background: #16a34a; opacity: 0.6; }
 .ach-bar-frozen {
   height: 100%;
   width: 100%;
-  background: repeating-linear-gradient(90deg, #d1fae5 0px, #d1fae5 6px, transparent 6px, transparent 12px);
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 6px, transparent 6px, transparent 12px);
 }
 
 .ach-bar-count {
