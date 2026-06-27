@@ -13,9 +13,10 @@ interface Props {
 export default function SavingsPage({ state, onTabChange }: Props) {
   const { active, activeEarned } = state.balances;
 
-  const activeAnnual = active * 0.15;
-  const dailyMax = active * 0.15 / 365;
-  const sessionMax = dailyMax / SESSIONS_PER_DAY;
+  const sessionMax = active * 0.15 / 365 / SESSIONS_PER_DAY;
+  const dailyMax   = active * 0.15 / 365;
+  const monthlyMax = active * 0.15 / 12;
+  const annualMax  = active * 0.15;
 
   return (
     <div className="savings-page">
@@ -48,16 +49,20 @@ export default function SavingsPage({ state, onTabChange }: Props) {
 
         <div className="deposit-stats">
           <div className="deposit-stat">
-            <p className="deposit-stat-label">Макс. доход/год</p>
-            <p className="deposit-stat-value">{formatRub(activeAnnual)}</p>
+            <p className="deposit-stat-label">За сессию</p>
+            <p className="deposit-stat-value">до {formatRub(sessionMax)}</p>
           </div>
           <div className="deposit-stat">
-            <p className="deposit-stat-label">В день</p>
+            <p className="deposit-stat-label">Сутки</p>
             <p className="deposit-stat-value">до {formatRub(dailyMax)}</p>
           </div>
           <div className="deposit-stat">
-            <p className="deposit-stat-label">За сессию</p>
-            <p className="deposit-stat-value">до {formatRub(sessionMax)}</p>
+            <p className="deposit-stat-label">Месяц</p>
+            <p className="deposit-stat-value">до {formatRub(monthlyMax)}</p>
+          </div>
+          <div className="deposit-stat">
+            <p className="deposit-stat-label">Год</p>
+            <p className="deposit-stat-value">до {formatRub(annualMax)}</p>
           </div>
         </div>
 
