@@ -1148,8 +1148,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
-        <span className="game-beta-floating">{APP_VERSION}</span>
-        <GameAreaBg purchasedItems={purchasedItems} />
+        {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
+        {tutorialDone && <GameAreaBg purchasedItems={purchasedItems} />}
 
         {/* Tutorial welcome screen — shown before anything starts */}
         {!tutorialDone && tutorialStep === "welcome" && (
