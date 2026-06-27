@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   onComplete: (skillScore: number) => void;
@@ -73,6 +73,8 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
   const doneRef        = useRef(false);
   const pendingScore   = useRef<number | null>(null);
   const forceFinishRef = useRef<() => void>(() => {});
+  const [result, setResult] = useState<{ catches: number; skillScore: number } | null>(null);
+  const setResultRef = useRef(setResult);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,22 +107,7 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
       pendingScore.current = skillScore;
       console.log(`[ClickGameFertilizer] catches: ${catches}  skillScore: ${skillScore}/80`);
 
-      ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = CFG.bg;
-      ctx.fillRect(0, 0, W, H);
-
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = "bold 36px sans-serif";
-      ctx.fillText("🌱", W / 2, H / 2 - 36);
-
-      ctx.font      = "bold 20px sans-serif";
-      ctx.fillStyle = CFG.resultColor;
-      ctx.fillText(`Поймано: ${catches}`, W / 2, H / 2 + 6);
-
-      ctx.font      = "14px sans-serif";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText(feedbackLabel(catches), W / 2, H / 2 + 32);
+      setResultRef.current({ catches, skillScore });
     }
 
     // ---------- click / touch ----------
@@ -268,24 +255,17 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
     };
   }, []);
 
-  const handleCanvasClick = useCallback(() => {
-    if (doneRef.current && pendingScore.current !== null) {
-      onComplete(pendingScore.current);
-    }
-  }, [onComplete]);
-
   return (
     <div className="mini-game-card" style={{ background: CFG.bg, border: CFG.border, height: "auto" }}>
       <button
         className="mini-game-force-close"
         style={{ color: CFG.timerColor }}
-        onClick={() => pendingScore.current !== null ? onComplete(pendingScore.current) : forceFinishRef.current()}
+        onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
       >✕</button>
       <canvas
         ref={canvasRef}
         width={W}
         height={H}
-        onClick={handleCanvasClick}
         style={{
           display:     "block",
           touchAction: "none",
@@ -293,6 +273,19 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
           cursor:      "default",
         }}
       />
+      {result && (
+        <div
+          className="mini-game-result"
+          style={{ background: CFG.bg }}
+          onClick={() => onComplete(result.skillScore)}
+        >
+          <span className="mini-game-result-emoji">🌱</span>
+          <p className="mini-game-result-count" style={{ color: CFG.resultColor }}>
+            Поймано: {result.catches}
+          </p>
+          <p className="mini-game-result-label">{feedbackLabel(result.catches)}</p>
+        </div>
+      )}
     </div>
   );
 }
