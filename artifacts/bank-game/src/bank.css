@@ -1082,6 +1082,27 @@ body {
   font-weight: 500;
   color: #166534;
   white-space: nowrap;
+  position: relative;
+}
+
+.row-reward-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .progress-row-deposit {
