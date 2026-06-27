@@ -990,7 +990,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     </span>
                     <span className="progress-val-num">{apples}</span>
                     <span className="progress-val-unit">{pluralApples()}</span>
-                    <button className="growth-info-btn growth-info-btn-plus">+</button>
+                    <button className="growth-info-btn growth-info-btn-plus" onClick={() => setShowAchievements(true)}>+</button>
                   </div>
                 </>;
               })()}
