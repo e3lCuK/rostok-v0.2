@@ -4331,6 +4331,9 @@ canvas {
 .game-page-tutorial .game-top-bar {
   display: none !important;
 }
+.game-page-tutorial .game-nav-h-divider {
+  display: none;
+}
 .game-page-tutorial .game-bottom-nav-btn,
 .game-page-tutorial .game-bottom-nav-divider {
   opacity: 0;
