@@ -1498,23 +1498,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       </div>
 
 
-      <div className="game-nav-h-divider" />
-      <nav className="game-bottom-nav">
-        <button className="game-bottom-nav-btn" onClick={() => setShowXpHistory(true)}>
-          <Trophy size={18} strokeWidth={2.5} />
-        </button>
-        <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn" onClick={() => setShowAchievements(true)}>
-          <span className="ach-medal-btn">
-            <Medal size={18} strokeWidth={2.5} />
-            {hasPendingAchievements && <span className="ach-fire-dot" />}
-          </span>
-        </button>
-        <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn" onClick={() => setShowShop(true)}>
-          <ShoppingCart size={18} strokeWidth={2.5} fill="none" />
-        </button>
-      </nav>
 
       {false && showCompletionStage && !showRewards && (
         <button className="transition-btn" onClick={handleGoToRewards}>
