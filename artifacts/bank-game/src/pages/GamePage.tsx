@@ -379,6 +379,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowApplePopup(true);
     }
     setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
+
+    // Флоатеры авто-сбора — деньги и яблоки одновременно, яблоки строкой ниже
+    const rect = gameAreaRef.current?.getBoundingClientRect();
+    const cx = (rect?.width ?? 200) / 2;
+    const cy = (rect?.height ?? 300) * 0.32;
+    if (total > 0) {
+      addFloater(`+${total < 1 ? total.toFixed(2) : total.toFixed(0)} ₽`, cx, cy, { big: true, gold: true });
+    }
+    if (redRemaining > 0) {
+      addFloater(`+${redRemaining} 🍎`, cx, cy + 32, { big: true });
+    }
     setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
