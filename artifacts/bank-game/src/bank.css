@@ -4357,12 +4357,11 @@ canvas {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  background: rgba(255,255,255,0.88);
-  border: 1.5px solid rgba(100,160,40,0.45);
-  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(100, 160, 40, 0.55);
+  border-radius: 24px;
   padding: 18px 28px 14px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 32px rgba(60,120,30,0.14);
 }
 .tutorial-intro-tree {
   font-size: 2.2rem;
@@ -4441,12 +4440,11 @@ canvas {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  background: rgba(255,255,255,0.92);
-  border: 1.5px solid rgba(100,160,40,0.45);
-  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(100, 160, 40, 0.55);
+  border-radius: 24px;
   padding: 22px 28px 18px;
-  box-shadow: 0 4px 28px rgba(0,0,0,0.12);
-  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 32px rgba(60,120,30,0.14);
   max-width: 280px;
   width: 90%;
 }
