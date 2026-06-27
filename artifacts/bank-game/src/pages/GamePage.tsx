@@ -912,7 +912,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   </div>
                 </>;
               })()}
-            </div>
 
           <AnimatePresence>
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
@@ -1008,6 +1007,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </motion.div>
             )}
           </AnimatePresence>
+          </div>{/* end progress-widget */}
           </div>{/* end growth-label-wrap */}
         </div>
 

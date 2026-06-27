@@ -1070,6 +1070,7 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: 120px;
+  position: relative;
 }
 
 .progress-row {
