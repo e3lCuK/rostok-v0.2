@@ -279,7 +279,7 @@ export default function ClickGameFertilizer({ onComplete }: Props) {
           style={{ background: CFG.bg }}
           onClick={() => onComplete(result.skillScore, result.catches)}
         >
-          <span className="mini-game-result-emoji">🌱</span>
+          <span className="mini-game-result-emoji">🍃</span>
           <p className="mini-game-result-count" style={{ color: CFG.resultColor }}>
             Поймано: {result.catches}
           </p>
