@@ -101,6 +101,12 @@ export const api = {
       { method: "POST", body: JSON.stringify({ action, skillScore, count }) },
     ),
 
+  debugAddApples: (amount: number) =>
+    request<{ success: boolean; totalApples: number }>(
+      "/game/debug/add-apples",
+      { method: "POST", body: JSON.stringify({ amount }) },
+    ),
+
   buyShopItem: (itemId: string) =>
     request<{ success: boolean; totalApples: number; purchasedItems: string[] }>(
       "/game/shop/buy",

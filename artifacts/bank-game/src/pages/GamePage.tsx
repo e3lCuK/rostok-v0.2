@@ -1799,6 +1799,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             console.warn("[Debug] add-streak-day failed", e);
           }
         }}
+        onApplesChanged={setTotalApples}
       />
     </div>
   );

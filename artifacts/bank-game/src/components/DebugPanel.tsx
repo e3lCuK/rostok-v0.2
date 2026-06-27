@@ -11,14 +11,16 @@ interface Props {
   onCompleteAll?: () => Promise<void>;
   onDebugSessionAdded?: () => void;
   onAddStreakDay?: () => Promise<void>;
+  onApplesChanged?: (n: number) => void;
 }
 
-export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded, onAddStreakDay }: Props) {
+export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded, onAddStreakDay, onApplesChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [mmInput, setMmInput] = useState("");
   const [xpInput, setXpInput] = useState("");
+  const [applesInput, setApplesInput] = useState("");
 
   const { game } = state;
 
@@ -53,6 +55,21 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
       setXpInput("");
     } catch (e) {
       console.warn("[Debug] add-xp failed", e);
+    }
+    setBusy(false);
+  }
+
+  async function addApples() {
+    const value = Math.floor(Number(applesInput));
+    if (isNaN(value) || value <= 0) return;
+    setBusy(true);
+    try {
+      const res = await api.debugAddApples(value);
+      onStateChange({ ...state, game: { ...game, totalApples: res.totalApples } });
+      onApplesChanged?.(res.totalApples);
+      setApplesInput("");
+    } catch (e) {
+      console.warn("[Debug] add-apples failed", e);
     }
     setBusy(false);
   }
@@ -140,6 +157,20 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
               />
               <button className="debug-btn" onClick={addTreeGrowthMm} disabled={busy}>
                 + мм дереву
+              </button>
+            </div>
+
+            <div className="debug-mm-row">
+              <input
+                className="debug-mm-input"
+                type="number"
+                value={applesInput}
+                placeholder="яблок"
+                onChange={e => setApplesInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addApples()}
+              />
+              <button className="debug-btn" onClick={addApples} disabled={busy}>
+                + яблок
               </button>
             </div>
 

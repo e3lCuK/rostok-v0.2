@@ -713,6 +713,23 @@ router.post("/game/achievements/claim", requireAuth, async (req: any, res) => {
 });
 
 // DELETE /api/game/reset-progress — soft reset: clears all game data but keeps login + session
+// POST /api/game/debug/add-apples
+router.post("/game/debug/add-apples", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  const amount = Math.floor(Number(req.body.amount));
+  if (isNaN(amount) || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
+  try {
+    const r = await pool.query(
+      `UPDATE game_state SET total_apples = COALESCE(total_apples, 0) + $2, updated_at = NOW() WHERE user_id = $1 RETURNING total_apples`,
+      [userId, amount],
+    );
+    return res.json({ success: true, totalApples: parseInt(r.rows[0].total_apples) });
+  } catch (err) {
+    req.log.error({ err }, "Error adding apples (debug)");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── Shop ─────────────────────────────────────────────────────────────────────
 
 const VALID_SHOP_ITEMS: Record<string, number> = {
