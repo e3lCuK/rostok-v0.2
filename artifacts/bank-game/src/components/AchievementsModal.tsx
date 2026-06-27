@@ -38,9 +38,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   // Tier 2 — 30 яблок
   { id: "sessions_10", label: "Завершил 10 сессий",   icon: "🌿", family: "sessions", tier: 2, threshold: 10,    reward: 30,  countKey: "total_sessions",    prevId: "sessions_1" },
   { id: "days_10",     label: "Зашёл в игру 10 дней", icon: "📅", family: "days",     tier: 2, threshold: 10,    reward: 30,  countKey: "total_login_days",  prevId: "days_1" },
-  { id: "water_1000",  label: "Собрал 1000 капель",    icon: "💧", family: "water",    tier: 2, threshold: 1000,  reward: 30,  countKey: "total_water_drops", prevId: "water_100" },
-  { id: "sun_1000",    label: "Поймал 1000 солнышек",  icon: "☀️", family: "sun",      tier: 2, threshold: 1000,  reward: 30,  countKey: "total_sun_catches", prevId: "sun_100" },
-  { id: "leaf_1000",   label: "Собрал 1000 листиков",  icon: "🍃", family: "leaf",     tier: 2, threshold: 1000,  reward: 30,  countKey: "total_leaf_picks",  prevId: "leaf_100" },
+  { id: "water_1000",  label: "Собрал 1 000 капель",    icon: "💧", family: "water",    tier: 2, threshold: 1000,  reward: 30,  countKey: "total_water_drops", prevId: "water_100" },
+  { id: "sun_1000",    label: "Поймал 1 000 солнышек",  icon: "☀️", family: "sun",      tier: 2, threshold: 1000,  reward: 30,  countKey: "total_sun_catches", prevId: "sun_100" },
+  { id: "leaf_1000",   label: "Собрал 1 000 листиков",  icon: "🍃", family: "leaf",     tier: 2, threshold: 1000,  reward: 30,  countKey: "total_leaf_picks",  prevId: "leaf_100" },
   // Tier 3 — 100 яблок
   { id: "sessions_100",label: "Завершил 100 сессий",  icon: "🌿", family: "sessions", tier: 3, threshold: 100,   reward: 100, countKey: "total_sessions",    prevId: "sessions_10" },
   { id: "days_100",    label: "Зашёл в игру 100 дней",icon: "📅", family: "days",     tier: 3, threshold: 100,   reward: 100, countKey: "total_login_days",  prevId: "days_10" },
