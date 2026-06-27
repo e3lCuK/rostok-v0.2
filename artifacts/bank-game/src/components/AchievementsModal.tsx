@@ -30,8 +30,8 @@ interface AchievementDef {
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   // Tier 1 — 1 яблоко
-  { id: "sessions_1",  label: "Завершил 1 сессию",   icon: "🌿", family: "sessions", tier: 1, threshold: 1,     reward: 1,   countKey: "total_sessions",    prevId: null },
-  { id: "days_1",      label: "Зашёл в игру 1 день",  icon: "📅", family: "days",     tier: 1, threshold: 1,     reward: 1,   countKey: "total_login_days",  prevId: null },
+  { id: "sessions_1",  label: "Завершил 3 сессии",    icon: "🌿", family: "sessions", tier: 1, threshold: 3,     reward: 1,   countKey: "total_sessions",    prevId: null },
+  { id: "days_1",      label: "Зашёл в игру 3 дня",   icon: "📅", family: "days",     tier: 1, threshold: 3,     reward: 1,   countKey: "total_login_days",  prevId: null },
   { id: "water_100",   label: "Собрал 100 капель",     icon: "💧", family: "water",    tier: 1, threshold: 100,   reward: 1,   countKey: "total_water_drops", prevId: null },
   { id: "sun_100",     label: "Поймал 100 солнышек",   icon: "☀️", family: "sun",      tier: 1, threshold: 100,   reward: 1,   countKey: "total_sun_catches", prevId: null },
   { id: "leaf_100",    label: "Собрал 100 листиков",   icon: "🍃", family: "leaf",     tier: 1, threshold: 100,   reward: 1,   countKey: "total_leaf_picks",  prevId: null },
