@@ -1264,7 +1264,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   <div className="streak-days-row">
                     {days.map((d, i) => {
                       const done = allMaxed || i < cycleDay;
-                      const active = !allMaxed && sd > 0 && i === cycleDay;
+                      const active = !allMaxed && i === cycleDay;
                       return (
                         <div key={i} className={`streak-day-slot${done ? " streak-day-done" : active ? " streak-day-active" : " streak-day-upcoming"}`}>
                           <div className="streak-day-icon">
