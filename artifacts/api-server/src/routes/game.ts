@@ -276,7 +276,7 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       const wPct = Math.round((((u.session_water_score ?? 50) as number) / 100) * 100);
       const sPct = Math.round((((u.session_sun_score ?? 50) as number) / 100) * 100);
       const fPct = Math.round((((u.session_fertilizer_score ?? 50) as number) / 100) * 100);
-      const xpGained = Math.round((wPct + sPct + fPct) / 3);
+      const xpGained = Math.max(10, Math.round((wPct + sPct + fPct) / 3));
       const skillPct = xpGained; // same value — average care percent
 
       // XP history — keep last 5 entries
