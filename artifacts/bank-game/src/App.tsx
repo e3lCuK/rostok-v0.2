@@ -27,7 +27,7 @@ function AppShell() {
       }
       const userState: UserState = {
         balances: data.balances!,
-        game: { ...data.game!, xpHistory: data.game!.xpHistory ?? [] },
+        game: { ...data.game!, xpHistory: data.game!.xpHistory ?? [], tutorialDone: data.game!.tutorialDone ?? true },
         history: (data.history ?? []).filter(
           h => h.type === "active" || h.type === "base" || h.type === "bonus"
         ) as UserState["history"],

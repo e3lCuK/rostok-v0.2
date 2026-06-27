@@ -87,6 +87,7 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
         xpHistory: Array.isArray(game.xp_history)
           ? game.xp_history
           : (game.xp_history ? JSON.parse(game.xp_history) : []),
+        tutorialDone: game.tutorial_done !== false,
       },
       history: historyRows.rows.map((r: any) => ({
         amount: parseFloat(r.amount),
@@ -124,14 +125,29 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
       [userId, capital, now, capital],
     );
     await pool.query(
-      `INSERT INTO game_state(user_id, last_session_time, session_in_progress, current_session_water, current_session_sun, current_session_fertilizer, pending_base_reward, pending_bonus_reward)
-       VALUES($1, NULL, FALSE, FALSE, FALSE, FALSE, 0, 0)`,
+      `INSERT INTO game_state(user_id, last_session_time, session_in_progress, current_session_water, current_session_sun, current_session_fertilizer, pending_base_reward, pending_bonus_reward, tutorial_done)
+       VALUES($1, NULL, FALSE, FALSE, FALSE, FALSE, 0, 0, FALSE)`,
       [userId],
     );
 
     return res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Error initializing account");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/game/tutorial/complete — mark tutorial as done
+router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  try {
+    await pool.query(
+      `UPDATE game_state SET tutorial_done = TRUE, updated_at = NOW() WHERE user_id = $1`,
+      [userId],
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error completing tutorial");
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -788,6 +804,21 @@ router.delete("/game/reset-progress", requireAuth, async (req: any, res) => {
     return res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Error resetting progress");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/game/debug/reset-tutorial — reset tutorial_done to FALSE for testing
+router.post("/game/debug/reset-tutorial", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  try {
+    await pool.query(
+      `UPDATE game_state SET tutorial_done = FALSE, updated_at = NOW() WHERE user_id = $1`,
+      [userId],
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error resetting tutorial");
     return res.status(500).json({ error: "Internal server error" });
   }
 });

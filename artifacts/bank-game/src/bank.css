@@ -4264,3 +4264,78 @@ canvas {
   100% { transform: translateX(0); }
 }
 .bg-hedgehog { animation: hedgehog-walk 3.5s ease-in-out infinite; }
+
+/* ── Tutorial onboarding strips ─────────────────────────────── */
+.tutorial-sky-strip {
+  flex-shrink: 0;
+  height: 78px;
+  background: linear-gradient(to bottom, #bae6fd 0%, #d4edaa 100%);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tutorial-sky-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tutorial-hint-text {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.tutorial-hint-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #166534;
+  letter-spacing: 0.01em;
+}
+.tutorial-step-dots {
+  display: flex;
+  gap: 6px;
+}
+.tutorial-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(22, 101, 52, 0.28);
+  transition: background 0.2s;
+}
+.tutorial-dot.done {
+  background: #16a34a;
+}
+.tutorial-dot.active {
+  background: #15803d;
+  transform: scale(1.25);
+}
+.tutorial-ground-strip {
+  flex-shrink: 0;
+  height: 54px;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+.tutorial-ground-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Tutorial mode: hide nav panels ────────────────────────── */
+.game-page-tutorial .game-top-bar {
+  display: none !important;
+}
+.game-page-tutorial .game-nav-h-divider {
+  display: none !important;
+}
+.game-page-tutorial .game-bottom-nav {
+  display: none !important;
+}

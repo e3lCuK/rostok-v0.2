@@ -41,6 +41,7 @@ export interface UserState {
     xpHistory: XpHistoryEntry[];
     totalApples: number;
     purchasedItems: string[];
+    tutorialDone: boolean;
   };
   history: {
     date: string;

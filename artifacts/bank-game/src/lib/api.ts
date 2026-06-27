@@ -49,6 +49,7 @@ export interface GameStateResponse {
     playerXP: number;
     playerLevel: number;
     xpHistory?: import("@/lib/engine").XpHistoryEntry[];
+    tutorialDone?: boolean;
   };
   history?: { amount: number; type: "base" | "bonus"; date: string }[];
 }
@@ -77,6 +78,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ startingCapital }),
     }),
+
+  tutorialComplete: () =>
+    request<{ success: boolean }>("/game/tutorial/complete", { method: "POST" }),
+
+  debugResetTutorial: () =>
+    request<{ success: boolean }>("/game/debug/reset-tutorial", { method: "POST" }),
 
   accrue: () =>
     request<{ accrued: number; days: number }>("/game/accrue", { method: "POST" }),

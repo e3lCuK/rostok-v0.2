@@ -111,6 +111,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showIncomePopup, setShowIncomePopup] = useState(false);
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
   const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
+  const [tutorialDone, setTutorialDone] = useState(state.game.tutorialDone ?? true);
+  const [tutorialStep, setTutorialStep] = useState<"water" | "sun" | "fertilizer" | null>(
+    (state.game.tutorialDone ?? true) ? null : "water"
+  );
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
@@ -123,6 +127,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [hasPendingAchievements, setHasPendingAchievements] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
+    if (!(state.game.tutorialDone ?? true)) return false; // suppress during tutorial
     const todayStr = new Date().toISOString().slice(0, 10);
     const seen = localStorage.getItem("streak_widget_date");
     const notMidSession = !state.game.sessionInProgress;
@@ -216,6 +221,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setFadeActivities(false);
     }
   }, [state.game.pendingBaseReward, state.game.pendingBonusReward, showCompletionStage]);
+
+  // Tutorial: auto-open first minigame on mount if tutorial not done
+  useEffect(() => {
+    if (!tutorialDone && tutorialStep) {
+      setActiveMinigame(tutorialStep);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!autoClaimedOnLoadRef.current && hasPendingInit && notInSessionInit) {
@@ -650,6 +663,27 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     skillScoreRef.current = combined;
 
     console.log({ waterScore, sunScore, fertilizerScore, skillScore: combined });
+
+    // Tutorial mode: skip server actions, just advance to the next step
+    if (!tutorialDone) {
+      if (type === "water") {
+        setTutorialStep("sun");
+        setActiveMinigame("sun");
+      } else if (type === "sun") {
+        setTutorialStep("fertilizer");
+        setActiveMinigame("fertilizer");
+      } else {
+        // All tutorial games done — reveal panels and show streak widget
+        setTutorialStep(null);
+        api.tutorialComplete().catch(() => {});
+        setTutorialDone(true);
+        onStateChange({ ...stateRef.current, game: { ...stateRef.current.game, tutorialDone: true } });
+        localStorage.removeItem("streak_widget_date");
+        setShowStreakWidget(true);
+      }
+      return;
+    }
+
     const rect = gameAreaRef.current?.getBoundingClientRect();
     const x = (rect?.width ?? 200) / 2;
     const y = (rect?.height ?? 200) / 2;
@@ -881,7 +915,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     : 0;
 
   return (
-    <div className="game-page">
+    <div className={`game-page${!tutorialDone ? " game-page-tutorial" : ""}`}>
       {/* TOP BAR — 3 equal columns: Ресурсы / Уровень / Энергия */}
       <div className="game-top-bar">
 
@@ -1078,6 +1112,36 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </div>
         </div>
       </div>
+
+      {/* Tutorial sky strip — shown instead of top bar during onboarding */}
+      {!tutorialDone && (
+        <div className="tutorial-sky-strip">
+          <svg className="tutorial-sky-svg" viewBox="0 0 340 78" preserveAspectRatio="xMidYMid slice">
+            <circle cx="298" cy="20" r="14" fill="#fde68a" opacity="0.75" />
+            <ellipse cx="55" cy="30" rx="30" ry="16" fill="white" opacity="0.55" />
+            <ellipse cx="33" cy="37" rx="18" ry="11" fill="white" opacity="0.4" />
+            <ellipse cx="220" cy="18" rx="22" ry="11" fill="white" opacity="0.45" />
+          </svg>
+          <div className="tutorial-hint-text">
+            <span className="tutorial-hint-label">
+              {tutorialStep === "water" ? "🫧 Поймай капли воды!"
+               : tutorialStep === "sun" ? "☀️ Собери солнечный свет!"
+               : "🍃 Собери листики с дерева!"}
+            </span>
+            <div className="tutorial-step-dots">
+              {(["water", "sun", "fertilizer"] as const).map((s) => {
+                const stepOrder = { water: 0, sun: 1, fertilizer: 2 };
+                const currentOrder = tutorialStep ? stepOrder[tutorialStep] : 3;
+                const isDone = stepOrder[s] < currentOrder;
+                const isActive = s === tutorialStep;
+                return (
+                  <span key={s} className={`tutorial-dot${isDone ? " done" : isActive ? " active" : ""}`} />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
       <div className="game-area" ref={gameAreaRef}>
@@ -1344,6 +1408,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </div>
 
       </div>
+
+      {/* Tutorial ground strip — shown instead of bottom nav during onboarding */}
+      {!tutorialDone && (
+        <div className="tutorial-ground-strip">
+          <svg className="tutorial-ground-svg" viewBox="0 0 430 54" preserveAspectRatio="none">
+            <path d="M0,54 L0,22 Q108,8 215,14 Q322,20 430,10 L430,54 Z" fill="#86efac" opacity="0.55" />
+            <ellipse cx="20" cy="24" rx="13" ry="8" fill="#4ade80" opacity="0.4" />
+            <ellipse cx="410" cy="18" rx="14" ry="8" fill="#4ade80" opacity="0.4" />
+            <ellipse cx="190" cy="14" rx="18" ry="9" fill="#86efac" opacity="0.35" />
+          </svg>
+        </div>
+      )}
 
       <div className="game-nav-h-divider" />
       <nav className="game-bottom-nav">
@@ -1800,6 +1876,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           }
         }}
         onApplesChanged={setTotalApples}
+        onResetTutorial={() => {
+          setTutorialDone(false);
+          setTutorialStep("water");
+          localStorage.removeItem("streak_widget_date");
+          setShowStreakWidget(false);
+          setTimeout(() => setActiveMinigame("water"), 50);
+        }}
       />
     </div>
   );

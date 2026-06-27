@@ -12,9 +12,10 @@ interface Props {
   onDebugSessionAdded?: () => void;
   onAddStreakDay?: () => Promise<void>;
   onApplesChanged?: (n: number) => void;
+  onResetTutorial?: () => void;
 }
 
-export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded, onAddStreakDay, onApplesChanged }: Props) {
+export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded, onAddStreakDay, onApplesChanged, onResetTutorial }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -205,6 +206,26 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
             <button className="debug-btn" onClick={resetAccount} disabled={busy}>
               Сброс аккаунта
             </button>
+
+            {onResetTutorial && (
+              <button
+                className="debug-btn"
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api.debugResetTutorial();
+                    onResetTutorial();
+                  } catch (e) {
+                    console.warn("[Debug] reset-tutorial failed", e);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                disabled={busy}
+              >
+                Сброс туториала
+              </button>
+            )}
 
             {!confirmDelete ? (
               <button
