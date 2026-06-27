@@ -295,7 +295,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setHasPendingAchievements(hasPending);
     }).catch(() => {});
   }
-  useEffect(() => { checkPendingAchievements(); }, []);
+  useEffect(() => { checkPendingAchievements(); }, [game.lastSessionTime]); // re-check on session complete or state reset
 
   const locked = isSessionLocked(game.lastSessionTime, now);
   const nextTime = getNextSessionTime(game.lastSessionTime);
@@ -663,6 +663,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           setWaterResultPct(100);
           setLightResultPct(100);
           setFertilizerResultPct(100);
+          checkPendingAchievements();
           const totalReward = (result.baseReward ?? 0) + (result.bonusReward ?? 0);
           const { newMM: mmAfter, newRemainder: remAfter } = applyTreeGrowth(
             totalReward, cur.game.treeGrowthMM ?? 0, cur.game.treeGrowthRemainder ?? 0
@@ -741,6 +742,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         };
         setShowCompletionStage(true);
         onStateChange({ ...state, game: nextGame });
+        checkPendingAchievements();
       } else {
         onStateChange({ ...state, game: nextGame });
       }
