@@ -116,12 +116,7 @@ export default function AchievementsModal({ onClose, onApplesClaimed }: Props) {
           <h3 className="help-modal-title">🏅 Достижения</h3>
           <button className="help-modal-close" onClick={onClose}><X size={16} /></button>
         </div>
-
-        <div className="ach-apples-row">
-          <span className="ach-apples-icon">🍎</span>
-          <span className="ach-apples-count">{loading ? "…" : totalApples}</span>
-          <span className="ach-apples-label">яблок всего</span>
-        </div>
+        <div className="ach-header-divider" />
 
         {loading ? (
           <p className="xp-history-empty">Загрузка…</p>
