@@ -504,6 +504,24 @@ router.post("/game/debug/add-sessions", requireAuth, async (req: any, res) => {
   }
 });
 
+// POST /api/game/debug/add-streak-day — increment streak_days by 1 (debug)
+router.post("/game/debug/add-streak-day", requireAuth, async (req: any, res) => {
+  const userId = req.userId;
+  try {
+    const result = await pool.query(
+      `UPDATE game_state SET streak_days = COALESCE(streak_days, 0) + 1, updated_at = NOW()
+       WHERE user_id = $1
+       RETURNING streak_days`,
+      [userId],
+    );
+    const streakDays = result.rows[0]?.streak_days ?? 1;
+    return res.json({ success: true, streakDays: Number(streakDays) });
+  } catch (err) {
+    req.log.error({ err }, "Error adding streak day (debug)");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // POST /api/game/debug/add-xp — add XP to player (debug)
 router.post("/game/debug/add-xp", requireAuth, async (req: any, res) => {
   const userId = req.userId;

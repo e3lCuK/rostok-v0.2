@@ -118,6 +118,11 @@ export const api = {
       method: "POST",
     }),
 
+  debugAddStreakDay: () =>
+    request<{ success: boolean; streakDays: number }>("/game/debug/add-streak-day", {
+      method: "POST",
+    }),
+
   debugAddXP: (xp: number) =>
     request<{ success: boolean; playerXP: number }>("/game/debug/add-xp", {
       method: "POST",

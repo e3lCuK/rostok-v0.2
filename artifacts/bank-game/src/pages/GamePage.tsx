@@ -1617,6 +1617,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             appleAutoCollectTimerRef.current = null;
           }
         }}
+        onAddStreakDay={async () => {
+          try {
+            const res = await api.debugAddStreakDay();
+            onStateChange({
+              ...state,
+              game: { ...state.game, streakDays: res.streakDays },
+            });
+            setShowStreakWidget(true);
+          } catch (e) {
+            console.warn("[Debug] add-streak-day failed", e);
+          }
+        }}
       />
     </div>
   );

@@ -10,9 +10,10 @@ interface Props {
   onSignOut: () => Promise<void>;
   onCompleteAll?: () => Promise<void>;
   onDebugSessionAdded?: () => void;
+  onAddStreakDay?: () => Promise<void>;
 }
 
-export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded }: Props) {
+export default function DebugPanel({ state, onStateChange, onResetAccount, onSignOut, onCompleteAll, onDebugSessionAdded, onAddStreakDay }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -145,6 +146,16 @@ export default function DebugPanel({ state, onStateChange, onResetAccount, onSig
             <button className="debug-btn" onClick={addOneSession} disabled={busy}>
               Увеличение сессий
             </button>
+
+            {onAddStreakDay && (
+              <button
+                className="debug-btn"
+                onClick={async () => { setBusy(true); try { await onAddStreakDay(); } finally { setBusy(false); } }}
+                disabled={busy}
+              >
+                Увеличение дней
+              </button>
+            )}
 
             {onCompleteAll && (
               <button
