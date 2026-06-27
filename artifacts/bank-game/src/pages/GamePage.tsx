@@ -124,6 +124,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showAchievements, setShowAchievements] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [showTutorialComplete, setShowTutorialComplete] = useState(false);
+  const [showTutorialCompletionCard, setShowTutorialCompletionCard] = useState(false);
   const [purchasedItems, setPurchasedItems] = useState<string[]>(state.game.purchasedItems ?? []);
   const [hasPendingAchievements, setHasPendingAchievements] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -237,6 +238,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   // (Tutorial minigames are opened by user interaction or handleMinigameComplete, not auto-opened)
 
   function handleTutorialFinish() {
+    // Dismiss the "complete" intro card first
+    setShowTutorialCompletionCard(false);
     // Play tree care animations
     animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
     setActiveAnim("water");
@@ -715,6 +718,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       } else {
         // All tutorial minigames done — trigger same ghost→care animation as normal game
         setTutorialStep("complete");
+        setShowTutorialCompletionCard(true);
         setTimeout(() => setShowActivityGhost(true), 800);
       }
       return;
@@ -1185,16 +1189,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </div>
         )}
 
-        {/* Tutorial step overlay — shown between minigames */}
-        {!tutorialDone && (tutorialStep === "intro" || tutorialStep === "sun-intro" || tutorialStep === "fertilizer-intro" || tutorialStep === "complete") && (() => {
+        {/* Tutorial step overlay — shown between minigames (intro/sun-intro/fertilizer-intro) */}
+        {!tutorialDone && (tutorialStep === "intro" || tutorialStep === "sun-intro" || tutorialStep === "fertilizer-intro") && (() => {
           const cfg =
             tutorialStep === "intro"
               ? { icon: "💧", text: "Нужно ухаживать\nза деревом", hint: "Нажмите на кнопку 💧" }
               : tutorialStep === "sun-intro"
               ? { icon: "☀️", text: "Теперь добавьте\nсолнечного света!", hint: "Нажмите на кнопку ☀️" }
-              : tutorialStep === "fertilizer-intro"
-              ? { icon: "🍃", text: "Последний шаг —\nсоберите листву!", hint: "Нажмите на кнопку 🍃" }
-              : { icon: "🌱", text: "Отлично! Все три\nэтапа пройдены!", hint: "" };
+              : { icon: "🍃", text: "Последний шаг —\nсоберите листву!", hint: "Нажмите на кнопку 🍃" };
           return (
             <div className="tutorial-intro-overlay">
               <div className="tutorial-intro-card">
@@ -1207,6 +1209,27 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             </div>
           );
         })()}
+
+        {/* Tutorial "complete" card — fades out when care button is pressed */}
+        <AnimatePresence>
+          {!tutorialDone && showTutorialCompletionCard && (
+            <motion.div
+              className="tutorial-intro-overlay"
+              key="tutorial-complete-card"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <div className="tutorial-intro-card">
+                <span className="tutorial-intro-tree">🌱</span>
+                <p className="tutorial-intro-text">
+                  <span>Отлично! Все три</span><br/><span>этапа пройдены!</span>
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Tutorial completion congratulations window */}
         <AnimatePresence>
