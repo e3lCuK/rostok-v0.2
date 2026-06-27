@@ -895,14 +895,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             {showIncomePopup && (
               <motion.div
                 className="topbar-reward-popup topbar-reward-popup-income-wrap"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: -6, scale: 0.7 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.7 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}
               >
-                {showApplePopup && <span className="topbar-reward-popup-apple">+{applePopupCount} ябл</span>}
-                <span className="topbar-reward-popup-income">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
+                <motion.span
+                  className="income-popup-icon"
+                  initial={{ scale: 0.5, rotate: 15 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.18" stroke="currentColor" strokeWidth="1.5"/>
+                    <text x="10" y="14.5" textAnchor="middle" fontSize="11" fontWeight="800" fill="currentColor" fontFamily="system-ui,sans-serif">₽</text>
+                  </svg>
+                </motion.span>
+                <span className="income-popup-label">+{Math.floor(lastIncomeAmount).toLocaleString("ru-RU")} ₽</span>
               </motion.div>
             )}
           </AnimatePresence>

@@ -1349,10 +1349,23 @@ body.modal-open {
   color: #c9920a;
 }
 .topbar-reward-popup-income-wrap {
+  color: #c9920a;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 4px;
+}
+.income-popup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 3px rgba(201,146,10,0.4));
+}
+.income-popup-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 .level-widget-wrap {
   position: relative;
