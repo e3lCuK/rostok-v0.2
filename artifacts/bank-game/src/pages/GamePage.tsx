@@ -1313,9 +1313,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <Trophy size={18} strokeWidth={2.5} />
         </button>
         <div className="game-bottom-nav-divider" />
-        <button className="game-bottom-nav-btn ach-medal-btn" onClick={() => setShowAchievements(true)}>
-          <Medal size={18} strokeWidth={2.5} />
-          {hasPendingAchievements && <span className="ach-fire-dot">🔥</span>}
+        <button className="game-bottom-nav-btn" onClick={() => setShowAchievements(true)}>
+          <span className="ach-medal-btn">
+            <Medal size={18} strokeWidth={2.5} />
+            {hasPendingAchievements && <span className="ach-fire-dot">🔥</span>}
+          </span>
         </button>
         <div className="game-bottom-nav-divider" />
         <button className="game-bottom-nav-btn" onClick={() => {}}>
