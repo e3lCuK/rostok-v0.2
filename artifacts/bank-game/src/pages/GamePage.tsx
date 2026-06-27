@@ -921,6 +921,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 </>;
               })()}
 
+          </div>{/* end progress-widget */}
+          </div>{/* end growth-label-wrap */}
+
+          {/* Reward popups — anchored to col bottom, centered in col */}
           <AnimatePresence>
             {showMmPopup && sessionScores && sessionScores.mm > 0 && (
               <motion.div className="widget-below-popup topbar-reward-popup-mm"
@@ -970,8 +974,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </motion.div>
             )}
           </AnimatePresence>
-          </div>{/* end progress-widget */}
-          </div>{/* end growth-label-wrap */}
         </div>
 
         {/* Col 2: Уровень */}

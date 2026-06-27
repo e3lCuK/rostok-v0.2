@@ -1106,7 +1106,7 @@ body {
 
 .widget-below-popup {
   position: absolute;
-  top: calc(100% + 5px);
+  bottom: -28px;
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
