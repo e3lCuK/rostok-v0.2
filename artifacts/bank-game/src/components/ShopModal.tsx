@@ -6,8 +6,7 @@ import { api } from "@/lib/api";
 export const SHOP_ITEMS = [
   { id: "flowers",   name: "Цветы",   emoji: "🌸", desc: "Расцветут у кустов по обе стороны", price: 30 },
   { id: "birds",     name: "Птицы",   emoji: "🐦", desc: "Полетят над деревом в небе",         price: 50 },
-  { id: "butterfly", name: "Бабочка", emoji: "🦋", desc: "Порхает рядом с деревом",  price: 70 },
-  { id: "hedgehog",  name: "Ёжик",    emoji: "🦔", desc: "Пробежит к корням дерева", price: 120 },
+  { id: "butterfly", name: "Бабочка", emoji: "🦋", desc: "Порхает рядом с деревом", price: 70 },
 ] as const;
 
 export type ShopItemId = typeof SHOP_ITEMS[number]["id"];

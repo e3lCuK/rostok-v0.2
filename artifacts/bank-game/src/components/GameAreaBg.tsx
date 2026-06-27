@@ -104,21 +104,6 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           <circle  cx="386" cy="47" r="10"           fill="#5aab1a" />
         </g>
 
-        {/* Hedgehog (purchased) */}
-        {has("hedgehog") && (
-          <g transform="translate(190,60)" className="bg-hedgehog">
-            <ellipse cx="0" cy="4" rx="14" ry="9" fill="#78716c" />
-            <ellipse cx="-3" cy="5" rx="9"  ry="6" fill="#a8a29e" />
-            <circle cx="-10" cy="4" r="4"   fill="#a8a29e" />
-            {[-8,-4,0,4,-6,2].map((x,i) => (
-              <line key={i} x1={x} y1={i < 3 ? -2 : 0} x2={x + (i%2===0?-1:1)} y2={i < 3 ? -8 : -6}
-                stroke="#57534e" strokeWidth="1.2" strokeLinecap="round" />
-            ))}
-            <circle cx="-13" cy="3" r="1.5" fill="#1c1917" />
-            <circle cx="-14" cy="1" r="1"   fill="#1c1917" />
-          </g>
-        )}
-
         {/* Flowers (purchased) */}
         {has("flowers") && (
           <>
