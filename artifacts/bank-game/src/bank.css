@@ -2346,13 +2346,13 @@ body.modal-open {
 /* Action buttons */
 .session-actions-wrap {
   position: absolute;
-  top: 50%;
-  left: 12px;
-  right: auto;
-  transform: translateY(-50%);
+  top: 12px;
+  right: 12px;
+  left: auto;
+  transform: none;
   z-index: 15;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   padding: 0;
 }
 
@@ -3755,6 +3755,7 @@ canvas {
   gap: 4px;
   flex-shrink: 0;
   font-size: 0.9rem;
+  margin-top: 10px;
 }
 
 .mini-game-counter-val {
