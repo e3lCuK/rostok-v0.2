@@ -366,7 +366,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setShowRewards(true);
     // Save only red apples (golden excluded from lifetime counter)
     void handleClaimAll(appleCountRef.current - 1);
-    // Hide overlay only when all apples are collected; otherwise let remaining reds stay
+    // Hide overlay only when all apples are collected
     const allCollected = collectedAppleIndicesRef.current.length >= appleCountRef.current;
     if (allCollected) {
       setTimeout(() => {
@@ -375,7 +375,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setCollectedAppleIndices([]);
       }, 600);
     } else {
-      // Remaining red apples still visible — auto-clean after 5s
+      // Red apples still remain — restart 60s auto-clean timer (no income, just count reds)
       appleAutoCollectTimerRef.current = setTimeout(() => {
         appleAutoCollectTimerRef.current = null;
         const uncollectedReds = (appleCountRef.current - 1) -
@@ -384,7 +384,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setShowApples(false);
         collectedAppleIndicesRef.current = [];
         setCollectedAppleIndices([]);
-      }, 5000);
+      }, 60000);
     }
   }
 
