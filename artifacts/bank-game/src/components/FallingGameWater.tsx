@@ -238,17 +238,19 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
 
   return (
     <div className="mini-game-card" style={{ background: cfg.bg, border: cfg.border }}>
-      <button
-        className="mini-game-force-close"
-        style={{ color: cfg.timerColor }}
-        onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
-      >✕</button>
+      <div className="mini-game-top-bar">
+        <button
+          className="mini-game-force-close"
+          style={{ color: cfg.timerColor }}
+          onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
+        >✕</button>
+      </div>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={cfg.timerColor} trackColor={cfg.timerBg} />
-      </div>
-      <div className="mini-game-counter">
-        <span>{cfg.scoreEmoji}</span>
-        <span className="mini-game-counter-val">{catchCount}</span>
+        <div className="mini-game-counter">
+          <span>{cfg.scoreEmoji}</span>
+          <span className="mini-game-counter-val">{catchCount}</span>
+        </div>
       </div>
       <div className="game-content">
         <canvas

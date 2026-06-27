@@ -273,11 +273,13 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
 
   return (
     <div className="mini-game-card" style={{ background: "rgba(240,253,244,0.97)", border: "2px solid #bbf7d0" }}>
-      <button
-        className="mini-game-force-close"
-        style={{ color: "#16a34a" }}
-        onClick={() => result ? handleContinue(result.skillScore) : forceClose()}
-      >✕</button>
+      <div className="mini-game-top-bar">
+        <button
+          className="mini-game-force-close"
+          style={{ color: "#16a34a" }}
+          onClick={() => result ? handleContinue(result.skillScore) : forceClose()}
+        >✕</button>
+      </div>
       <div className="mini-game-header">
         <GameTimer
           timeLeftMs={timeLeft}
@@ -285,10 +287,10 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
           color="#22c55e"
           trackColor="#dcfce7"
         />
-      </div>
-      <div className="mini-game-counter">
-        <span>🌱</span>
-        <span className="mini-game-counter-val">{matchCount}</span>
+        <div className="mini-game-counter">
+          <span>🌱</span>
+          <span className="mini-game-counter-val">{matchCount}</span>
+        </div>
       </div>
 
       <div className="game-content">

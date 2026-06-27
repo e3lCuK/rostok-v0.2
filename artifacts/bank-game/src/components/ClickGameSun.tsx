@@ -212,17 +212,19 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
 
   return (
     <div className="mini-game-card" style={{ background: CFG.bg, border: CFG.border }}>
-      <button
-        className="mini-game-force-close"
-        style={{ color: CFG.timerColor }}
-        onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
-      >✕</button>
+      <div className="mini-game-top-bar">
+        <button
+          className="mini-game-force-close"
+          style={{ color: CFG.timerColor }}
+          onClick={() => result ? onComplete(result.skillScore) : forceFinishRef.current()}
+        >✕</button>
+      </div>
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={CFG.timerColor} trackColor={CFG.timerBg} />
-      </div>
-      <div className="mini-game-counter">
-        <span>☀️</span>
-        <span className="mini-game-counter-val">{catchCount}</span>
+        <div className="mini-game-counter">
+          <span>☀️</span>
+          <span className="mini-game-counter-val">{catchCount}</span>
+        </div>
       </div>
       <div className="game-content">
         <canvas

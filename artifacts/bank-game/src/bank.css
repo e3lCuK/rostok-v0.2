@@ -3571,12 +3571,16 @@ canvas {
 /* ============================
    SHARED MINI-GAME CONTAINER
 ==============================*/
+.mini-game-top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 10;
+}
+
 .mini-game-force-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  left: auto;
-  transform: none;
   background: none;
   border: none;
   font-size: 18px;
@@ -3584,7 +3588,6 @@ canvas {
   cursor: pointer;
   opacity: 0.55;
   padding: 2px 6px;
-  z-index: 10;
   transition: opacity 0.15s;
 }
 .mini-game-force-close:hover { opacity: 1; }
@@ -3605,15 +3608,17 @@ canvas {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
 }
 
-/* ---- header: timer full-width, X button absolute top-right ---- */
+/* ---- header: timer + counter on one row ---- */
 .mini-game-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   flex-shrink: 0;
-  padding-right: 34px;
-  box-sizing: border-box;
+  position: relative;
+  z-index: 10;
 }
 
 .game-timer {
@@ -3662,18 +3667,13 @@ canvas {
   min-height: 0;
 }
 
-/* ---- counter row below header ---- */
+/* ---- counter inside header row ---- */
 .mini-game-counter {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
   font-size: 0.9rem;
-  width: 100%;
-  justify-content: flex-end;
-  padding-right: 8px;
-  box-sizing: border-box;
-  margin-bottom: 6px;
 }
 
 .mini-game-counter-val {
