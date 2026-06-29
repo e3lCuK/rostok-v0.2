@@ -173,9 +173,10 @@ body {
 
 .game-bottom-nav-divider {
   width: 1px;
-  height: 20px;
+  height: 28px;
   background: rgba(100, 160, 40, 0.55);
   flex-shrink: 0;
+  align-self: center;
 }
 
 .game-nav-h-divider {
