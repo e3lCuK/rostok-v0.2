@@ -30,16 +30,89 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
           <section className="landing-section">
             <h2 className="landing-section-h">Что такое Росток?</h2>
             <p className="landing-text">
-              Росток — это игровой вклад с ежедневными мини-играми. Вы вносите стартовый
-              капитал, а потом каждый день ухаживаете за виртуальным деревом: поливаете,
-              добавляете свет и собираете листву. За это дерево растёт, а вы получаете
-              реальный доход.
+              Росток — это игровой интерфейс поверх накопительного счёта, созданный
+              с разрешения клиента банка. Приложение отслеживает рост вклада и превращает
+              ежедневный уход за капиталом в увлекательную игру: вы ухаживаете за
+              виртуальным деревом, и оно растёт вместе с вашими накоплениями.
             </p>
             <p className="landing-text">
-              Проект показывает, как работает сложный процент: даже небольшие ежедневные
-              начисления со временем заметно увеличивают капитал. А игровой формат
-              помогает выработать привычку следить за своими финансами каждый день.
+              Идея простая: <strong>Duolingo в мире накопительных счетов.</strong> Так же,
+              как языковое приложение превращает скучную учёбу в ежедневный ритуал —
+              Росток превращает слежение за вкладом в привычку. Вы открываете приложение
+              каждый день не потому что «надо», а потому что интересно посмотреть,
+              как вырос ваш капитал и дерево.
             </p>
+            <p className="landing-text">
+              В результате формируется финансовая дисциплина: привычка сберегать,
+              регулярно пополнять вклад и следить за ростом накоплений, чтобы
+              достигать своих финансовых целей.
+            </p>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* Зачем клиентам */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Зачем это клиентам банка?</h2>
+            <p className="landing-text">
+              Большинство людей понимают, что копить важно — но редко делают это
+              регулярно. Причина не в нехватке денег, а в отсутствии привычки
+              и видимого прогресса.
+            </p>
+            <div className="landing-income-list">
+              <div className="landing-income-item landing-income-base">
+                <div className="landing-income-top">
+                  <span className="landing-income-emoji">🎯</span>
+                  <span className="landing-income-name">Финансовая дисциплина через игру</span>
+                </div>
+                <p className="landing-income-desc">
+                  Игровой интерфейс формирует ежедневный ритуал: зайти, пройти мини-игры,
+                  увидеть рост дерева и капитала. Привычка складывается сама — без
+                  напоминаний и самодисциплины.
+                </p>
+              </div>
+              <div className="landing-income-item landing-income-bonus">
+                <div className="landing-income-top">
+                  <span className="landing-income-emoji">📈</span>
+                  <span className="landing-income-name">Видимый прогресс мотивирует</span>
+                </div>
+                <p className="landing-income-desc">
+                  Дерево растёт, уровень повышается, капитал увеличивается —
+                  всё это видно каждый день. Наглядный результат мотивирует
+                  пополнять вклад и не снимать накопленное.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* Зачем банкам */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Зачем это банкам?</h2>
+            <p className="landing-text">
+              Чем больше клиентов сберегают деньги — тем меньше средств выводится
+              из системы. Это напрямую выгодно банку: стабильная база вкладчиков
+              снижает потребность в дорогом привлечении ликвидности.
+            </p>
+            <ul className="landing-perk-list">
+              <li>
+                <span className="landing-perk-icon">🏦</span>
+                Больше вкладчиков, дольше держат деньги — банк получает
+                стабильную и дешёвую ресурсную базу
+              </li>
+              <li>
+                <span className="landing-perk-icon">📱</span>
+                Ежедневное присутствие клиента в приложении — ценный
+                актив: внимание аудитории можно монетизировать через
+                партнёрские предложения и финансовые продукты
+              </li>
+              <li>
+                <span className="landing-perk-icon">🤝</span>
+                Лояльность и вовлечённость клиентов выше — игровой формат
+                создаёт эмоциональную привязанность к бренду банка
+              </li>
+            </ul>
           </section>
 
           <div className="landing-divider" />
@@ -74,6 +147,15 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
                   сохраняется на максимуме.
                 </p>
               </div>
+            </div>
+            <div className="landing-note">
+              <span className="landing-note-icon">ℹ️</span>
+              <p className="landing-note-text">
+                <strong>О процентной ставке.</strong> Текущие ставки (12% + до 3%) —
+                тестовые, используются для демонстрации механики. В боевой версии
+                ставки будут привязаны к реальным ставкам ЦБ РФ и условиям
+                конкретного банка-партнёра.
+              </p>
             </div>
             <p className="landing-text" style={{ marginTop: 8 }}>
               Пропущенные дни не сгорают: сессии накапливаются (до нескольких штук),
@@ -135,7 +217,7 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
 
           <div className="landing-divider" />
 
-          {/* Зачем играть */}
+          {/* Зачем возвращаться */}
           <section className="landing-section">
             <h2 className="landing-section-h">Зачем возвращаться каждый день</h2>
             <ul className="landing-perk-list">

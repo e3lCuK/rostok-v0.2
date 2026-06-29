@@ -4613,6 +4613,31 @@ canvas {
 
 .landing-perk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
 
+.landing-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: rgba(100, 160, 40, 0.08);
+  border: 1px solid rgba(100, 160, 40, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 4px;
+}
+.landing-note-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.landing-note-text {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.55;
+  margin: 0;
+}
+.landing-note-text strong {
+  color: #166534;
+}
+
 /* CTA снизу */
 .landing-cta-section {
   display: flex;
