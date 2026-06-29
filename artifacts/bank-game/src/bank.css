@@ -4822,6 +4822,7 @@ canvas {
   font-weight: 800;
   color: #166534;
   letter-spacing: -0.2px;
+  text-align: center;
 }
 
 .landing-text {
@@ -4829,6 +4830,8 @@ canvas {
   font-size: 13px;
   color: #374151;
   line-height: 1.6;
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* Доход */
@@ -4933,6 +4936,52 @@ canvas {
 }
 
 .landing-perk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* Карточка Супер-сессии */
+.landing-supersession {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #fef9c3 0%, #fefce8 100%);
+  border: 1.5px solid #fde047;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 14px 0 12px;
+}
+
+.landing-supersession-left {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fde047;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-top: 1px;
+}
+
+.landing-supersession-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.landing-supersession-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #713f12;
+  letter-spacing: -0.1px;
+}
+
+.landing-supersession-text {
+  font-size: 0.75rem;
+  color: #78350f;
+  line-height: 1.5;
+  margin: 0;
+  text-align: left;
+}
 
 .landing-note {
   display: flex;
