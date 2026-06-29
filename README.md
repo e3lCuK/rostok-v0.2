@@ -28,6 +28,10 @@
 
 ![Главный экран](docs/screenshots/main.png)
 
+### Обучение
+
+![Обучение](docs/screenshots/tutorial.png)
+
 ### Открытие демо-счёта
 
 ![Открытие демо-счёта](docs/screenshots/session.png)
