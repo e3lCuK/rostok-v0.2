@@ -553,8 +553,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         appleAutoCollectTimerRef.current = null;
       }
       onStateChange({
-        ...state,
-        game: { ...game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
+        ...stateRef.current,
+        game: { ...stateRef.current.game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
       });
       if (openMinigame) setActiveMinigame(openMinigame);
     } catch (err: any) {
@@ -784,7 +784,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         onStateChange({ ...curState, game: nextGame });
         checkPendingAchievements();
       } else {
-        onStateChange({ ...curState, game: nextGame });
+        // Явно ставим sessionInProgress: true — защита от устаревшего stateRef
+        onStateChange({ ...curState, game: { ...nextGame, sessionInProgress: true } });
       }
     } catch {
       // ignore
