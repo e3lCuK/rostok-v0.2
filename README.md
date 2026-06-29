@@ -36,9 +36,9 @@
 
 ![Мини-игра](docs/screenshots/minigame.png)
 
-### Рост дерева
+### Стадии роста дерева
 
-![Рост дерева](docs/screenshots/tree.png)
+![Стадии роста дерева](docs/screenshots/tree.png)
 
 ---
 
