@@ -1,3 +1,19 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <rect width="180" height="180" rx="36" fill="#d4edb0"/>
+  <!-- trunk -->
+  <rect x="83" y="100" width="14" height="52" rx="5" fill="#8B6340"/>
+  <!-- branch left -->
+  <rect x="69" y="112" width="16" height="5" rx="2" fill="#9a6b40" transform="rotate(-25 69 112)"/>
+  <!-- branch right -->
+  <rect x="95" y="120" width="16" height="5" rx="2" fill="#9a6b40" transform="rotate(25 95 120)"/>
+  <!-- crown -->
+  <ellipse cx="90" cy="84" rx="46" ry="40" fill="#4d9c47"/>
+  <ellipse cx="62" cy="97" rx="32" ry="28" fill="#449040"/>
+  <ellipse cx="118" cy="94" rx="29" ry="26" fill="#56a850"/>
+  <ellipse cx="90" cy="68" rx="36" ry="32" fill="#5aac54"/>
+  <ellipse cx="72" cy="80" rx="22" ry="20" fill="#4d9c47"/>
+  <ellipse cx="108" cy="75" rx="20" ry="18" fill="#6dbf67"/>
+  <ellipse cx="90" cy="57" rx="24" ry="21" fill="#7acc74"/>
+  <!-- shadow -->
+  <ellipse cx="90" cy="154" rx="38" ry="6" fill="#b89870" opacity="0.35"/>
 </svg>
