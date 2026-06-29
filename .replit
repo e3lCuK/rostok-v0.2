@@ -69,3 +69,8 @@ externalPort = 6000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.production]
+CLEAR_DB_ON_START = "true"

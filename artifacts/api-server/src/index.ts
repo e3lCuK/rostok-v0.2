@@ -17,6 +17,10 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function runMigrations() {
+  if (process.env.CLEAR_DB_ON_START === "true") {
+    await pool.query(`TRUNCATE TABLE income_history, game_state, accounts, users, "session", password_reset_tokens RESTART IDENTITY CASCADE`);
+    logger.info("DB полностью очищена по CLEAR_DB_ON_START");
+  }
   await pool.query(`
     CREATE TABLE IF NOT EXISTS "session" (
       "sid" varchar NOT NULL,
