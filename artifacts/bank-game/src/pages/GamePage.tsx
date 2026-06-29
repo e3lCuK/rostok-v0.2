@@ -802,11 +802,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const total = result.totalAmount ?? 0;
       const cur = stateRef.current;
       const today = new Date().toLocaleDateString("ru-RU");
-      const newHistory = [...cur.history];
-      if ((result.baseAmount ?? 0) > 0)
-        newHistory.push({ date: today, amount: result.baseAmount, type: "base" as const });
+      // Вставляем новые записи в НАЧАЛО массива (поддерживаем DESC-порядок как в БД).
+      // Бонус идёт первым — у него выше id в таблице (вставляется после base).
+      const newEntries: { date: string; amount: number; type: "base" | "bonus" }[] = [];
       if ((result.bonusAmount ?? 0) > 0)
-        newHistory.push({ date: today, amount: result.bonusAmount, type: "bonus" as const });
+        newEntries.push({ date: today, amount: result.bonusAmount, type: "bonus" });
+      if ((result.baseAmount ?? 0) > 0)
+        newEntries.push({ date: today, amount: result.baseAmount, type: "base" });
+      const newHistory = [...newEntries, ...cur.history];
       const curMM = stateRef.current.game.treeGrowthMM ?? 0;
       onStateChange({
         ...cur,
@@ -822,7 +825,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           treeGrowthMM: Math.max(result.treeGrowthMM ?? 0, curMM),
           treeGrowthRemainder: result.treeGrowthRemainder ?? cur.game.treeGrowthRemainder,
         },
-        history: newHistory.slice(-30),
+        history: newHistory.slice(0, 30),
       });
       setHistoryNotif(true);
       api.getLeaderboard()
