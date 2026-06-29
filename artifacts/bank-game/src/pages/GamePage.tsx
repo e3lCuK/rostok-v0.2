@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   UserState,
@@ -30,7 +30,9 @@ import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 import SettingsWidget from "@/components/SettingsWidget";
-import DebugPanel from "@/components/DebugPanel";
+const DebugPanel = lazy(() =>
+  import("@/debug/DebugPanelDev").catch(() => ({ default: () => null as any }))
+);
 import { APP_VERSION } from "@/lib/engine";
 
 interface Props {
@@ -1976,48 +1978,50 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         )}
       </AnimatePresence>
 
-      <DebugPanel
-        state={state}
-        onStateChange={onStateChange}
-        onResetAccount={onResetAccount ?? (() => {})}
-        onSignOut={logout}
-        onCompleteAll={handleDebugCompleteAll}
-        onDebugSessionAdded={() => {
-          setShowCompletionStage(false);
-          setShowRewards(false);
-          setShowActivityGhost(false);
-          setFadeActivities(false);
-          setCareClicked(false);
-          setShowApples(false);
-          collectedAppleIndicesRef.current = [];
-          setCollectedAppleIndices([]);
-          setFlyingAppleIndices([]);
-          if (appleAutoCollectTimerRef.current) {
-            clearTimeout(appleAutoCollectTimerRef.current);
-            appleAutoCollectTimerRef.current = null;
-          }
-        }}
-        onAddStreakDay={async () => {
-          try {
-            const res = await api.debugAddStreakDay();
-            onStateChange({
-              ...state,
-              game: { ...state.game, streakDays: res.streakDays },
-            });
-            setShowStreakWidget(true);
-          } catch (e) {
-            console.warn("[Debug] add-streak-day failed", e);
-          }
-        }}
-        onApplesChanged={setTotalApples}
-        onResetTutorial={() => {
-          setTutorialDone(false);
-          setTutorialStep("welcome");
-          setActiveMinigame(null);
-          setShowStreakWidget(false);
-          localStorage.removeItem("streak_widget_date");
-        }}
-      />
+      <Suspense fallback={null}>
+        <DebugPanel
+          state={state}
+          onStateChange={onStateChange}
+          onResetAccount={onResetAccount ?? (() => {})}
+          onSignOut={logout}
+          onCompleteAll={handleDebugCompleteAll}
+          onDebugSessionAdded={() => {
+            setShowCompletionStage(false);
+            setShowRewards(false);
+            setShowActivityGhost(false);
+            setFadeActivities(false);
+            setCareClicked(false);
+            setShowApples(false);
+            collectedAppleIndicesRef.current = [];
+            setCollectedAppleIndices([]);
+            setFlyingAppleIndices([]);
+            if (appleAutoCollectTimerRef.current) {
+              clearTimeout(appleAutoCollectTimerRef.current);
+              appleAutoCollectTimerRef.current = null;
+            }
+          }}
+          onAddStreakDay={async () => {
+            try {
+              const res = await api.debugAddStreakDay();
+              onStateChange({
+                ...state,
+                game: { ...state.game, streakDays: res.streakDays },
+              });
+              setShowStreakWidget(true);
+            } catch (e) {
+              console.warn("[Debug] add-streak-day failed", e);
+            }
+          }}
+          onApplesChanged={setTotalApples}
+          onResetTutorial={() => {
+            setTutorialDone(false);
+            setTutorialStep("welcome");
+            setActiveMinigame(null);
+            setShowStreakWidget(false);
+            localStorage.removeItem("streak_widget_date");
+          }}
+        />
+      </Suspense>
     </div>
   );
 }

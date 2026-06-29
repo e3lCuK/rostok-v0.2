@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Отладочные файлы (локальные, не для публичного репозитория)
+artifacts/bank-game/src/debug/
+artifacts/api-server/src/routes/debug.ts
