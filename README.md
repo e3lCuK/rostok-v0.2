@@ -2,12 +2,6 @@
 
 > Геймифицированный банковский симулятор, в котором виртуальное дерево растёт по мере роста капитала. Проходите сессии, играйте в мини-игры, собирайте награды — и возвращайтесь каждые 8 часов, чтобы видеть прогресс.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-24-green?logo=node.js)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18-61dafb?logo=react)](https://react.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://www.postgresql.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
 ---
 
 ## Зачем это сделано
