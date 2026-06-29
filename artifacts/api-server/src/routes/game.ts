@@ -101,16 +101,10 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
   }
 });
 
-// POST /api/game/init — create account with starting capital
+// POST /api/game/init — create account with fixed starting capital (100 000)
 router.post("/game/init", requireAuth, async (req: any, res) => {
   const userId = req.userId;
-  const { startingCapital } = req.body;
-
-  const capital = Number(startingCapital);
-  if (!capital || capital <= 0 || !Number.isFinite(capital)) {
-    return res.status(400).json({ error: "Invalid starting capital" });
-  }
-
+  const capital = 100_000;
   const now = Date.now();
 
   try {
