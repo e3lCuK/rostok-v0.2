@@ -5,107 +5,163 @@ interface Props {
 
 export default function LandingPage({ onLogin, onRegister }: Props) {
   return (
-    <div className="landing-page">
-      <header className="landing-header">
-        <div className="landing-logo">
-          <span className="landing-logo-tree">🌳</span>
-          <span className="landing-logo-name">Росток</span>
+    <div className="bank-app">
+      <div className="landing-wrap">
+        <div className="landing-card">
+
+          {/* Логотип */}
+          <div className="auth-logo">
+            <span style={{ fontSize: "2.8rem", lineHeight: 1 }}>🌳</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 1, alignItems: "center" }}>
+              <span className="auth-logo-text">Росток</span>
+              <span style={{ fontSize: "0.72rem", color: "#5a7a40", fontWeight: 500 }}>Растите капитал играючи</span>
+            </div>
+          </div>
+
+          {/* Кнопки входа вверху */}
+          <div className="landing-auth-row">
+            <button className="landing-auth-outline" onClick={onLogin}>Войти</button>
+            <button className="auth-submit landing-auth-register" onClick={onRegister}>Создать аккаунт</button>
+          </div>
+
+          <div className="landing-divider" />
+
+          {/* О проекте */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Что такое Росток?</h2>
+            <p className="landing-text">
+              Росток — это игровой вклад с ежедневными мини-играми. Вы вносите стартовый
+              капитал, а потом каждый день ухаживаете за виртуальным деревом: поливаете,
+              добавляете свет и собираете листву. За это дерево растёт, а вы получаете
+              реальный доход.
+            </p>
+            <p className="landing-text">
+              Проект показывает, как работает сложный процент: даже небольшие ежедневные
+              начисления со временем заметно увеличивают капитал. А игровой формат
+              помогает выработать привычку следить за своими финансами каждый день.
+            </p>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* Как работает доход */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Как начисляется доход</h2>
+            <p className="landing-text">
+              Доход делится на два вида: базовый и бонусный.
+            </p>
+            <div className="landing-income-list">
+              <div className="landing-income-item landing-income-base">
+                <div className="landing-income-top">
+                  <span className="landing-income-emoji">🌿</span>
+                  <span className="landing-income-name">Базовый — 12% годовых</span>
+                </div>
+                <p className="landing-income-desc">
+                  Начисляется каждый день автоматически — независимо от того,
+                  насколько хорошо вы сыграли. Это гарантированная часть дохода,
+                  которую вы получаете просто за то, что проводите сессию.
+                </p>
+              </div>
+              <div className="landing-income-item landing-income-bonus">
+                <div className="landing-income-top">
+                  <span className="landing-income-emoji">⭐</span>
+                  <span className="landing-income-name">Бонусный — до +3% годовых</span>
+                </div>
+                <p className="landing-income-desc">
+                  Зависит от вашего результата в мини-играх, размера капитала и
+                  регулярности сессий. Чем точнее играете и чем реже пропускаете —
+                  тем выше бонус. При длинной серии без пропусков бонусный множитель
+                  сохраняется на максимуме.
+                </p>
+              </div>
+            </div>
+            <p className="landing-text" style={{ marginTop: 8 }}>
+              Пропущенные дни не сгорают: сессии накапливаются (до нескольких штук),
+              и при следующем входе вы сможете получить всё сразу — это называется
+              «Супер-сессия».
+            </p>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* Три мини-игры */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Три мини-игры каждый день</h2>
+            <p className="landing-text">
+              Каждая сессия состоит из трёх активностей. Можно проходить их в любом
+              порядке — все три нужно выполнить, чтобы завершить сессию и получить доход.
+            </p>
+            <div className="landing-minigames">
+              <div className="landing-minigame">
+                <span className="landing-minigame-icon">💧</span>
+                <div>
+                  <div className="landing-minigame-name">Вода</div>
+                  <div className="landing-minigame-desc">Капли падают сверху — двигайте корзину и ловите как можно больше. Чем выше процент попаданий, тем лучше результат.</div>
+                </div>
+              </div>
+              <div className="landing-minigame">
+                <span className="landing-minigame-icon">☀️</span>
+                <div>
+                  <div className="landing-minigame-name">Свет</div>
+                  <div className="landing-minigame-desc">Солнечные лучи появляются в случайных местах экрана — нажимайте на них пока не закончится время. Скорость решает.</div>
+                </div>
+              </div>
+              <div className="landing-minigame">
+                <span className="landing-minigame-icon">🍃</span>
+                <div>
+                  <div className="landing-minigame-name">Листва</div>
+                  <div className="landing-minigame-desc">Листочки падают сверху рядами — собирайте три одного цвета подряд. Чем длиннее серия, тем выше очки.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* Рост дерева и геймплей */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Дерево растёт вместе с вами</h2>
+            <p className="landing-text">
+              По мере роста капитала дерево переходит через 5 стадий — от маленького
+              ростка до большого дерева. Каждый миллиметр роста отражает реальный
+              прирост вклада: чем больше накопленный доход, тем выше и пышнее дерево.
+            </p>
+            <p className="landing-text">
+              В конце каждой сессии дерево растёт в прямом эфире — вы видите анимацию
+              роста и получаете яблоки (символы дохода), которые нужно собрать вручную.
+              Это небольшой ритуал, который делает каждый день запоминающимся.
+            </p>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* Зачем играть */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Зачем возвращаться каждый день</h2>
+            <ul className="landing-perk-list">
+              <li><span className="landing-perk-icon">🔥</span> Серия не прерывается — бонусный множитель держится на максимуме</li>
+              <li><span className="landing-perk-icon">🏆</span> XP и уровни за каждую сессию — таблица рейтинга среди всех игроков</li>
+              <li><span className="landing-perk-icon">📈</span> Сложный процент: доход каждый день начисляется на уже выросший капитал</li>
+              <li><span className="landing-perk-icon">🎯</span> Улучшение навыка: со временем мини-игры даются легче, бонус растёт</li>
+            </ul>
+          </section>
+
+          <div className="landing-divider" />
+
+          {/* CTA */}
+          <section className="landing-cta-section">
+            <p className="landing-cta-text">
+              Пройдите короткий туториал, выберите стартовый капитал и посадите своё первое дерево — это займёт меньше трёх минут.
+            </p>
+            <button className="auth-submit" onClick={onRegister} style={{ marginBottom: 8 }}>
+              Создать аккаунт и начать
+            </button>
+            <button className="landing-login-link" onClick={onLogin}>
+              Уже есть аккаунт — войти
+            </button>
+          </section>
+
         </div>
-        <div className="landing-header-btns">
-          <button className="landing-btn-outline" onClick={onLogin}>Войти</button>
-          <button className="landing-btn-solid" onClick={onRegister}>Создать аккаунт</button>
-        </div>
-      </header>
-
-      <div className="landing-body">
-
-        <section className="landing-hero">
-          <div className="landing-hero-tree">🌳</div>
-          <h1 className="landing-title">Растите дерево —<br />растите капитал</h1>
-          <p className="landing-subtitle">
-            Росток — это игровой вклад. Каждый день ухаживайте за деревом
-            и получайте реальный доход: базовый и бонусный.
-          </p>
-        </section>
-
-        <section className="landing-how">
-          <h2 className="landing-section-title">Как это работает</h2>
-          <div className="landing-steps">
-            <div className="landing-step">
-              <div className="landing-step-icon">💧</div>
-              <div className="landing-step-body">
-                <div className="landing-step-name">Вода</div>
-                <div className="landing-step-desc">Ловите падающие капли — чем точнее, тем выше бонус</div>
-              </div>
-            </div>
-            <div className="landing-step">
-              <div className="landing-step-icon">☀️</div>
-              <div className="landing-step-body">
-                <div className="landing-step-name">Свет</div>
-                <div className="landing-step-desc">Собирайте солнечные лучи по всему экрану</div>
-              </div>
-            </div>
-            <div className="landing-step">
-              <div className="landing-step-icon">🍃</div>
-              <div className="landing-step-body">
-                <div className="landing-step-name">Листва</div>
-                <div className="landing-step-desc">Собирайте листочки в ряд — мини-игра в стиле три в ряд</div>
-              </div>
-            </div>
-          </div>
-          <p className="landing-steps-note">
-            Пройдите все три активности — и дерево вырастет, а доход за день начислится.
-          </p>
-        </section>
-
-        <section className="landing-income">
-          <h2 className="landing-section-title">Два типа дохода</h2>
-          <div className="landing-income-cards">
-            <div className="landing-income-card landing-income-base">
-              <div className="landing-income-label">Базовый</div>
-              <div className="landing-income-rate">12% годовых</div>
-              <div className="landing-income-desc">Начисляется каждый день автоматически, независимо от навыка</div>
-            </div>
-            <div className="landing-income-card landing-income-bonus">
-              <div className="landing-income-label">Бонусный</div>
-              <div className="landing-income-rate">до +3%</div>
-              <div className="landing-income-desc">Зависит от вашего результата в мини-играх и регулярности сессий</div>
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-perks">
-          <h2 className="landing-section-title">Зачем играть каждый день</h2>
-          <ul className="landing-perk-list">
-            <li className="landing-perk">
-              <span className="landing-perk-icon">🔥</span>
-              <span>Серия сессий увеличивает бонусный коэффициент</span>
-            </li>
-            <li className="landing-perk">
-              <span className="landing-perk-icon">🌱</span>
-              <span>Дерево растёт вместе с вашим вкладом — до 5 стадий</span>
-            </li>
-            <li className="landing-perk">
-              <span className="landing-perk-icon">⭐</span>
-              <span>XP, уровни и таблица рейтинга среди всех игроков</span>
-            </li>
-            <li className="landing-perk">
-              <span className="landing-perk-icon">🪙</span>
-              <span>Пропущенные сессии не пропадают — они накапливаются</span>
-            </li>
-          </ul>
-        </section>
-
-        <section className="landing-cta">
-          <div className="landing-cta-tree">🌱</div>
-          <h2 className="landing-cta-title">Готовы начать?</h2>
-          <p className="landing-cta-sub">Создайте аккаунт и посадите своё первое дерево</p>
-          <div className="landing-cta-btns">
-            <button className="landing-cta-register" onClick={onRegister}>Создать аккаунт</button>
-            <button className="landing-cta-login" onClick={onLogin}>Уже есть аккаунт — войти</button>
-          </div>
-        </section>
-
       </div>
     </div>
   );

@@ -4436,319 +4436,217 @@ canvas {
 
 /* ===================== LANDING PAGE ===================== */
 
-.landing-page {
-  min-height: 100dvh;
-  background: linear-gradient(180deg, #f0fdf4 0%, #fafff5 100%);
-  display: flex;
-  flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-}
-
-.landing-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(100,160,40,0.12);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.landing-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.landing-logo-tree { font-size: 1.6rem; line-height: 1; }
-
-.landing-logo-name {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #166534;
-  letter-spacing: -0.3px;
-}
-
-.landing-header-btns {
-  display: flex;
-  gap: 8px;
-}
-
-.landing-btn-outline {
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1.5px solid #16a34a;
-  background: transparent;
-  color: #16a34a;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.landing-btn-outline:hover { background: rgba(22,163,74,0.07); }
-
-.landing-btn-solid {
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: none;
-  background: #16a34a;
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.landing-btn-solid:hover { background: #15803d; }
-
-.landing-body {
+/* Контейнер — тот же фон и скролл что у auth-page */
+.landing-wrap {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 0;
-  max-width: 520px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 0 40px;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px 8px 40px;
+  overflow-y: auto;
 }
 
-/* Hero */
-.landing-hero {
+/* Карточка — точно как auth-card */
+.landing-card {
+  width: 90%;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 4px 32px rgba(60,120,30,0.14);
+  border: 1px solid rgba(100, 160, 40, 0.55);
+  padding: 28px 24px 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 40px 24px 32px;
+  gap: 18px;
 }
 
-.landing-hero-tree {
-  font-size: 5rem;
-  line-height: 1;
-  margin-bottom: 18px;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
-}
-
-.landing-title {
-  margin: 0 0 14px;
-  font-size: 1.75rem;
-  font-weight: 900;
-  color: #14532d;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-.landing-subtitle {
-  margin: 0;
-  font-size: 0.97rem;
-  color: #4b7c25;
-  line-height: 1.55;
-  max-width: 340px;
-}
-
-/* Section title */
-.landing-section-title {
-  margin: 0 0 16px;
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #14532d;
-}
-
-/* How it works */
-.landing-how {
-  padding: 28px 20px;
-  background: rgba(255,255,255,0.7);
-  border-top: 1px solid rgba(100,160,40,0.1);
-  border-bottom: 1px solid rgba(100,160,40,0.1);
-}
-
-.landing-steps {
+/* Ряд кнопок «Войти / Создать аккаунт» под логотипом */
+.landing-auth-row {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 8px;
 }
 
-.landing-step {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: #f0fdf4;
-  border-radius: 14px;
-  padding: 12px 16px;
-  border: 1px solid rgba(100,160,40,0.15);
-}
-
-.landing-step-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
-
-.landing-step-name {
-  font-size: 0.92rem;
-  font-weight: 700;
+.landing-auth-outline {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(100,160,40,0.55);
+  background: transparent;
   color: #166534;
-  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.landing-auth-outline:hover { background: rgba(100,160,40,0.07); }
+
+.landing-auth-register {
+  flex: 1.4;
+  margin-top: 0 !important;
 }
 
-.landing-step-desc {
-  font-size: 0.82rem;
-  color: #4b7c25;
-  line-height: 1.4;
+/* Разделитель */
+.landing-divider {
+  height: 1px;
+  background: rgba(100,160,40,0.18);
+  margin: 0 -4px;
 }
 
-.landing-steps-note {
-  margin: 0;
-  font-size: 0.82rem;
-  color: #6b7280;
-  text-align: center;
-  line-height: 1.45;
-}
-
-/* Income */
-.landing-income {
-  padding: 28px 20px;
-}
-
-.landing-income-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.landing-income-card {
-  border-radius: 16px;
-  padding: 16px;
+/* Секция с заголовком и текстом */
+.landing-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+}
+
+.landing-section-h {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #166534;
+  letter-spacing: -0.2px;
+}
+
+.landing-text {
+  margin: 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* Доход */
+.landing-income-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.landing-income-item {
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .landing-income-base {
-  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-  border: 1px solid rgba(16,185,129,0.2);
+  background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+  border: 1px solid rgba(16,185,129,0.22);
 }
 
 .landing-income-bonus {
-  background: linear-gradient(135deg, #fef9c3, #fde68a);
-  border: 1px solid rgba(245,158,11,0.2);
+  background: linear-gradient(135deg, #fef9c3, #fefce8);
+  border: 1px solid rgba(245,158,11,0.22);
 }
 
-.landing-income-label {
-  font-size: 0.75rem;
+.landing-income-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.landing-income-emoji { font-size: 1rem; line-height: 1; }
+
+.landing-income-name {
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #065f46;
-}
-
-.landing-income-bonus .landing-income-label { color: #92400e; }
-
-.landing-income-rate {
-  font-size: 1.4rem;
-  font-weight: 900;
   color: #064e3b;
-  line-height: 1;
 }
 
-.landing-income-bonus .landing-income-rate { color: #78350f; }
+.landing-income-bonus .landing-income-name { color: #78350f; }
 
 .landing-income-desc {
-  font-size: 0.75rem;
-  color: #047857;
-  line-height: 1.4;
+  margin: 0;
+  font-size: 12px;
+  color: #065f46;
+  line-height: 1.5;
 }
 
 .landing-income-bonus .landing-income-desc { color: #92400e; }
 
-/* Perks */
-.landing-perks {
-  padding: 28px 20px;
-  background: rgba(255,255,255,0.7);
-  border-top: 1px solid rgba(100,160,40,0.1);
-  border-bottom: 1px solid rgba(100,160,40,0.1);
+/* Мини-игры */
+.landing-minigames {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
+.landing-minigame {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #f0fdf4;
+  border: 1px solid rgba(100,160,40,0.15);
+  border-radius: 12px;
+  padding: 11px 13px;
+}
+
+.landing-minigame-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+
+.landing-minigame-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 3px;
+}
+
+.landing-minigame-desc {
+  font-size: 12px;
+  color: #4b7c25;
+  line-height: 1.5;
+}
+
+/* Список преимуществ */
 .landing-perk-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
-.landing-perk {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 0.88rem;
+.landing-perk-list li {
+  font-size: 13px;
   color: #374151;
-  line-height: 1.45;
+  line-height: 1.5;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
 }
 
-.landing-perk-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: -1px; }
+.landing-perk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
 
-/* CTA */
-.landing-cta {
-  padding: 36px 24px 20px;
+/* CTA снизу */
+.landing-cta-section {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 10px;
+}
+
+.landing-cta-text {
+  margin: 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.55;
   text-align: center;
-  gap: 10px;
 }
 
-.landing-cta-tree { font-size: 2.8rem; line-height: 1; }
-
-.landing-cta-title {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #14532d;
-}
-
-.landing-cta-sub {
-  margin: 0;
-  font-size: 0.88rem;
-  color: #4b7c25;
-}
-
-.landing-cta-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.landing-login-link {
   width: 100%;
-  max-width: 300px;
-  margin-top: 6px;
-}
-
-.landing-cta-register {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  border: none;
-  background: #16a34a;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-}
-.landing-cta-register:hover { background: #15803d; }
-.landing-cta-register:active { transform: scale(0.98); }
-
-.landing-cta-login {
-  width: 100%;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(22,163,74,0.35);
+  padding: 10px;
   background: transparent;
-  color: #16a34a;
-  font-size: 0.88rem;
+  border: 1.5px solid rgba(100,160,40,0.45);
+  border-radius: 10px;
+  color: #166534;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
+  text-align: center;
 }
-.landing-cta-login:hover { background: rgba(22,163,74,0.06); }
+.landing-login-link:hover { background: rgba(100,160,40,0.06); }
 
 /* Back button in AuthPage */
 .auth-back-btn {
