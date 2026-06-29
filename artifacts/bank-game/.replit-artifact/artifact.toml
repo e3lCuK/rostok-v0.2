@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/bank/"
+previewPath = "/"
 title = "Rostok"
 version = "1.0.0"
 id = "artifacts/bank-game"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/bank/" ]
+paths = [ "/" ]
 localPort = 22399
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "22399"
-BASE_PATH = "/bank/"
+BASE_PATH = "/"
