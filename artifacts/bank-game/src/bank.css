@@ -2604,7 +2604,283 @@ body.modal-open {
 .game-balance-value { font-size: 1rem; font-weight: 800; color: var(--text); }
 .game-balance-earned { font-size: 0.88rem; font-weight: 700; color: var(--green); text-align: right; }
 
-/* ── Deposit info modal ──────────────────────────────── */
+/* ── Income History Modal (новый банковский стиль) ───── */
+.inc-modal {
+  background: #f7fee7;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 380px;
+  overflow: hidden;
+  border: 1.5px solid #d9f99d;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+}
+
+.inc-modal-hero {
+  background: linear-gradient(145deg, #14532d 0%, #166534 45%, #15803d 100%);
+  padding: 16px 16px 20px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.inc-modal-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.inc-modal-brand-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+}
+
+.inc-modal-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.inc-modal-brand-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+  line-height: 1.1;
+}
+
+.inc-modal-brand-type {
+  font-size: 0.56rem;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 600;
+}
+
+.inc-modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.inc-modal-close-btn:hover { background: rgba(255,255,255,0.25); }
+
+.inc-modal-balance-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.inc-modal-balance-lbl {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+
+.inc-modal-balance-num {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+}
+
+.inc-modal-earned-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.11);
+  border-radius: 8px;
+  padding: 4px 10px;
+  margin-top: 6px;
+  width: fit-content;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.7);
+}
+
+.inc-modal-earned-val {
+  color: #bbf7d0;
+  font-weight: 700;
+}
+
+.inc-modal-stats {
+  display: flex;
+  background: #f0fdf4;
+  border-bottom: 1px solid rgba(100,160,40,0.15);
+  flex-shrink: 0;
+}
+
+.inc-modal-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px 8px;
+  position: relative;
+  gap: 2px;
+}
+
+.inc-modal-stat:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 22%;
+  height: 56%;
+  width: 1px;
+  background: rgba(100,160,40,0.22);
+}
+
+.inc-modal-stat-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #166534;
+  line-height: 1.2;
+}
+
+.inc-modal-stat-lbl {
+  font-size: 0.52rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+
+.inc-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.inc-modal-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.82rem;
+  padding: 28px 16px;
+  margin: 0;
+}
+
+.inc-modal-section-lbl {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 12px 16px 6px;
+}
+
+.inc-modal-txns {
+  padding: 0 0 16px;
+}
+
+.inc-txn {
+  display: flex;
+  padding: 0 16px;
+}
+
+.inc-txn-timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 18px;
+  flex-shrink: 0;
+  padding-top: 5px;
+}
+
+.inc-txn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 2px solid #bbf7d0;
+  flex-shrink: 0;
+}
+
+.inc-txn-line {
+  width: 1.5px;
+  flex: 1;
+  min-height: 12px;
+  background: linear-gradient(to bottom, rgba(187,247,208,0.8), rgba(187,247,208,0.1));
+  margin-top: 2px;
+}
+
+.inc-txn-body {
+  flex: 1;
+  padding: 2px 0 14px 10px;
+  border-bottom: 1px solid rgba(100,160,40,0.1);
+}
+
+.inc-txn:last-child .inc-txn-body {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.inc-txn-main-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.inc-txn-date {
+  font-size: 0.73rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+.inc-txn-amount {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #16a34a;
+  letter-spacing: -0.3px;
+}
+
+.inc-txn-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.inc-txn-tag {
+  font-size: 0.57rem;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-weight: 700;
+}
+
+.inc-txn-tag-base {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.inc-txn-tag-bonus {
+  background: #fef9c3;
+  color: #92400e;
+}
+
+.inc-txn-rate {
+  font-size: 0.57rem;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+/* ── Deposit info modal (legacy, kept for reference) ── */
 .deposit-modal-summary {
   background: var(--bg);
   border: 1.5px solid #d9f99d;
@@ -2629,6 +2905,50 @@ body.modal-open {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* ── Лендинг: шаги API-интеграции ─────────────────── */
+.landing-api-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.landing-api-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.landing-api-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #166534;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.landing-api-step strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #166534;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.landing-api-step p {
+  font-size: 0.75rem;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.45;
 }
 
 /* ============================

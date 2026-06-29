@@ -117,6 +117,51 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
 
           <div className="landing-divider" />
 
+          {/* Как банки становятся партнёрами */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Как банки становятся партнёрами</h2>
+            <p className="landing-text">
+              Росток разработан как игровой слой поверх реального накопительного счёта.
+              Банк-партнёр предоставляет API-доступ к счёту — с явного разрешения
+              клиента — и игра начинает отслеживать реальный баланс вместо
+              демонстрационного. Для клиента ничего не меняется: тот же вклад,
+              тот же банк, но теперь с игровым интерфейсом.
+            </p>
+            <div className="landing-api-flow">
+              <div className="landing-api-step">
+                <span className="landing-api-num">1</span>
+                <div>
+                  <strong>Клиент даёт разрешение</strong>
+                  <p>При подключении клиент авторизует доступ к своему накопительному счёту через OAuth-протокол банка — по аналогии с открытым банкингом (Open Banking).</p>
+                </div>
+              </div>
+              <div className="landing-api-step">
+                <span className="landing-api-num">2</span>
+                <div>
+                  <strong>Игра читает реальный баланс</strong>
+                  <p>Росток подключается к API банка и отображает актуальный баланс вклада — дерево растёт вместе с настоящими накоплениями, доход начисляется по реальным ставкам банка.</p>
+                </div>
+              </div>
+              <div className="landing-api-step">
+                <span className="landing-api-num">3</span>
+                <div>
+                  <strong>Банк получает вовлечённых клиентов</strong>
+                  <p>Ежедневный ритуал в игре удерживает средства на счёте и снижает отток: клиент видит рост своих реальных накоплений каждый день и реже снимает деньги.</p>
+                </div>
+              </div>
+            </div>
+            <div className="landing-note" style={{ marginTop: 14 }}>
+              <span className="landing-note-icon">🏦</span>
+              <p className="landing-note-text">
+                <strong>Для банков:</strong> интеграция возможна через открытый API с OAuth 2.0.
+                Росток работает с любым банком, предоставляющим API-доступ к накопительным счетам
+                с разрешения клиентов — стандарт Open Banking / ПСД2-совместимые интерфейсы.
+              </p>
+            </div>
+          </section>
+
+          <div className="landing-divider" />
+
           {/* Как работает доход */}
           <section className="landing-section">
             <h2 className="landing-section-h">Как начисляется доход</h2>

@@ -1840,61 +1840,86 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             onClick={() => setShowDepositInfo(false)}
           >
             <motion.div
-              className="help-modal"
+              className="inc-modal"
               initial={{ y: 32, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 32, opacity: 0 }}
               transition={{ duration: 0.22 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="help-modal-header">
-                <h3 className="help-modal-title">История начислений</h3>
-                <button className="help-modal-close" onClick={() => setShowDepositInfo(false)}>
-                  <X size={18} />
+              {/* Герой-шапка */}
+              <div className="inc-modal-hero">
+                <div className="inc-modal-brand">
+                  <span className="inc-modal-brand-icon">🌳</span>
+                  <div className="inc-modal-brand-text">
+                    <span className="inc-modal-brand-name">Росток</span>
+                    <span className="inc-modal-brand-type">Накопительный счёт</span>
+                  </div>
+                </div>
+                <button className="inc-modal-close-btn" onClick={() => setShowDepositInfo(false)}>
+                  <X size={14} />
                 </button>
-              </div>
-
-              <div className="deposit-modal-summary">
-                <div className="deposit-modal-row">
-                  <span className="deposit-modal-label">Счёт</span>
-                  <span className="deposit-modal-value">{formatRub(balances.balance)}</span>
-                </div>
-                <div className="deposit-modal-row">
-                  <span className="deposit-modal-label">Заработано всего</span>
-                  <span className="deposit-modal-value deposit-modal-earned">+{formatRub(balances.earned)}</span>
+                <div className="inc-modal-balance-block">
+                  <span className="inc-modal-balance-lbl">Текущий баланс</span>
+                  <span className="inc-modal-balance-num">{formatRub(balances.balance)}</span>
+                  <div className="inc-modal-earned-chip">
+                    <span>Начислено за всё время</span>
+                    <span className="inc-modal-earned-val">+{formatRub(balances.earned)}</span>
+                  </div>
                 </div>
               </div>
 
-              {sessionHistory.length === 0 ? (
-                <p className="history-empty" style={{ padding: "16px 0 8px" }}>Начисления появятся после первой сессии</p>
-              ) : (
-                <div className="deposit-modal-history">
-                  {sessionHistory.map((s, idx) => {
-                    const pct = s.base > 0 ? (s.total / s.base) * 12 : 12;
-                    return (
-                      <div key={idx} className="session-item">
-                        <p className="session-title">{s.date}</p>
-                        {s.base > 0 && (
-                          <div className="session-row">
-                            <span>База</span>
-                            <span>+{formatRub(s.base)}</span>
-                          </div>
-                        )}
-                        {s.bonus > 0 && (
-                          <div className="session-row session-row-bonus">
-                            <span>Бонус</span>
-                            <span>+{formatRub(s.bonus)}</span>
-                          </div>
-                        )}
-                        <div className="session-total">
-                          <span>Итого</span>
-                          <span>+{formatRub(s.total)} · {formatPercent(pct)} год.</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+              {/* Полоса метрик */}
+              <div className="inc-modal-stats">
+                <div className="inc-modal-stat">
+                  <span className="inc-modal-stat-val">12%</span>
+                  <span className="inc-modal-stat-lbl">Базовая ставка</span>
                 </div>
-              )}
+                <div className="inc-modal-stat">
+                  <span className="inc-modal-stat-val">{sessionHistory.length}</span>
+                  <span className="inc-modal-stat-lbl">Сессий</span>
+                </div>
+                <div className="inc-modal-stat">
+                  <span className="inc-modal-stat-val">{sessionHistory.length > 0 ? formatPercent(avgPercent) : "—"}</span>
+                  <span className="inc-modal-stat-lbl">Средний %</span>
+                </div>
+              </div>
+
+              {/* Список операций */}
+              <div className="inc-modal-body">
+                {sessionHistory.length === 0 ? (
+                  <p className="inc-modal-empty">Начисления появятся после первой сессии</p>
+                ) : (
+                  <>
+                    <div className="inc-modal-section-lbl">Операции</div>
+                    <div className="inc-modal-txns">
+                      {sessionHistory.map((s, idx) => {
+                        const pct = s.base > 0 ? (s.total / s.base) * 12 : 12;
+                        const isLast = idx === sessionHistory.length - 1;
+                        return (
+                          <div key={idx} className="inc-txn">
+                            <div className="inc-txn-timeline">
+                              <div className="inc-txn-dot" />
+                              {!isLast && <div className="inc-txn-line" />}
+                            </div>
+                            <div className="inc-txn-body">
+                              <div className="inc-txn-main-row">
+                                <span className="inc-txn-date">{s.date}</span>
+                                <span className="inc-txn-amount">+{formatRub(s.total)}</span>
+                              </div>
+                              <div className="inc-txn-meta">
+                                {s.base > 0 && <span className="inc-txn-tag inc-txn-tag-base">База {formatRub(s.base)}</span>}
+                                {s.bonus > 0 && <span className="inc-txn-tag inc-txn-tag-bonus">Бонус +{formatRub(s.bonus)}</span>}
+                                <span className="inc-txn-rate">{formatPercent(pct)} год.</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
