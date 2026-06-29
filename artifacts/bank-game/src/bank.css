@@ -4449,8 +4449,8 @@ canvas {
 
 /* Карточка — точно как auth-card */
 .landing-card {
-  width: 92%;
-  max-width: 520px;
+  width: 96%;
+  max-width: 680px;
   background: #ffffff;
   border-radius: 24px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
