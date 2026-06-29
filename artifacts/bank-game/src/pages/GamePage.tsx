@@ -539,6 +539,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowRewards(false);
       setShowActivityGhost(false);
       setFadeActivities(false);
+      setMerging(false);
+      setShowCareButton(false);
       if (growthIntervalRef.current) { clearInterval(growthIntervalRef.current); growthIntervalRef.current = null; }
       growthTimeoutsRef.current.forEach(clearTimeout);
       growthTimeoutsRef.current = [];
@@ -786,6 +788,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       } else {
         // Явно ставим sessionInProgress: true — защита от устаревшего stateRef
         onStateChange({ ...curState, game: { ...nextGame, sessionInProgress: true } });
+        // Защита от некорректного showCompletionStage: если сессия ещё активна,
+        // любой completion-стейт должен быть сброшен (например, от авто-клейма при загрузке)
+        setShowCompletionStage(false);
+        setMerging(false);
+        setShowCareButton(false);
       }
     } catch {
       // ignore
