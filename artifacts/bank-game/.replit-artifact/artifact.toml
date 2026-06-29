@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/bank/"
-title = "TreeBank"
+title = "Rostok"
 version = "1.0.0"
 id = "artifacts/bank-game"
 router = "path"
