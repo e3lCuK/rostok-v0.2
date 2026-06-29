@@ -28,9 +28,9 @@
 
 ![Главный экран](docs/screenshots/main.png)
 
-### Игровая сессия
+### Открытие демо-счёта
 
-![Игровая сессия](docs/screenshots/session.png)
+![Открытие демо-счёта](docs/screenshots/session.png)
 
 ### Мини-игра: ловля капель 💧
 
