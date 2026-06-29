@@ -744,7 +744,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const labels: Record<string, string> = { water: "💧", sun: "☀️", fertilizer: "🌱" };
       addFloater(labels[action], x, y);
 
-      let nextGame = { ...game, [action]: true };
+      // Используем stateRef.current чтобы избежать stale closure после await
+      const curState = stateRef.current;
+      const curGame = curState.game;
+
+      let nextGame = { ...curGame, [action]: true };
 
       if (result.sessionComplete) {
         const finishedTime = Date.now();
@@ -754,8 +758,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           sessionInProgress: false,
           lastSessionTime: finishedTime,
           missedSessions: 0,
-          pendingBaseReward: (game.pendingBaseReward ?? 0) + (result.baseReward ?? 0),
-          pendingBonusReward: (game.pendingBonusReward ?? 0) + (result.bonusReward ?? 0),
+          pendingBaseReward: (curGame.pendingBaseReward ?? 0) + (result.baseReward ?? 0),
+          pendingBonusReward: (curGame.pendingBonusReward ?? 0) + (result.bonusReward ?? 0),
           pendingStoredSessions: result.storedSessions ?? 1,
           // XP/level applied later in handleGoToRewards
         };
@@ -764,8 +768,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         const sPct = Math.round((sunScoreRef.current / 100) * 100);
         const fPct = Math.round((fertilizerScoreRef.current / 100) * 100);
         const totalReward = (result.baseReward ?? 0) + (result.bonusReward ?? 0);
-        const { newMM: mmAfter, newRemainder: remAfter } = applyTreeGrowth(totalReward, game.treeGrowthMM ?? 0, game.treeGrowthRemainder ?? 0);
-        const mmGained = mmAfter - (game.treeGrowthMM ?? 0);
+        const { newMM: mmAfter, newRemainder: remAfter } = applyTreeGrowth(totalReward, curGame.treeGrowthMM ?? 0, curGame.treeGrowthRemainder ?? 0);
+        const mmGained = mmAfter - (curGame.treeGrowthMM ?? 0);
         setSessionScores({ water: wPct, sun: sPct, fert: fPct, xp: result.xpGained ?? 0, base: result.baseReward ?? 0, bonus: result.bonusReward ?? 0, mm: mmGained });
         // Save XP/level/MM to apply on "Ухаживать" click
         pendingXpRef.current = {
@@ -777,10 +781,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           newRemainder: remAfter,
         };
         setShowCompletionStage(true);
-        onStateChange({ ...state, game: nextGame });
+        onStateChange({ ...curState, game: nextGame });
         checkPendingAchievements();
       } else {
-        onStateChange({ ...state, game: nextGame });
+        onStateChange({ ...curState, game: nextGame });
       }
     } catch {
       // ignore
