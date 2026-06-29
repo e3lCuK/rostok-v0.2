@@ -32,9 +32,9 @@
 
 ![Игровая сессия](docs/screenshots/session.png)
 
-### Мини-игра
+### Мини-игра: ловля капель 💧
 
-![Мини-игра](docs/screenshots/minigame.png)
+![Мини-игра: ловля капель](docs/screenshots/minigame.png)
 
 ### Стадии роста дерева
 
