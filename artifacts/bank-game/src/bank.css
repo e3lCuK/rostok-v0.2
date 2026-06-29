@@ -4650,7 +4650,7 @@ canvas {
 
 /* Back button in AuthPage */
 .auth-back-btn {
-  align-self: flex-end;
+  align-self: flex-start;
   background: none;
   border: none;
   color: #16a34a;
