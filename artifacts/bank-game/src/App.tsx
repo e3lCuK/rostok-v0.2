@@ -7,6 +7,7 @@ import { UserState } from "@/lib/engine";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
+import LandingPage from "@/pages/LandingPage";
 import "@/bank.css";
 
 // Локальные расширения (файлы исключены из репозитория)
@@ -107,8 +108,11 @@ function AppShell() {
 }
 
 // ---- Root ----
+type Screen = "landing" | "login" | "register";
+
 function Root() {
   const { user, loading } = useAuth();
+  const [screen, setScreen] = useState<Screen>("landing");
 
   if (loading) {
     return (
@@ -121,11 +125,25 @@ function Root() {
     );
   }
 
-  if (!user) return (
-    <div className="bank-app">
-      <AuthPage />
-    </div>
-  );
+  if (!user) {
+    if (screen === "landing") {
+      return (
+        <LandingPage
+          onLogin={() => setScreen("login")}
+          onRegister={() => setScreen("register")}
+        />
+      );
+    }
+    return (
+      <div className="bank-app">
+        <AuthPage
+          initialMode={screen}
+          onBack={() => setScreen("landing")}
+        />
+      </div>
+    );
+  }
+
   return <AppShell />;
 }
 

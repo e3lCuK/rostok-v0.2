@@ -9,9 +9,14 @@ function getTokenFromUrl(): string | null {
   return params.get("token");
 }
 
-export default function AuthPage() {
+interface AuthPageProps {
+  initialMode?: "login" | "register";
+  onBack?: () => void;
+}
+
+export default function AuthPage({ initialMode, onBack }: AuthPageProps = {}) {
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<Mode>(() => getTokenFromUrl() ? "reset" : "login");
+  const [mode, setMode] = useState<Mode>(() => getTokenFromUrl() ? "reset" : (initialMode ?? "login"));
   const [username, setUsername] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
@@ -72,6 +77,10 @@ export default function AuthPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+
+        {onBack && (
+          <button className="auth-back-btn" type="button" onClick={onBack}>← Назад</button>
+        )}
 
         <div className="auth-logo">
           <span style={{ fontSize: "2.8rem", lineHeight: 1 }}>🌳</span>
