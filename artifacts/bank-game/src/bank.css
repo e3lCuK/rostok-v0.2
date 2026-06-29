@@ -2619,7 +2619,7 @@ body.modal-open {
 }
 
 .inc-modal-hero {
-  background: linear-gradient(145deg, #14532d 0%, #166534 45%, #15803d 100%);
+  background: linear-gradient(145deg, #2d5a1b 0%, #3a7a28 45%, #4a9035 100%);
   padding: 16px 16px 20px;
   position: relative;
   flex-shrink: 0;

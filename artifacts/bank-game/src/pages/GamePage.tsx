@@ -1855,7 +1855,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <div className="inc-modal-brand">
                   <span className="inc-modal-brand-icon">🌳</span>
                   <div className="inc-modal-brand-text">
-                    <span className="inc-modal-brand-name">Росток</span>
+                    <span className="inc-modal-brand-name">Активный</span>
                     <span className="inc-modal-brand-type">Накопительный счёт</span>
                   </div>
                 </div>
