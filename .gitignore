@@ -48,6 +48,7 @@ Thumbs.db
 .cache/
 .local/
 
-# Отладочные файлы (локальные, не для публичного репозитория)
+# Локальные расширения (не для публичного репозитория)
 artifacts/bank-game/src/debug/
+artifacts/bank-game/src/local/
 artifacts/api-server/src/routes/debug.ts

@@ -82,9 +82,6 @@ export const api = {
   tutorialComplete: () =>
     request<{ success: boolean }>("/game/tutorial/complete", { method: "POST" }),
 
-  debugResetTutorial: () =>
-    request<{ success: boolean }>("/game/debug/reset-tutorial", { method: "POST" }),
-
   accrue: () =>
     request<{ accrued: number; days: number }>("/game/accrue", { method: "POST" }),
 
@@ -108,12 +105,6 @@ export const api = {
       { method: "POST", body: JSON.stringify({ action, skillScore, count }) },
     ),
 
-  debugAddApples: (amount: number) =>
-    request<{ success: boolean; totalApples: number }>(
-      "/game/debug/add-apples",
-      { method: "POST", body: JSON.stringify({ amount }) },
-    ),
-
   buyShopItem: (itemId: string) =>
     request<{ success: boolean; totalApples: number; purchasedItems: string[] }>(
       "/game/shop/buy",
@@ -131,22 +122,6 @@ export const api = {
       "/game/session/claimAll",
       { method: "POST", body: JSON.stringify({ applesCollected: applesCollected ?? 0 }) },
     ),
-
-  debugAddSessions: () =>
-    request<{ success: boolean; missedSessions: number; lastSessionTime: number }>("/game/debug/add-sessions", {
-      method: "POST",
-    }),
-
-  debugAddStreakDay: () =>
-    request<{ success: boolean; streakDays: number }>("/game/debug/add-streak-day", {
-      method: "POST",
-    }),
-
-  debugAddXP: (xp: number) =>
-    request<{ success: boolean; playerXP: number }>("/game/debug/add-xp", {
-      method: "POST",
-      body: JSON.stringify({ xp }),
-    }),
 
   forgotPassword: (email: string) =>
     request<{ success: boolean }>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
@@ -181,12 +156,6 @@ export const api = {
       "/game/achievements/claim",
       { method: "POST", body: JSON.stringify({ id }) },
     ),
-
-  resetProgress: () =>
-    request<{ success: boolean }>("/game/reset-progress", { method: "DELETE" }),
-
-  debugResetAll: () =>
-    request<{ success: boolean }>("/game/debug/reset-all", { method: "DELETE" }),
 
   getLeaderboard: () =>
     request<{ players: LeaderboardPlayer[] }>("/game/leaderboard"),

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   UserState,
@@ -30,9 +30,7 @@ import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 import SettingsWidget from "@/components/SettingsWidget";
-const DebugPanel = lazy(() =>
-  import("@/debug/DebugPanelDev").catch(() => ({ default: () => null as any }))
-);
+
 import { APP_VERSION } from "@/lib/engine";
 
 interface Props {
@@ -727,91 +725,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const x = (rect?.width ?? 200) / 2;
     const y = (rect?.height ?? 200) / 2;
     doAction(type, x, y, safe, count);
-  }
-
-  async function handleDebugCompleteAll() {
-    if (actionLoading) return;
-    setActionLoading(true);
-    if (!stateRef.current.game.sessionInProgress) {
-      try {
-        await api.startSession();
-        onStateChange({
-          ...stateRef.current,
-          game: { ...stateRef.current.game, sessionInProgress: true, water: false, sun: false, fertilizer: false },
-        });
-      } catch {
-        setActionLoading(false);
-        return;
-      }
-    }
-    waterScoreRef.current = 100;
-    sunScoreRef.current = 100;
-    fertilizerScoreRef.current = 100;
-    skillScoreRef.current = 100;
-    const rect = gameAreaRef.current?.getBoundingClientRect();
-    const x = (rect?.width ?? 200) / 2;
-    const y = (rect?.height ?? 200) / 2;
-    const labels: Record<string, string> = { water: "💧", sun: "☀️", fertilizer: "🌱" };
-    let trackedGame = { ...stateRef.current.game };
-    try {
-      const toComplete = (["water", "sun", "fertilizer"] as const).filter(a => !trackedGame[a]);
-      for (const action of toComplete) {
-        const result = await api.doAction(action, 100);
-        addFloater(labels[action], x, y);
-        animParticlesRef.current = [14, 22, 31, 40, 50, 60, 69, 78];
-        setActiveAnim(action);
-        void treeControls.start({
-          filter: ["brightness(1)", "brightness(1.35)", "brightness(1)"],
-          scale: [1, 1.04, 1],
-          transition: { duration: 0.38, ease: "easeInOut" },
-        });
-        if (animTimerRef.current) clearTimeout(animTimerRef.current);
-        animTimerRef.current = setTimeout(() => setActiveAnim(null), 2800);
-        const cur = stateRef.current;
-        trackedGame = { ...trackedGame, [action]: true };
-        onStateChange({ ...cur, game: trackedGame });
-        if (!result.sessionComplete) {
-          await new Promise(r => setTimeout(r, 620));
-        }
-        if (result.sessionComplete) {
-          const finishedTime = Date.now();
-          trackedGame = {
-            ...trackedGame,
-            water: true, sun: true, fertilizer: true,
-            sessionInProgress: false,
-            lastSessionTime: finishedTime,
-            missedSessions: 0,
-            pendingBaseReward: (cur.game.pendingBaseReward ?? 0) + (result.baseReward ?? 0),
-            pendingBonusReward: (cur.game.pendingBonusReward ?? 0) + (result.bonusReward ?? 0),
-            pendingStoredSessions: result.storedSessions ?? 1,
-          };
-          setWaterResultPct(100);
-          setLightResultPct(100);
-          setFertilizerResultPct(100);
-          checkPendingAchievements();
-          const totalReward = (result.baseReward ?? 0) + (result.bonusReward ?? 0);
-          const { newMM: mmAfter, newRemainder: remAfter } = applyTreeGrowth(
-            totalReward, cur.game.treeGrowthMM ?? 0, cur.game.treeGrowthRemainder ?? 0
-          );
-          const mmGained = mmAfter - (cur.game.treeGrowthMM ?? 0);
-          setSessionScores({ water: 100, sun: 100, fert: 100, xp: result.xpGained ?? 0, base: result.baseReward ?? 0, bonus: result.bonusReward ?? 0, mm: mmGained });
-          pendingXpRef.current = {
-            xpGained: result.xpGained ?? 0,
-            newLevel: result.newLevel,
-            xpHistory: result.xpHistory,
-            levelUp: result.levelUp,
-            newMM: mmAfter,
-            newRemainder: remAfter,
-          };
-          setShowCompletionStage(true);
-          onStateChange({ ...cur, game: trackedGame });
-        }
-      }
-    } catch (err) {
-      console.error("[Debug] Complete all failed:", err);
-    } finally {
-      setActionLoading(false);
-    }
   }
 
   async function handleAction(action: "water" | "sun" | "fertilizer", e: React.MouseEvent) {
@@ -1978,50 +1891,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         )}
       </AnimatePresence>
 
-      <Suspense fallback={null}>
-        <DebugPanel
-          state={state}
-          onStateChange={onStateChange}
-          onResetAccount={onResetAccount ?? (() => {})}
-          onSignOut={logout}
-          onCompleteAll={handleDebugCompleteAll}
-          onDebugSessionAdded={() => {
-            setShowCompletionStage(false);
-            setShowRewards(false);
-            setShowActivityGhost(false);
-            setFadeActivities(false);
-            setCareClicked(false);
-            setShowApples(false);
-            collectedAppleIndicesRef.current = [];
-            setCollectedAppleIndices([]);
-            setFlyingAppleIndices([]);
-            if (appleAutoCollectTimerRef.current) {
-              clearTimeout(appleAutoCollectTimerRef.current);
-              appleAutoCollectTimerRef.current = null;
-            }
-          }}
-          onAddStreakDay={async () => {
-            try {
-              const res = await api.debugAddStreakDay();
-              onStateChange({
-                ...state,
-                game: { ...state.game, streakDays: res.streakDays },
-              });
-              setShowStreakWidget(true);
-            } catch (e) {
-              console.warn("[Debug] add-streak-day failed", e);
-            }
-          }}
-          onApplesChanged={setTotalApples}
-          onResetTutorial={() => {
-            setTutorialDone(false);
-            setTutorialStep("welcome");
-            setActiveMinigame(null);
-            setShowStreakWidget(false);
-            localStorage.removeItem("streak_widget_date");
-          }}
-        />
-      </Suspense>
     </div>
   );
 }

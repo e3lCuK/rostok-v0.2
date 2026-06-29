@@ -9,6 +9,9 @@ import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
 import "@/bank.css";
 
+// Локальные расширения (файлы исключены из репозитория)
+import.meta.glob("/src/local/*.tsx", { eager: true });
+
 // ---- Main app shell (authenticated) ----
 function AppShell() {
   const { user, logout } = useAuth();
