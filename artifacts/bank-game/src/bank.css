@@ -530,6 +530,14 @@ body {
   overflow: visible;
 }
 
+.game-topbar-col:first-child {
+  flex: 1.35;
+}
+
+.game-topbar-col:nth-child(3) {
+  flex: 0.85;
+}
+
 /* Game area — pure play field */
 .game-area {
   background: linear-gradient(160deg, #d4edaa 0%, #b8de74 40%, #f5e87c 100%);
@@ -1062,7 +1070,7 @@ body {
   row-gap: 2px;
   align-items: center;
   width: 100%;
-  max-width: 120px;
+  max-width: 145px;
   position: relative;
 }
 
@@ -3479,13 +3487,13 @@ body.modal-open {
 
 .onboarding-header {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
 }
 
-.onboarding-icon { font-size: 3rem; }
+.onboarding-icon { font-size: 3rem; line-height: 1; }
 
 .onboarding-tagline {
   font-size: 0.72rem;
@@ -3500,6 +3508,8 @@ body.modal-open {
   font-weight: 800;
   color: #2d5a1a;
   letter-spacing: -0.5px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .onboarding-info-static {
