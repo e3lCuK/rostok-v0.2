@@ -1,217 +1,239 @@
-# 🌳 Rostok
+# 🌳 Росток
 
-> A gamified banking simulator with real progression mechanics, session-based mini-games, and a living tree that grows with your balance.
-
----
-
-## What is this?
-
-Rostok is a fullstack pet project that wraps personal finance concepts in a game loop. You manage two deposits, play mini-games every 8 hours to earn bonus yield, and watch a tree grow as your active income accumulates. Miss sessions and your bonus efficiency degrades. Come back consistently and unlock super sessions with multiplied rewards.
-
-Built as a portfolio/learning project to explore real game economy design, session state management, and fullstack TypeScript architecture.
+> Геймифицированный банковский симулятор с реальными механиками прогрессии, сессионными мини-играми и живым деревом, которое растёт вместе с вашим балансом.
 
 ---
 
-## Features
+## Что это такое?
 
-- **Active & passive deposits** — two separate balances with different income mechanics
-- **Session system** — play every 8 hours to claim active income
-- **Super sessions** — missed sessions stack up; play them all at once for a multiplied reward
-- **Bonus efficiency system** — bonus yield depends on mini-game performance, capital tier, and consistency
-- **Three mini-games** per session:
-  - 💧 **Water** — falling object catch game
-  - ☀️ **Sunlight** — click accuracy challenge
-  - 🌿 **Fertilizer** — Match-3 puzzle
-- **Tree growth system** — 1 ₽ of active income = 1 mm of growth
-- **Tree progression stages** — visual evolution from sprout to full tree
-- **Session history** — full audit log of earnings
-- **Animations and visual feedback** — smooth transitions, floaters, spring physics
+«Росток» — полностью стековый pet-проект, который оборачивает концепции личных финансов в игровой цикл. Вы играете в три мини-игры каждые 8 часов, получаете бонусный доход и наблюдаете, как дерево растёт по мере накопления активного дохода. Пропускайте сессии — и эффективность бонуса деградирует. Возвращайтесь стабильно — и разблокируйте супер-сессии с умноженными наградами.
 
 ---
 
-## Game Mechanics
+## Возможности
 
-### Active Deposit
-The core gameplay loop revolves around the active deposit.
+- **Вклад и доход** — баланс с пассивным начислением и активными сессиями
+- **Сессионная система** — играйте каждые 8 часов, чтобы получить активный доход
+- **Супер-сессии** — пропущенные сессии накапливаются и играются разом с умноженной наградой
+- **Система эффективности бонуса** — зависит от результатов мини-игр, тира капитала и стабильности игрока
+- **Три мини-игры** за сессию:
+  - 💧 **Вода** — ловить падающие капли
+  - ☀️ **Свет** — собирать солнечные лучи кликами
+  - 🍃 **Листва** — Match-3 с листочками
+- **Система роста дерева** — 1 ₽ активного дохода = 1 мм роста
+- **Стадии прогрессии дерева** — визуальная эволюция от ростка до взрослого дерева
+- **История сессий** — полный журнал всех начислений
+- **Анимации и визуальная обратная связь** — плавные переходы, floaters, пружинная физика
 
-- **Base income:** `balance × 12% / 365 / 3` per session
-- **Bonus income:** depends on mini-game skill score, capital tier, and a random factor
-- Bonus yield cap: **3% annually**
-- To earn income, you must complete all 3 mini-games in a session
+---
 
-### Passive Deposit
-- Earns **12% annually**, accrued automatically once per day
-- No interaction required — just set and forget
+## Механики игры
 
-### Super Sessions
-When you miss a session, it doesn't disappear — it accumulates.
+### Активный доход
+Основной игровой цикл строится вокруг активного вклада.
+
+- **Базовая награда:** `balance × 12% / 365 / 3` за сессию
+- **Бонусная награда:** зависит от результата мини-игр, тира капитала и случайного фактора
+- Потолок бонусной доходности: **3% годовых**
+- Для получения дохода нужно пройти все 3 мини-игры в одной сессии
+
+### Автоначисление
+- **12% годовых**, начисляются автоматически один раз в день
+- Не требует взаимодействия — работает пассивно
+
+### Супер-сессии
+Пропущенная сессия не исчезает — она накапливается.
 
 ```
 storedSessions = 1 + missedSessions
 reward = baseReward × storedSessions
 ```
 
-- **Bonus efficiency** degrades with missed sessions:
+- **Эффективность бонуса** деградирует при пропусках:
   ```
   bonusMultiplier = max(1 - missedSessions × 0.1, 0.1)
   ```
-- Minimum bonus efficiency: **10%** (never fully lost)
-- Super session button activates automatically when `storedSessions > 1`
+- Минимальная эффективность бонуса: **10%** (никогда не обнуляется)
+- Кнопка супер-сессии активируется автоматически при `storedSessions > 1` и становится красной
 
-### Bonus Efficiency Formula
+### Формула бонусной эффективности
 ```
 bonusPercent = 0.03 × min(skillPart + capitalPart + randomPart, 1)
 
 skillPart   = (avgSkillScore / 80) × 0.75
-capitalPart = 0.16 / 0.18 / 0.20  (based on balance tier)
+capitalPart = 0.16 / 0.18 / 0.20  (зависит от тира капитала)
 randomPart  = 0 – 0.04
 ```
 
 ---
 
-## Tree Growth
+## Туториал
 
-The tree is a visual representation of total active income earned.
+Новые пользователи проходят обязательный туториал перед доступом к основной игре.
 
-| Rule | Value |
-|------|-------|
-| Growth rate | 1 ₽ = 1 mm |
-| Source | Active deposit income only |
-| Accumulation | Lifetime total, never resets |
+### Шаги
+```
+welcome → intro → water → sun-intro → sun → fertilizer-intro → fertilizer → complete
+```
 
-### Growth Stages
+| Шаг | Что происходит |
+|-----|----------------|
+| `welcome` | Карточка «Как ухаживать за деревом» |
+| `intro` | Подсказка нажать 💧, кнопка пульсирует |
+| `water` | Мини-игра с водой |
+| `sun-intro` | Подсказка нажать ☀️ |
+| `sun` | Мини-игра с солнцем |
+| `fertilizer-intro` | Подсказка нажать 🍃 |
+| `fertilizer` | Мини-игра с листвой |
+| `complete` | Финальная анимация → окно завершения → основная игра |
 
-| Stage | Height |
-|-------|--------|
-| Sprout | 0 mm |
-| Sapling | 500 mm |
-| Young tree | 2 000 mm |
-| Mature tree | 5 000 mm |
-| Full tree | 8 500 mm |
+### Финальная анимация
+1. Все 3 мини-игры пройдены → появляются 3 кнопки ✓
+2. Через 800 мс → ghost-кнопки влетают пружинной анимацией
+3. Через 2200 мс → ghost-кнопки схлопываются к центру
+4. Через 2700 мс → появляется кнопка-лопатка 🪄
+5. Нажатие лопатки → карточка плавно исчезает, открывается окно «Обучение пройдено! 🌳»
+6. Нажатие «Начать играть» → туториал завершается, основная игра активируется
 
 ---
 
-## Tech Stack
+## Рост дерева
+
+Дерево визуально отражает суммарный активный доход игрока.
+
+| Правило | Значение |
+|---------|----------|
+| Скорость роста | 1 ₽ = 1 мм |
+| Источник | Только активный доход |
+| Накопление | Пожизненно, не сбрасывается |
+
+### Стадии роста
+
+| Стадия | Высота |
+|--------|--------|
+| Росток | 0 мм |
+| Саженец | 500 мм |
+| Молодое дерево | 2 000 мм |
+| Взрослое дерево | 5 000 мм |
+| Большое дерево | 8 500 мм |
+
+---
+
+## Начальный капитал и тиры
+
+При первом входе выбирается стартовый капитал (неизменен):
+
+| Тир | Сумма |
+|-----|-------|
+| Начальный | 20 000 ₽ |
+| Стандартный | 200 000 ₽ |
+| Премиум | 2 000 000 ₽ |
+
+Тир влияет на `capitalPart` в формуле бонуса и на фильтры лидерборда.
+
+---
+
+## Лидерборд
+
+Две вкладки: **История** (журнал XP сессий) и **Рейтинг**.
+
+| Подвкладка | Фильтр | Сортировка |
+|------------|--------|------------|
+| Опыт | все игроки | XP убывает |
+| Малый | стартовый капитал ≤ 50 000 | рост дерева убывает |
+| Средний | стартовый капитал 50 001–500 000 | рост дерева убывает |
+| Крупный | стартовый капитал > 500 000 | рост дерева убывает |
+
+---
+
+## Технический стек
 
 ### Frontend
 - **React 18** + **TypeScript**
-- **Vite** — dev server and build tooling
-- **TanStack Query** — server state and data fetching
-- **Framer Motion** — animations, spring physics, layout transitions
-- **Lucide React** — icon system
+- **Vite** — dev-сервер и сборка
+- **TanStack Query** — серверное состояние и fetching
+- **Framer Motion** — анимации, пружинная физика, layout-переходы
+- **Lucide React** — иконки
 
 ### Backend
-- **Express 5** — HTTP server
-- **PostgreSQL** — primary database (raw `pg` pool)
-- **Drizzle ORM** — schema definition and migrations
-- **Zod** — input validation (shared via OpenAPI codegen)
-- **Pino** — structured JSON logging
+- **Express 5** — HTTP-сервер
+- **PostgreSQL** — основная база данных (raw `pg` pool)
+- **Drizzle ORM** — схема и миграции
+- **Zod** — валидация входных данных (shared через OpenAPI codegen)
+- **Pino** — структурированное JSON-логирование
 
-### Auth
-- **Clerk** — email/password + Google OAuth (`@clerk/express` + `@clerk/react`)
+### Аутентификация
+- Собственная сессионная авторизация (email + пароль), cookie-based
+- `SESSION_SECRET` в переменных окружения
 
 ### Tooling
-- **pnpm workspaces** — monorepo package management
+- **pnpm workspaces** — monorepo
 - **Orval** — OpenAPI-to-TypeScript codegen (React Query hooks + Zod schemas)
 - **esbuild** — production server bundle
-- **TypeScript 5** — strict mode across all packages
+- **TypeScript 5** — строгий режим во всех пакетах
 
 ---
 
-## Project Structure
+## Структура проекта
 
 ```
 /
 ├── artifacts/
 │   ├── bank-game/          # React frontend (Vite)
 │   │   └── src/
-│   │       ├── components/ # UI components, mini-games, debug panel
-│   │       ├── pages/      # GamePage, SavingsPage, OnboardingPage
-│   │       └── lib/        # Game engine, formulas, API client
+│   │       ├── components/ # UI-компоненты, мини-игры
+│   │       ├── pages/      # GamePage, OnboardingPage
+│   │       └── lib/        # Формулы, engine, API-клиент
 │   └── api-server/         # Express backend
 │       └── src/
-│           ├── routes/     # game.ts — all game endpoints
-│           └── index.ts    # Server setup, middleware, Clerk proxy
+│           ├── routes/     # game.ts — все игровые эндпоинты
+│           └── index.ts    # Сервер, middleware, миграции
 ├── lib/
-│   ├── db/                 # Drizzle schema + migrations
-│   └── api-spec/           # OpenAPI spec + Orval codegen config
-└── scripts/                # Utility scripts
+│   ├── db/                 # Drizzle схема + миграции
+│   └── api-spec/           # OpenAPI spec + конфиг Orval
+└── scripts/                # Вспомогательные скрипты
 ```
 
 ---
 
-## Installation
+## Запуск (разработка)
 
-### Prerequisites
-- Node.js 20+
+### Требования
+- Node.js 24+
 - pnpm 9+
-- PostgreSQL instance
+- PostgreSQL
 
-### Setup
+### Установка
 
 ```bash
-# Clone the repo
-git clone https://github.com/yourname/rostok.git
-cd rostok
-
-# Install dependencies
+# Установить зависимости
 pnpm install
 
-# Set environment variables
-cp .env.example .env
-# Fill in: DATABASE_URL, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY
-```
-
-### Run (development)
-
-```bash
-# Start the API server (port 8080)
-pnpm --filter @workspace/api-server run dev
-
-# Start the frontend (separate terminal)
-pnpm --filter @workspace/bank-game run dev
-```
-
-### Database
-
-```bash
-# Push schema to your database
+# Применить схему БД
 pnpm --filter @workspace/db run push
 ```
 
----
+### Запуск
 
-## Screenshots
+```bash
+# API-сервер (порт 8080)
+pnpm --filter @workspace/api-server run dev
 
-> _Screenshots coming soon_
-
-| | |
-|---|---|
-| ![Main page](docs/screenshots/main.png) | ![Active deposit](docs/screenshots/active.png) |
-| Main page & tree | Active deposit session |
-| ![Mini-games](docs/screenshots/minigames.png) | ![Tree progression](docs/screenshots/tree.png) |
-| Mini-game flow | Tree growth stages |
+# Фронтенд (отдельный терминал)
+pnpm --filter @workspace/bank-game run dev
+```
 
 ---
 
-## Roadmap
+## Дорожная карта
 
-- [ ] More tree growth stages and visual variants
-- [ ] Achievement system with unlockable rewards
-- [ ] Seasonal events with limited-time bonus mechanics
-- [ ] Enhanced mini-game animations and juice
-- [ ] Mobile layout optimization
-- [ ] Leaderboard / social comparison (optional)
-- [ ] Offline accrual sync on reconnect
-
----
-
-## About
-
-Created as a game-oriented fullstack pet project — exploring how game design patterns (session loops, progression systems, degrading bonuses) can make mundane concepts like saving and interest rates actually engaging.
-
-Suitable for: portfolio, interviews, or just messing around with game economy design.
+- [ ] Дополнительные стадии и визуальные варианты дерева
+- [ ] Система достижений с разблокируемыми наградами
+- [ ] Сезонные события с временными бонусными механиками
+- [ ] Улучшенные анимации мини-игр
+- [ ] Оптимизация мобильной раскладки
+- [ ] Синхронизация офлайн-начислений при переподключении
 
 ---
 
-> Built with TypeScript · React · Express · PostgreSQL · Clerk · Framer Motion
+> Построено на TypeScript · React · Express · PostgreSQL · Framer Motion
