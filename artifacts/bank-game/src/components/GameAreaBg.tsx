@@ -67,6 +67,8 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
       {/* Ground layer */}
       <svg
         className="game-area-bg-ground"
+        width="100%"
+        height="90"
         viewBox="0 0 430 90"
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"

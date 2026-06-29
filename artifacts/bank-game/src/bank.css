@@ -509,22 +509,18 @@ body {
   display: flex;
   align-items: stretch;
 }
-.game-top-bar::before,
-.game-top-bar::after {
-  content: '';
-  position: absolute;
-  top: 12px;
-  height: 66px;
+.game-topbar-divider {
   width: 1px;
+  height: 66px;
   background: rgba(100, 160, 40, 0.55);
-  z-index: 2;
+  flex-shrink: 0;
+  align-self: center;
   pointer-events: none;
 }
-.game-top-bar::before { left: 33.33%; }
-.game-top-bar::after  { left: 66.67%; }
 
 .game-topbar-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4202,8 +4198,7 @@ canvas {
   stroke: rgba(100, 160, 40, 0.35) !important;
   box-shadow: none !important;
 }
-.game-page-tutorial .game-top-bar::before,
-.game-page-tutorial .game-top-bar::after {
+.game-page-tutorial .game-topbar-divider {
   background: rgba(100, 160, 40, 0.18) !important;
 }
 .game-page-tutorial .game-bottom-nav-btn {

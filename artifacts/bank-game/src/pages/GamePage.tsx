@@ -970,6 +970,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </AnimatePresence>
         </div>
 
+        <div className="game-topbar-divider" />
+
         {/* Col 2: Уровень */}
         <div className="game-topbar-col">
           <div className="game-left-widgets">
@@ -997,6 +999,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             )}
           </AnimatePresence>
         </div>
+
+        <div className="game-topbar-divider" />
 
         {/* Col 3: Энергия */}
         <div className="game-topbar-col">
