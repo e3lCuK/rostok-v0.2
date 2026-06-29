@@ -144,8 +144,8 @@ body {
 
 .game-bottom-nav {
   flex-shrink: 0;
-  background: var(--bg);
-  border-top: 1px solid rgba(100,160,40,0.18);
+  background: linear-gradient(0deg, #1c5010 0%, #2e741c 100%);
+  border-top: none;
   display: flex;
   align-items: center;
   padding: 4px 0;
@@ -160,11 +160,11 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  color: rgba(100, 130, 70, 0.6);
+  color: rgba(255, 255, 255, 0.62);
   padding: 4px 0;
   transition: color 0.15s;
 }
-.game-bottom-nav-btn:hover { color: #166534; }
+.game-bottom-nav-btn:hover { color: #ffffff; }
 
 .game-bottom-nav-btn-disabled {
   cursor: default;
@@ -174,7 +174,7 @@ body {
 .game-bottom-nav-divider {
   width: 1px;
   height: 28px;
-  background: rgba(100, 160, 40, 0.55);
+  background: rgba(255, 255, 255, 0.18);
   flex-shrink: 0;
   align-self: center;
 }
@@ -182,7 +182,7 @@ body {
 .game-nav-h-divider {
   width: 100%;
   height: 2px;
-  background: rgba(100, 160, 40, 0.55);
+  background: rgba(255, 255, 255, 0.13);
   flex-shrink: 0;
 }
 
@@ -504,8 +504,8 @@ body {
 .game-top-bar {
   flex-shrink: 0;
   height: 90px;
-  background: var(--bg);
-  border-bottom: 2px solid rgba(100, 160, 40, 0.55);
+  background: linear-gradient(180deg, #1c5010 0%, #2e741c 100%);
+  border-bottom: none;
   position: relative;
   display: flex;
   align-items: stretch;
@@ -513,7 +513,7 @@ body {
 .game-topbar-divider {
   width: 1px;
   height: 66px;
-  background: rgba(100, 160, 40, 0.55);
+  background: rgba(255, 255, 255, 0.18);
   flex-shrink: 0;
   align-self: center;
   pointer-events: none;
@@ -603,19 +603,19 @@ body {
   height: 22px;
   border: none;
   border-radius: 3px;
-  background: rgba(180, 190, 160, 0.45);
-  color: #111;
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.88);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   transition: background 0.12s;
 }
-.game-gear-btn:active { background: rgba(160, 175, 140, 0.55); }
+.game-gear-btn:active { background: rgba(255, 255, 255, 0.30); }
 
 .game-session-detail {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #111;
+  color: rgba(255, 255, 255, 0.82);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -671,7 +671,7 @@ body {
   height: 18px;
   border: none;
   border-radius: 3px;
-  background: rgba(180, 190, 160, 0.45);
+  background: rgba(255, 255, 255, 0.18);
   color: #166534;
   font-size: 11px;
   font-weight: 700;
@@ -684,7 +684,7 @@ body {
   line-height: 1;
 }
 .growth-info-btn:active {
-  background: rgba(160, 175, 140, 0.55);
+  background: rgba(255, 255, 255, 0.30);
 }
 
 .growth-info-btn-plus {
@@ -3772,12 +3772,12 @@ canvas {
 
 .session-status-ready {
   background: none;
-  color: #111;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .session-status-locked {
   background: none;
-  color: #111;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 
