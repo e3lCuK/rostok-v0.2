@@ -140,7 +140,7 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
             <h2 className="landing-section-h">Зачем возвращаться каждый день</h2>
             <ul className="landing-perk-list">
               <li><span className="landing-perk-icon">🔥</span> Серия не прерывается — бонусный множитель держится на максимуме</li>
-              <li><span className="landing-perk-icon">🏆</span> XP и уровни за каждую сессию — таблица рейтинга среди всех игроков</li>
+              <li><span className="landing-perk-icon">🏆</span> Опыт и уровни за каждую сессию — таблица рейтинга среди всех игроков</li>
               <li><span className="landing-perk-icon">📈</span> Сложный процент: доход каждый день начисляется на уже выросший капитал</li>
               <li><span className="landing-perk-icon">🎯</span> Улучшение навыка: со временем мини-игры даются легче, бонус растёт</li>
             </ul>
