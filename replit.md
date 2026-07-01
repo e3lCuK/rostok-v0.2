@@ -2,8 +2,8 @@
 
 ## Скриншоты
 
-### История начислений
-![История начислений](screenshots/income-history.png)
+### Главный экран
+![Главный экран](screenshots/main-screen.png)
 
 ---
 
