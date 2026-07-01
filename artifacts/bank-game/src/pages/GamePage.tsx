@@ -983,7 +983,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <div className="game-topbar-divider" />
 
         {/* Col 2: Уровень */}
-        <div className="game-topbar-col">
+        <div className="game-topbar-col game-topbar-col-mid">
           <div className="game-left-widgets">
             <LevelWidget level={game.playerLevel ?? 1} totalXP={game.playerXP ?? 0} xpGain={xpGainAmount} onClick={() => setShowLevelModal(true)} />
           </div>

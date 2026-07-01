@@ -530,6 +530,10 @@ body {
   overflow: visible;
 }
 
+.game-topbar-col-mid {
+  flex: 0 0 78px;
+}
+
 
 /* Game area — pure play field */
 .game-area {
