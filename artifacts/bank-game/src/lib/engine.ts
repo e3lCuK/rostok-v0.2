@@ -174,7 +174,7 @@ export function formatLbGrowth(mm: number): string {
 
 // ---- Formatters ----
 export function formatRub(n: number): string {
-  return n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₽";
+  return n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "\u202F₽";
 }
 
 export function formatTimer(ms: number): string {
