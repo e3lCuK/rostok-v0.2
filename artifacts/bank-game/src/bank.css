@@ -672,6 +672,7 @@ body {
   height: 18px;
   border: none;
   border-radius: 3px;
+  margin-left: 4px;
   background: rgba(180, 190, 160, 0.45);
   color: #166534;
   font-size: 11px;
