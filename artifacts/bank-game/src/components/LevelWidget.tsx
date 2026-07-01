@@ -57,7 +57,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
           {/* White fill inside diamond */}
           <polygon
             points={`${pt(TOP)} ${pt(RIGHT)} ${pt(GAP_R)} ${pt(GAP_L)} ${pt(LEFT)}`}
-            fill="white"
+            fill="rgba(255,255,255,0.80)"
           />
           {/* Open diamond frame: right-gap → right → top → left → left-gap */}
           <polyline
