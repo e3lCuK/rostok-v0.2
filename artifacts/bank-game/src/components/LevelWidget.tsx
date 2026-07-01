@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 
 interface Props {
   totalXP: number;
@@ -11,20 +11,43 @@ interface Props {
 const COLOR = "#4d7c0f";
 const SW = 2;
 
-// Square diamond, r=25: top(30,5), right(55,30), bottom(30,55), left(5,30)
-// "УРОВЕНЬ" uses dominantBaseline="hanging" so its top edge = y=5 = diamond top vertex
-// Open gap at bottom: stop ~8px before bottom point along 45° sides (d = 8/√2 ≈ 5.7)
 const TOP:   [number, number] = [30,  5];
 const RIGHT: [number, number] = [55, 30];
 const LEFT:  [number, number] = [ 5, 30];
 const GAP_R: [number, number] = [36, 49];
 const GAP_L: [number, number] = [24, 49];
 
+// Ромб: от y=5 (вершина) до y=49 (нижний зазор), высота=44
+const DIAMOND_TOP_Y = 5;
+const DIAMOND_BOT_Y = 49;
+const DIAMOND_H = DIAMOND_BOT_Y - DIAMOND_TOP_Y; // 44
+
+const XP_THRESHOLDS = [0, 300, 1000, 2500, 5000];
+
+function getLevelProgress(totalXP: number, level: number): number {
+  if (level >= 5) return 1;
+  const start = XP_THRESHOLDS[level - 1] ?? 0;
+  const end   = XP_THRESHOLDS[level]     ?? 5000;
+  return Math.min(1, Math.max(0, (totalXP - start) / (end - start)));
+}
+
 function pt(p: [number, number]) { return p.join(","); }
 
-export default function LevelWidget({ level, xpGain, onClick }: Props) {
+export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) {
   const [showGain, setShowGain] = useState(false);
   const [gainVal, setGainVal] = useState(0);
+
+  const progress = getLevelProgress(totalXP, level);
+  const fillH = progress * DIAMOND_H;
+  const fillY = DIAMOND_BOT_Y - fillH;
+
+  const springY = useSpring(useMotionValue(fillY), { stiffness: 60, damping: 18 });
+  const springH = useSpring(useMotionValue(fillH), { stiffness: 60, damping: 18 });
+
+  useEffect(() => {
+    springY.set(fillY);
+    springH.set(fillH);
+  }, [fillY, fillH, springY, springH]);
 
   useEffect(() => {
     if (xpGain) {
@@ -54,18 +77,34 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
         <svg width="72" height="77" viewBox="0 0 60 64" fill="none">
-          {/* White fill inside diamond */}
+          <defs>
+            <clipPath id="diamond-clip">
+              <polygon points={`${pt(TOP)} ${pt(RIGHT)} ${pt(GAP_R)} ${pt(GAP_L)} ${pt(LEFT)}`} />
+            </clipPath>
+          </defs>
+
+          {/* Белый фон */}
           <polygon
             points={`${pt(TOP)} ${pt(RIGHT)} ${pt(GAP_R)} ${pt(GAP_L)} ${pt(LEFT)}`}
             fill="rgba(255,255,255,0.80)"
           />
-          {/* Open diamond frame: right-gap → right → top → left → left-gap */}
+
+          {/* Светло-зелёный прогресс снизу вверх */}
+          <motion.rect
+            x="0" width="60"
+            y={springY}
+            height={springH}
+            fill="#bbf7d0"
+            clipPath="url(#diamond-clip)"
+          />
+
+          {/* Контур ромба */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
             stroke={COLOR} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
           />
 
-          {/* Level number — centered in diamond */}
+          {/* Цифра уровня */}
           <text
             x="30" y="30"
             textAnchor="middle" dominantBaseline="central"
@@ -76,7 +115,7 @@ export default function LevelWidget({ level, xpGain, onClick }: Props) {
             {level}
           </text>
 
-          {/* "УРОВЕНЬ" — below the diamond, in the open gap */}
+          {/* УРОВЕНЬ */}
           <text
             x="30" y="57"
             textAnchor="middle" dominantBaseline="central"
