@@ -3,7 +3,7 @@
 ## Скриншоты
 
 ### История начислений
-![История начислений](attached_assets/image_1782914421286.png)
+![История начислений](screenshots/income-history.png)
 
 ---
 
