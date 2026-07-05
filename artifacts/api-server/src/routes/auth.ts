@@ -4,7 +4,9 @@ import crypto from "crypto";
 import { Resend } from "resend";
 import { pool } from "@workspace/db";
 
-const resend = new Resend(process.env["RESEND_API_KEY"]);
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 const router = Router();
 
@@ -193,6 +195,10 @@ router.post("/auth/forgot-password", async (req: any, res: any) => {
     );
     const domains = process.env["REPLIT_DOMAINS"]?.split(",")[0] ?? "localhost";
     const resetUrl = `https://${domains}/bank/reset-password?token=${token}`;
+    if (!resend) {
+      req.log.warn("RESEND_API_KEY not configured, skipping email sending");
+      return res.json({ success: true });
+    }
     await resend.emails.send({
       from: "Росток <onboarding@resend.dev>",
       to: e,

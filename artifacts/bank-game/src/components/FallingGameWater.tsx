@@ -108,10 +108,14 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
   }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+
+    const ctxEl = canvasEl.getContext("2d");
+    if (!ctxEl) return;
+
+    const canvas: HTMLCanvasElement = canvasEl;
+    const ctx: CanvasRenderingContext2D = ctxEl;
 
     const cfg = CONFIGS[type];
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });

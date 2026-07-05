@@ -29,13 +29,17 @@ function AppShell() {
         setLoading(false);
         return;
       }
+      const history = (data.history ?? []) as UserState["history"];
+
       const userState: UserState = {
-        balances: data.balances!,
-        game: { ...data.game!, xpHistory: data.game!.xpHistory ?? [], tutorialDone: data.game!.tutorialDone ?? true },
-        history: (data.history ?? []).filter(
-          h => h.type === "active" || h.type === "base" || h.type === "bonus"
-        ) as UserState["history"],
-      };
+      balances: data.balances!,
+      game: {
+        ...(data.game! as UserState["game"]),
+        xpHistory: data.game!.xpHistory ?? [],
+        tutorialDone: data.game!.tutorialDone ?? true,
+      },
+      history,
+    };
       setState(userState);
     } catch {
       // silent retry

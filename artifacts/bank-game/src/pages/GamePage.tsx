@@ -1326,7 +1326,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 ] as const).map(btn => {
                   // Which button is the active tutorial button?
                   const tutorialActiveBtn =
-                    tutorialStep === "welcome" || tutorialStep === "complete" ? null :
                     tutorialStep === "intro" ? "water" :
                     tutorialStep === "sun-intro" ? "sun" :
                     tutorialStep === "fertilizer-intro" ? "fertilizer" : null;

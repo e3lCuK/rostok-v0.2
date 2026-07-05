@@ -13,7 +13,7 @@ export interface GameState {
     sun: boolean;
     fertilizer: boolean;
   } | null;
-  history: { date: string; amount: number; type: "standard" | "active" }[];
+  history: { date: string; amount: number; type: "standard" | "active" | "base" | "bonus" }[];
 }
 
 const KEY = "treebank_v1";
@@ -129,7 +129,7 @@ export function doAction(state: GameState, action: "water" | "sun" | "fertilizer
       activeEarned: state.activeEarned + SESSION_REWARD,
       history: [
         ...state.history,
-        { date: new Date(now).toLocaleDateString("ru-RU"), amount: SESSION_REWARD, type: "active" },
+        { date: new Date(now).toLocaleDateString("ru-RU"), amount: SESSION_REWARD, type: "active" as const },
       ].slice(-30),
     };
   }
