@@ -243,6 +243,12 @@ export default function AuthPage({ initialMode, onBack }: AuthPageProps = {}) {
           </button>
         )}
 
+        {mode === "reset" && error && (
+          <button className="auth-forgot-link" type="button" onClick={() => switchMode("forgot")}>
+            Запросить новую ссылку
+          </button>
+        )}
+
         {mode === "reset" && success && (
           <button className="auth-submit" style={{ marginTop: 8 }} type="button" onClick={() => switchMode("login")}>
             Войти

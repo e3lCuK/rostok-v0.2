@@ -117,6 +117,8 @@ type Screen = "landing" | "login" | "register";
 function Root() {
   const { user, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>("landing");
+  const hasResetToken =
+    Boolean(new URLSearchParams(window.location.search).get("token"));
 
   if (loading) {
     return (
@@ -130,7 +132,7 @@ function Root() {
   }
 
   if (!user) {
-    if (screen === "landing") {
+    if (!hasResetToken && screen === "landing") {
       return (
         <LandingPage
           onLogin={() => setScreen("login")}
@@ -141,8 +143,8 @@ function Root() {
     return (
       <div className="bank-app">
         <AuthPage
-          initialMode={screen}
-          onBack={() => setScreen("landing")}
+          initialMode={screen === "landing" ? "login" : screen}
+          onBack={hasResetToken ? undefined : () => setScreen("landing")}
         />
       </div>
     );
