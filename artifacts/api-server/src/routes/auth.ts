@@ -10,6 +10,19 @@ const resend = process.env.RESEND_API_KEY
 
 const router = Router();
 
+function hashResetToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // POST /api/auth/register
 router.post("/auth/register", async (req: any, res: any) => {
   const { username, nickname, password } = req.body ?? {};
@@ -188,25 +201,36 @@ router.post("/auth/forgot-password", async (req: any, res: any) => {
     }
     const user = result.rows[0];
     const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const tokenHash = hashResetToken(token);
+    const expires = new Date(Date.now() + 60 * 60 * 1000);
+    
     await pool.query(
-      "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)",
-      [user.id, token, expires],
+      `UPDATE password_reset_tokens
+       SET used = TRUE
+       WHERE user_id = $1 AND used = FALSE`,
+      [user.id],
     );
-    const domains = process.env["REPLIT_DOMAINS"]?.split(",")[0] ?? "localhost";
-    const resetUrl = `https://${domains}/bank/reset-password?token=${token}`;
+    
+    await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expires],
+    );
+    
+    const appUrl = (process.env.APP_URL ?? "http://localhost:5173").replace(/\/+$/, "");
+    const resetUrl = `${appUrl}/?token=${encodeURIComponent(token)}`;
     if (!resend) {
       req.log.warn("RESEND_API_KEY not configured, skipping email sending");
       return res.json({ success: true });
     }
     await resend.emails.send({
-      from: "Росток <onboarding@resend.dev>",
+      from: process.env.EMAIL_FROM ?? "Росток <onboarding@resend.dev>",
       to: e,
       subject: "Сброс пароля — Росток",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;">
           <h2 style="margin:0 0 8px;color:#365314;">🌳 Росток</h2>
-          <p style="color:#4b5563;">Привет, <strong>${user.nickname}</strong>!</p>
+          <p style="color:#4b5563;">Привет, <strong>${escapeHtml(String(user.nickname))}</strong>!</p>
           <p style="color:#4b5563;">Мы получили запрос на сброс пароля. Нажмите кнопку ниже, чтобы задать новый пароль. Ссылка действует <strong>1 час</strong>.</p>
           <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 28px;background:#4d7c0f;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Сбросить пароль</a>
           <p style="color:#9ca3af;font-size:0.8rem;">Если вы не запрашивали сброс — просто проигнорируйте это письмо.</p>
@@ -232,24 +256,52 @@ router.post("/auth/reset-password", async (req: any, res: any) => {
   if (String(newPassword).length < 6) {
     return res.status(400).json({ error: "Пароль: минимум 6 символов" });
   }
+
+  const tokenHash = hashResetToken(String(token));
+  let client;
   try {
-    const result = await pool.query(
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const result = await client.query(
       `SELECT id, user_id FROM password_reset_tokens
-       WHERE token = $1 AND used = FALSE AND expires_at > NOW()`,
-      [String(token)],
+       WHERE token = $1 AND used = FALSE AND expires_at > NOW()
+       FOR UPDATE`,
+      [tokenHash],
     );
     if (result.rows.length === 0) {
+      await client.query("ROLLBACK");
       return res.status(400).json({ error: "Ссылка недействительна или истекла" });
     }
-    const { id: tokenId, user_id: userId } = result.rows[0];
+
+    const { user_id: userId } = result.rows[0];
     const newHash = await bcrypt.hash(String(newPassword), 10);
-    await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [newHash, userId]);
-    await pool.query("UPDATE password_reset_tokens SET used = TRUE WHERE id = $1", [tokenId]);
+
+    await client.query(
+      "UPDATE users SET password_hash = $1 WHERE id = $2",
+      [newHash, userId],
+    );
+    await client.query(
+      `UPDATE password_reset_tokens SET used = TRUE
+       WHERE user_id = $1 AND used = FALSE`,
+      [userId],
+    );
+    await client.query("COMMIT");
+
     req.log.info({ userId }, "Password reset completed");
     return res.json({ success: true });
   } catch (err) {
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        // ignore rollback error so original error is preserved
+      }
+    }
     req.log.error({ err }, "Reset password error");
     return res.status(500).json({ error: "Ошибка сервера" });
+  } finally {
+    client?.release();
   }
 });
 
