@@ -686,9 +686,4 @@ router.post("/game/shop/buy", requireAuth, async (req: any, res) => {
   }
 });
 
-// Отладочные маршруты подключаются динамически (файл исключён из git)
-void import("./debug").then(({ registerDebugRoutes }) => {
-  registerDebugRoutes(router);
-}).catch(() => {});
-
 export default router;
