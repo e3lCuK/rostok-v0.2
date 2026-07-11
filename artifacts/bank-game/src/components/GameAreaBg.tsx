@@ -49,9 +49,9 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           </g>
         )}
 
-        {/* Butterfly (purchased) */}
+        {/* Butterfly (purchased) — right of tree, mid-height above bushes */}
         {has("butterfly") && (
-          <g transform="translate(250,370)">
+          <g transform="translate(262, 245)">
             <g className="bg-butterfly">
               <path d="M0,0 Q-6,-7 -11,-2 Q-6,2 0,0" fill="#fb923c" />
               <path d="M0,0 Q6,-7 11,-2 Q6,2 0,0"    fill="#fb923c" />

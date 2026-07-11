@@ -160,6 +160,34 @@ export const api = {
   getLeaderboard: () =>
     request<{ players: LeaderboardPlayer[] }>("/game/leaderboard"),
 
+  // Debug (server endpoints available only outside production)
+  debugAddXP: (xp: number) =>
+    request<{ success: boolean; playerXP: number; playerLevel: number }>(
+      "/game/debug/add-xp",
+      { method: "POST", body: JSON.stringify({ xp }) },
+    ),
+
+  debugAddApples: (amount: number) =>
+    request<{ success: boolean; totalApples: number }>(
+      "/game/debug/add-apples",
+      { method: "POST", body: JSON.stringify({ amount }) },
+    ),
+
+  debugAddSessions: () =>
+    request<{ success: boolean; missedSessions: number }>(
+      "/game/debug/add-sessions",
+      { method: "POST" },
+    ),
+
+  resetProgress: () =>
+    request<{ success: boolean }>("/game/reset-progress", { method: "DELETE" }),
+
+  debugResetAll: () =>
+    request<{ success: boolean }>("/game/debug/reset-all", { method: "DELETE" }),
+
+  debugResetTutorial: () =>
+    request<{ success: boolean }>("/game/debug/reset-tutorial", { method: "POST" }),
+
 };
 
 export interface LeaderboardPlayer {
