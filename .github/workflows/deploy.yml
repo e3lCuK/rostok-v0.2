@@ -4,25 +4,42 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 concurrency:
   group: rostok-production
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
-    name: Deploy to production
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            sudo /opt/rostok/scripts/deploy.sh
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ROSTOK_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.ROSTOK_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            "${{ secrets.ROSTOK_USER }}@${{ secrets.ROSTOK_HOST }}" \
+            'sudo -n /opt/rostok/scripts/deploy.sh'
+
+      - name: Verify API
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            "${{ secrets.ROSTOK_USER }}@${{ secrets.ROSTOK_HOST }}" \
+            'curl --fail --silent --show-error http://127.0.0.1:8080/api'
