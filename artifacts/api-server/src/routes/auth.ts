@@ -3,6 +3,13 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
 import { pool } from "@workspace/db";
+import {
+  changePasswordLimiter,
+  forgotPasswordLimiter,
+  loginLimiter,
+  registerLimiter,
+  resetPasswordLimiter,
+} from "../middleware/authRateLimit";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -24,7 +31,7 @@ function escapeHtml(text: string): string {
 }
 
 // POST /api/auth/register
-router.post("/auth/register", async (req: any, res: any) => {
+router.post("/auth/register", registerLimiter, async (req: any, res: any) => {
   const { username, nickname, password } = req.body ?? {};
 
   if (!username || !nickname || !password) {
@@ -72,7 +79,7 @@ router.post("/auth/register", async (req: any, res: any) => {
 });
 
 // POST /api/auth/login
-router.post("/auth/login", async (req: any, res: any) => {
+router.post("/auth/login", loginLimiter, async (req: any, res: any) => {
   const { username, password } = req.body ?? {};
 
   if (!username || !password) {
@@ -156,7 +163,7 @@ router.patch("/auth/email", async (req: any, res: any) => {
 });
 
 // PATCH /api/auth/password
-router.patch("/auth/password", async (req: any, res: any) => {
+router.patch("/auth/password", changePasswordLimiter, async (req: any, res: any) => {
   const userId = req.session?.userId;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   const { currentPassword, newPassword } = req.body ?? {};
@@ -184,7 +191,7 @@ router.patch("/auth/password", async (req: any, res: any) => {
 });
 
 // POST /api/auth/forgot-password
-router.post("/auth/forgot-password", async (req: any, res: any) => {
+router.post("/auth/forgot-password", forgotPasswordLimiter, async (req: any, res: any) => {
   const { email } = req.body ?? {};
   const e = String(email ?? "").trim().toLowerCase();
   if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
@@ -248,7 +255,7 @@ router.post("/auth/forgot-password", async (req: any, res: any) => {
 });
 
 // POST /api/auth/reset-password
-router.post("/auth/reset-password", async (req: any, res: any) => {
+router.post("/auth/reset-password", resetPasswordLimiter, async (req: any, res: any) => {
   const { token, newPassword } = req.body ?? {};
   if (!token || !newPassword) {
     return res.status(400).json({ error: "Все поля обязательны" });
