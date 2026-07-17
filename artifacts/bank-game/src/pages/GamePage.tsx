@@ -30,6 +30,9 @@ import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 import SettingsWidget from "@/components/SettingsWidget";
+import EconomyV2MockLayer from "@/components/v2/EconomyV2MockLayer";
+import { DEBUG_WATER_V2_PRESET_SEC, SHOW_ECONOMY_V2_MOCKS } from "@/lib/featureFlags";
+import { buildWaterV1LegacyPreset, WATER_PRESETS } from "@/lib/gamePresets/waterPresets";
 
 import { APP_VERSION } from "@/lib/engine";
 
@@ -66,6 +69,14 @@ const APPLE_POSITIONS: [number, number][][] = [
   [[12, 48], [81, 48], [41, 52], [43, 18]],
 ];
 const APPLE_SIZES = [4, 5, 6, 7, 8];
+
+function resolveWaterPreset(bonusSeconds: number) {
+  if (DEBUG_WATER_V2_PRESET_SEC != null) {
+    const v2Preset = WATER_PRESETS.find((p) => p.durationSec === DEBUG_WATER_V2_PRESET_SEC);
+    if (v2Preset) return v2Preset;
+  }
+  return buildWaterV1LegacyPreset(bonusSeconds);
+}
 
 export default function GamePage({ state, onStateChange, notif, onClearNotif, onResetAccount }: Props) {
   const { user, logout, updateNickname } = useAuth();
@@ -368,6 +379,32 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   })();
   const storedSessions = 1 + computedMissed;
   const pendingStoredSessions = game.pendingStoredSessions ?? 1;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.log("[Dev] /game/state session fields", {
+      missedSessions: game.missedSessions,
+      lastSessionTime: game.lastSessionTime,
+      sessionInProgress: game.sessionInProgress,
+      pendingStoredSessions,
+      water: game.water,
+      sun: game.sun,
+      fertilizer: game.fertilizer,
+      computedMissed,
+      storedSessions,
+      locked: isSessionLocked(game.lastSessionTime, Date.now()),
+    });
+  }, [
+    game.missedSessions,
+    game.lastSessionTime,
+    game.sessionInProgress,
+    game.water,
+    game.sun,
+    game.fertilizer,
+    pendingStoredSessions,
+    computedMissed,
+    storedSessions,
+  ]);
 
   const stage = getTreeStage(game.treeGrowthMM ?? 0);
 
@@ -1086,9 +1123,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
 
       {/* PLAY FIELD — pure game area, bounded by top-bar and bottom-nav */}
-      <div className="game-area" ref={gameAreaRef}>
+      <div className={`game-area${SHOW_ECONOMY_V2_MOCKS ? " game-area--v2-mocks" : ""}`} ref={gameAreaRef}>
         {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
         <GameAreaBg purchasedItems={purchasedItems} />
+        {SHOW_ECONOMY_V2_MOCKS && <EconomyV2MockLayer />}
 
         {/* Tutorial welcome screen — shown before anything starts */}
         {!tutorialDone && tutorialStep === "welcome" && (
@@ -1597,8 +1635,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           ) : (
             <FallingGameWater
               type={activeMinigame}
+              preset={resolveWaterPreset(getStreakBonusSeconds(game.streakDays))}
               onComplete={(score, count) => handleMinigameComplete(activeMinigame, score, count)}
-              bonusSeconds={getStreakBonusSeconds(game.streakDays)}
             />
           )}
         </div>

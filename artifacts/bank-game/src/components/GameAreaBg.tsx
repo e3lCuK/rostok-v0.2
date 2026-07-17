@@ -6,15 +6,16 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
   const has = (id: string) => purchasedItems.includes(id);
 
   return (
-    <div className="game-area-bg-wrap">
-      {/* Sky layer */}
-      <svg
-        className="game-area-bg-sky"
-        viewBox="0 0 340 600"
-        preserveAspectRatio="xMidYMin slice"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
+    <>
+      <div className="game-area-bg-wrap">
+        {/* Sky layer */}
+        <svg
+          className="game-area-bg-sky"
+          viewBox="0 0 340 600"
+          preserveAspectRatio="xMidYMin slice"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
         {/* Sun */}
         <g opacity="0.35" className="bg-sun">
           <circle cx="298" cy="28" r="9" fill="#fde68a" />
@@ -63,8 +64,9 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           </g>
         )}
       </svg>
+      </div>
 
-      {/* Ground layer */}
+      {/* Ground layer — sibling of sky wrap for v2 root layering (z-index above underground) */}
       <svg
         className="game-area-bg-ground"
         width="100%"
@@ -132,6 +134,6 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
         <ellipse cx="145" cy="62" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
         <ellipse cx="285" cy="63" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
       </svg>
-    </div>
+    </>
   );
 }

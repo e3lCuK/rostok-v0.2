@@ -1,12 +1,18 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import GameTimer from "./GameTimer";
+import {
+  buildWaterV1LegacyPreset,
+  type WaterPreset,
+} from "@/lib/gamePresets/waterPresets";
 
 export type GameType = "water" | "sun" | "fertilizer";
 
 interface Props {
   type?: GameType;
   onComplete: (skillScore: number, count: number) => void;
+  /** @deprecated Prefer `preset.durationSec` (includes streak bonus in v1 legacy preset). */
   bonusSeconds?: number;
+  preset?: WaterPreset;
 }
 
 const CONFIGS = {
@@ -48,8 +54,6 @@ const CONFIGS = {
   },
 } as const;
 
-const GAME_MS     = 15_000;
-const TOTAL_DROPS = 35;
 const DROP_R      = 11;
 const BAR_W       = 88;
 const BAR_H       = 11;
@@ -64,22 +68,27 @@ function feedbackLabel(n: number): string {
   return "Попробуйте ещё";
 }
 
-function makeDrop(id: number, gameDuration: number) {
-  const spawnAt = (id / TOTAL_DROPS) * (gameDuration * 0.87) + (Math.random() * 300 - 150);
-  return {
-    id,
-    x:       DROP_R + Math.random() * (W - DROP_R * 2),
-    y:       -DROP_R,
-    spawnAt: Math.max(0, spawnAt),
-    active:  false,
-    caught:  false,
-  };
+interface Drop {
+  id: number;
+  x: number;
+  y: number;
+  spawnAt: number;
+  active: boolean;
+  caught: boolean;
 }
 
-type Drop = ReturnType<typeof makeDrop>;
+export default function FallingGameWater({
+  type = "water",
+  onComplete,
+  bonusSeconds = 0,
+  preset,
+}: Props) {
+  const activePreset = preset ?? buildWaterV1LegacyPreset(bonusSeconds);
+  const totalMs = activePreset.durationSec * 1000;
+  const totalDrops = activePreset.totalDrops;
+  const spawnIntervalMs = activePreset.spawnIntervalMs;
+  const uncappedSpawns = activePreset.id === "water-v1-legacy";
 
-export default function FallingGameWater({ type = "water", onComplete, bonusSeconds = 0 }: Props) {
-  const totalMs = GAME_MS + bonusSeconds * 1000;
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const barX            = useRef(W / 2);
   const doneRef         = useRef(false);
@@ -89,9 +98,13 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
   const [result, setResult]       = useState<{ catches: number; skillScore: number } | null>(null);
 
   useEffect(() => {
+    setTimerMs(totalMs);
+  }, [totalMs]);
+
+  useEffect(() => {
     const id = setInterval(() => setTimerMs(t => Math.max(0, t - 100)), 100);
     return () => clearInterval(id);
-  }, []);
+  }, [totalMs]);
 
   const clampBar = (x: number) =>
     Math.max(BAR_W / 2, Math.min(W - BAR_W / 2, x));
@@ -121,11 +134,11 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });
     canvas.style.cursor = "none";
 
-    const SPAWN_INTERVAL = GAME_MS / TOTAL_DROPS;
+    doneRef.current = false;
     const activeDrops: Drop[] = [];
     let dropIdCounter = 0;
     let catches = 0;
-    let lastSpawnAt = -SPAWN_INTERVAL;
+    let lastSpawnAt = -spawnIntervalMs;
     let rafId   = 0;
     let lastTs  = -1;
     const start = performance.now();
@@ -149,8 +162,13 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
       doneRef.current = true;
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
-      const skillScore = Math.min(100, Math.round((Math.min(catches, TOTAL_DROPS) / TOTAL_DROPS) * 100));
-      console.log(`[FallingGame:${type}] catches: ${catches}/${TOTAL_DROPS}  skillScore: ${skillScore}/100`);
+      const skillScore = Math.min(
+        100,
+        Math.round((Math.min(catches, totalDrops) / totalDrops) * 100),
+      );
+      console.log(
+        `[FallingGame:${type}] catches: ${catches}/${totalDrops}  skillScore: ${skillScore}/100  preset: ${activePreset.id}`,
+      );
       setResult({ catches, skillScore });
     }
     forceFinishRef.current = finish;
@@ -164,8 +182,9 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
 
       if (elapsed >= totalMs) { finish(); return; }
 
-      while (elapsed - lastSpawnAt >= SPAWN_INTERVAL) {
-        lastSpawnAt += SPAWN_INTERVAL;
+      while (elapsed - lastSpawnAt >= spawnIntervalMs) {
+        if (!uncappedSpawns && dropIdCounter >= totalDrops) break;
+        lastSpawnAt += spawnIntervalMs;
         activeDrops.push({
           id: dropIdCounter++,
           x: DROP_R + Math.random() * (W - DROP_R * 2),
@@ -236,7 +255,7 @@ export default function FallingGameWater({ type = "water", onComplete, bonusSeco
       canvas.removeEventListener("touchmove", onTouchMove);
       canvas.style.cursor = "default";
     };
-  }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [type, totalMs, totalDrops, spawnIntervalMs, uncappedSpawns, activePreset.id]);
 
   const cfg = CONFIGS[type];
 
