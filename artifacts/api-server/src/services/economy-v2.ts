@@ -108,12 +108,17 @@ export function applyFreshnessToEnergy(
 
 /** Isolated v2 economy stub — not wired into production game flow. */
 export function calculateEconomyV2(input: EconomyV2Input): EconomyV2Result {
-  const capital = Math.max(0, input.capital);
-  const elapsedSeconds = Math.max(0, input.elapsedSeconds);
+  const normalizedCapital = Number.isFinite(input.capital)
+    ? Math.max(0, input.capital)
+    : 0;
+
+  const normalizedElapsedSeconds = Number.isFinite(input.elapsedSeconds)
+    ? Math.max(0, input.elapsedSeconds)
+    : 0;
 
   const rawEnergy =
-    Math.pow(capital, CAPITAL_EXPONENT) *
-    (elapsedSeconds / FULL_REGEN_SECONDS) *
+    Math.pow(normalizedCapital, CAPITAL_EXPONENT) *
+    (normalizedElapsedSeconds / FULL_REGEN_SECONDS) *
     RAW_ENERGY_SCALE;
 
   const freshnessCoefficient = input.freshnessCoefficient ?? 1;
