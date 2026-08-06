@@ -23,10 +23,17 @@
   --green-light: #f0fdf4;
   --green-mid: #bbf7d0;
   --gold: #d97706;
+  /* Shared cream fill: apple / growth / capital badges, empty roots, activity buttons */
+  --field-caption-bg: rgba(255, 248, 236, 0.92);
   --radius: 20px;
   --radius-sm: 12px;
   --shadow: 0 2px 16px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 24px rgba(0,0,0,0.10);
+  /* Keep in sync with CARE_FILL_ANIMATION_MS in careActionsPhase.ts */
+  --care-fill-duration: 0.9s;
+  /* Keep in sync with CARE_TO_SHOVEL_MS / care converge CSS */
+  --care-converge-duration: 0.35s;
+  --care-btn-appear-duration: 0.3s;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
 }
 
@@ -484,26 +491,12 @@ body {
 .session-counter-num { font-size: 1.1rem; font-weight: 800; color: var(--text); }
 
 .session-counter-right { display: flex; flex-direction: column; align-items: center; text-align: center; }
-.session-timer-label { font-size: 0.62rem; color: var(--text3); margin-bottom: 2px; }
-.session-timer {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  justify-content: center;
-}
-.session-timer svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--text3); }
-.session-timer span { line-height: 1; }
-.session-ready-text { font-size: 0.78rem; font-weight: 700; color: var(--green); text-align: center; width: 100%; }
 .session-earn-hint { font-size: 0.65rem; color: var(--text3); margin-top: 6px; }
 
-/* Top bar — separate block above play field */
+/* Top bar — separate block above play field (level lives on the field) */
 .game-top-bar {
   flex-shrink: 0;
-  height: 90px;
+  height: 52px;
   background: var(--bg);
   border-bottom: 2px solid rgba(100, 160, 40, 0.55);
   position: relative;
@@ -512,7 +505,7 @@ body {
 }
 .game-topbar-divider {
   width: 1px;
-  height: 66px;
+  height: 36px;
   background: rgba(100, 160, 40, 0.55);
   flex-shrink: 0;
   align-self: center;
@@ -534,11 +527,20 @@ body {
   flex: 0 0 78px;
 }
 
+.game-topbar-col-settings {
+  /* Keep topbar column height after status chrome removal */
+  min-height: 52px;
+}
+.game-topbar-col[data-topbar-resources="true"] {
+  /* Growth moved to the tree; keep column height for income flash */
+  min-height: 52px;
+}
 
-/* Game area — pure play field */
+
+/* Game area — full-bleed play field (no top/bottom nav; earth fills the floor) */
 .game-area {
-  background: linear-gradient(160deg, #d4edaa 0%, #b8de74 40%, #f5e87c 100%);
-  padding: 0 20px 50px;
+  background: linear-gradient(180deg, #b7dff5 0%, #cfe9c0 16%, #d4edaa 32%, #b8de74 55%, #f5e87c 100%);
+  padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 8px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -551,26 +553,36 @@ body {
 .game-area::before,
 .game-area::after { content: none; }
 
-.game-session-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 0 8px;
-  gap: 2px;
-  position: relative;
-  margin-top: 16px;
-}
-
 .game-top-controls {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   gap: 5px;
   z-index: 20;
+}
+
+/* Income flash — left of the capital chest */
+.field-income-popup {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(100% + 6px);
+  left: auto;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+  color: #c9920a;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(255, 248, 236, 0.9);
+  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.14);
+  white-space: nowrap;
+  height: fit-content;
+  margin-block: auto;
 }
 
 .game-beta-badge {
@@ -599,6 +611,12 @@ body {
 .game-gear-wrap {
   position: relative;
 }
+.game-settings-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+}
 
 .game-gear-btn {
   display: flex;
@@ -608,40 +626,17 @@ body {
   height: 22px;
   border: none;
   border-radius: 3px;
-  background: rgba(180, 190, 160, 0.45);
-  color: #111;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6b7280;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
   transition: background 0.12s;
 }
-.game-gear-btn:active { background: rgba(160, 175, 140, 0.55); }
-
-.game-session-detail {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #111;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  line-height: 1.2;
-  margin: 0;
-  padding: 0;
-}
-.game-session-detail .session-timer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #111;
-  gap: 2px;
-}
-.game-session-detail .session-timer svg { color: #111; }
-
-.battery-svg {
-  display: block;
-  margin: 0 auto;
+.game-gear-btn:active {
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .game-area-bg-wrap {
@@ -670,6 +665,156 @@ body {
   display: block;
   z-index: 4;
   pointer-events: none;
+}
+
+/* Level diamond — top-left of play field (above apple basket) */
+.field-level-host {
+  position: absolute;
+  top: 6px;
+  left: 2px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.field-level-host .lvl-badge-wrap {
+  pointer-events: auto;
+}
+.field-level-host .lvl-badge svg {
+  width: 64px;
+  height: 68px;
+}
+.field-level-xp-popup {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  padding-top: 0;
+  pointer-events: none;
+  z-index: 13;
+}
+
+/* Apple basket — left of left bush; replaces topbar apple row */
+.apple-basket-host {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: 18px;
+  z-index: 8;
+  /* Sized only by the basket button — popup is absolute and must not shift it */
+  display: block;
+  width: max-content;
+  pointer-events: none;
+}
+.game-area--v2-mocks .apple-basket-host {
+  bottom: calc(var(--v2-scene-lift) + 16px);
+  left: 0;
+  right: auto;
+}
+.game-area--v3-roots .apple-basket-host {
+  bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury) + 14px);
+  left: 0;
+  right: auto;
+}
+.apple-basket {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.apple-basket:active .apple-basket-art-wrap {
+  filter: brightness(0.97);
+}
+/* Soft oval under the basket only — no drop-shadow on the art (keeps count pill clean) */
+.apple-basket-art-wrap {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 44px;
+  line-height: 0;
+}
+.apple-basket-art-wrap::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  /* Same read as bush base ellipse — under basket, clear of count pill */
+  bottom: -1px;
+  z-index: 0;
+  width: 40px;
+  height: 11px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #5a9e1e;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.apple-basket-art {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 52px;
+  height: 44px;
+}
+/* Shared pill chrome for apple / growth / capital captions */
+.field-caption-badge {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  min-width: 40px;
+  padding: 1px 6px 2px;
+  border-radius: 999px;
+  background: var(--field-caption-bg);
+  box-shadow: 0 1px 2px rgba(80, 40, 20, 0.18);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.apple-basket-badge {
+  color: #c0392b;
+}
+/* Shared caption type for growth + apple + capital badges */
+.field-caption-value {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.field-caption-unit {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  opacity: 0.9;
+}
+/* Slot stays out of flow; left-aligned so the icon stays inside the play field */
+.apple-basket-popup-slot {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  transform: none;
+  pointer-events: none;
+  display: flex;
+  justify-content: flex-start;
+}
+.apple-basket-popup {
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #c0392b;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 248, 236, 0.92);
+  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.16);
+  white-space: nowrap;
 }
 
 /* ── Growth info button ─────────────────────────── */
@@ -830,25 +975,17 @@ body {
   color: #4d7c0f;
 }
 
-.tree-stage-hint {
-  text-align: center;
-  font-size: 0.78rem;
-  color: #6b7280;
-  margin: 0;
-  padding-top: 4px;
-  border-top: 1px solid rgba(100, 160, 40, 0.55);
-}
-
+/* Drift stays right of the level diamond (~viewBox x < 95). */
 @keyframes bg-cloud-drift-left {
   0%   { transform: translateX(0px); }
-  45%  { transform: translateX(55px); }
-  75%  { transform: translateX(34px); }
+  45%  { transform: translateX(36px); }
+  75%  { transform: translateX(20px); }
   100% { transform: translateX(0px); }
 }
 @keyframes bg-cloud-drift-right {
   0%   { transform: translateX(0px); }
-  40%  { transform: translateX(-50px); }
-  70%  { transform: translateX(-22px); }
+  40%  { transform: translateX(-28px); }
+  70%  { transform: translateX(-12px); }
   100% { transform: translateX(0px); }
 }
 @keyframes bg-birds-float {
@@ -937,6 +1074,10 @@ body {
   align-items: center;
   gap: 8px;
   z-index: 5;
+  /* Positioning context for trunk-glued roots (.v2-root-anchor). */
+  isolation: isolate;
+  /* Roots + chest extend below the wrap into the underground band. */
+  overflow: visible;
 }
 
 @keyframes tree-growth-pulse {
@@ -953,58 +1094,107 @@ body {
   animation: tree-growth-pulse 1.2s ease-in-out infinite;
 }
 
-.growth-timer {
+/* Permanent growth readout — right of tree; opens rating */
+.tree-growth-badge-host {
   position: absolute;
   left: 100%;
-  top: 22%;
+  top: 42%;
   transform: translateY(-50%);
-  margin-left: 4px;
+  margin-left: 6px;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   pointer-events: none;
+}
+.tree-growth-badge {
+  pointer-events: auto;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+  color: #166534;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.tree-growth-badge:active {
+  transform: scale(0.96);
+  background: rgba(255, 248, 236, 1);
+}
+.tree-growth-badge-popup {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #166534;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 248, 236, 0.92);
+  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.16);
+}
+
+/* Growth countdown — left of tree, same anchor as .tree-growth-badge-host */
+.growth-timer {
+  position: absolute;
+  right: 100%;
+  left: auto;
+  top: 42%;
+  transform: translateY(-50%);
+  margin-right: 6px;
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
   z-index: 10;
 }
 
+/* Match .field-caption-badge chrome; tree icon left of the countdown */
 .growth-timer-row {
   display: flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(255,255,255,0.68);
-  border-radius: 20px;
-  padding: 5px 11px 5px 8px;
+  justify-content: center;
+  gap: 3px;
+  min-width: 40px;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  padding: 1px 6px 2px;
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(6px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  box-shadow: 0 1px 2px rgba(80, 40, 20, 0.18);
+  line-height: 1.1;
   white-space: nowrap;
+  color: #166534;
 }
 
 .growth-timer-bar {
   position: absolute;
-  left: 0; top: 0; bottom: 0;
-  background: rgba(134, 239, 172, 0.45);
-  border-radius: 20px;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(134, 239, 172, 0.35);
+  border-radius: 999px;
   transition: width 1s linear;
 }
 
 .growth-timer-leaf {
   position: relative;
   z-index: 1;
-  color: #16a34a;
   display: flex;
   align-items: center;
+  color: #16a34a;
   animation: leaf-blink 1s ease-in-out infinite;
 }
 
 .growth-timer-time {
   position: relative;
   z-index: 1;
-  font-size: 13px;
-  font-weight: 700;
   color: #166534;
-  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 @keyframes leaf-blink {
@@ -1205,11 +1395,14 @@ body {
 }
 
 .activities-disabled .action-btn-bank {
-  background: rgba(255, 255, 255, 0.70);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: rgba(0, 0, 0, 0.38);
+  /* Same cream shell as empty root segments */
+  background: var(--v3-shell-empty, var(--field-caption-bg));
+  border: 2px solid rgba(70, 55, 40, 0.18);
+  color: rgba(70, 55, 40, 0.38);
   box-shadow: none;
   backdrop-filter: none;
+  opacity: 1;
+  filter: none;
 }
 
 /* ── Activity animations ─────────────────────────── */
@@ -1233,6 +1426,19 @@ body.modal-open {
   position: relative;
   display: inline-block;
   transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.tree-wrapper--hit {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tree-wrapper--hit:focus-visible {
+  outline: 2px solid rgba(22, 101, 52, 0.55);
+  outline-offset: 4px;
+  border-radius: 12px;
 }
 
 .tree-wrapper.transitioning {
@@ -1450,6 +1656,10 @@ body.modal-open {
 
 .xp-level-modal {
   height: auto;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .xp-level-progress {
@@ -1461,10 +1671,20 @@ body.modal-open {
   flex-direction: column;
   gap: 6px;
 }
-.xp-level-progress-only {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
+.xp-level-achievements {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+.xp-level-achievements-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #166534;
 }
 .xp-level-progress-header {
   display: flex;
@@ -1924,7 +2144,7 @@ body.modal-open {
 .xp-result-pct   { font-size: 13px; font-weight: 700; color: #f1f5f9; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
 .xp-result-arrow { font-size: 11px; color: #cbd5e1; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
 .xp-result-xp    { font-size: 13px; font-weight: 800; color: #16a34a; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-.xp-result-mm    { font-size: 12px; font-weight: 700; color: #a16207; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+.xp-result-mm    { font-size: 12px; font-weight: 700; color: #d97706; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
 
 /* ── Level-up animation overlay ───────────────────── */
 .levelup-overlay {
@@ -2322,19 +2542,20 @@ body.modal-open {
   100% { opacity: 0; transform: translate(-50%,-50%) scale(2.2) rotate(28deg); }
 }
 
-/* Fertilizer */
+/* Fertilizer granules (rise toward roots) */
 .fertilizer-particle {
   position: absolute;
   bottom: 14px;
   width: 8px;
-  height: 8px;
+  height: 6px;
   border-radius: 50%;
   opacity: 0;
   animation: riseUp 1.0s ease-out forwards;
 }
 
-.fertilizer-particle:nth-child(odd)  { background: #86efac; }
-.fertilizer-particle:nth-child(even) { background: #a16207; }
+.fertilizer-particle:nth-child(odd)  { background: #d97706; }
+.fertilizer-particle:nth-child(even) { background: #f59e0b; }
+.fertilizer-particle:nth-child(3n)   { background: #ea580c; width: 7px; height: 5px; }
 
 @keyframes riseUp {
   0%   { transform: translateY(0);     opacity: 0; }
@@ -2356,7 +2577,15 @@ body.modal-open {
   padding: 0;
 }
 
+/* Metelka cleaning: left actions column must not steal cobweb clicks.
+   Slot used visibility:hidden only — parent still hit-tested above webs (z-index 15 > 9). */
+.session-actions-wrap--cleaning {
+  pointer-events: none;
+}
+
 .session-actions {
+  --action-btn-size: var(--care-control-size, 46px);
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2390,17 +2619,25 @@ body.modal-open {
 }
 
 .care-btn {
+  --ac: #92400e;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0;
-  width: 54px;
-  min-height: 54px;
+  width: var(--action-btn-size, 46px);
+  height: var(--action-btn-size, 46px);
+  min-width: var(--action-btn-size, 46px);
+  min-height: var(--action-btn-size, 46px);
+  max-width: var(--action-btn-size, 46px);
+  max-height: var(--action-btn-size, 46px);
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   border-radius: 12px;
-  border: 2px solid #92400e;
-  background: rgba(255,255,255,0.80);
-  color: #92400e;
+  /* Same shell as energy timer / activity buttons */
+  border: 2px solid var(--ac);
+  background: var(--field-caption-bg);
+  color: var(--ac);
   font-size: 0.67rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -2408,13 +2645,24 @@ body.modal-open {
   cursor: pointer;
   animation: care-pulse 1.5s ease-in-out infinite;
   backdrop-filter: blur(4px);
+  box-shadow: none;
   position: relative;
   overflow: hidden;
 }
 
+.care-btn svg {
+  stroke-width: 2.25;
+}
+
+/* Bright rising fill — same intensity as timer green fill */
+.care-btn .action-btn-fill {
+  background: rgba(251, 191, 36, 0.5);
+  opacity: 1;
+}
+
 @keyframes care-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(146,64,14,0.0); }
-  50%       { box-shadow: 0 0 0 5px rgba(146,64,14,0.22); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(146, 64, 14, 0); }
+  50%       { box-shadow: 0 0 0 5px rgba(146, 64, 14, 0.22); }
 }
 
 .care-btn-clicked {
@@ -2441,31 +2689,46 @@ body.modal-open {
   flex-direction: column;
   gap: 12px;
   align-items: center;
+  transition: gap var(--care-converge-duration, 0.35s) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .action-btn-bank {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  min-height: 54px;
+  width: var(--action-btn-size, 46px);
+  height: var(--action-btn-size, 46px);
+  min-width: var(--action-btn-size, 46px);
+  min-height: var(--action-btn-size, 46px);
+  max-width: var(--action-btn-size, 46px);
+  max-height: var(--action-btn-size, 46px);
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   border-radius: 12px;
-  border: 2px solid var(--ac, #16a34a);
-  background: rgba(255,255,255,0.80);
-  color: var(--ac, #16a34a);
+  /* Same cream shell as apple / growth / capital captions */
+  border: 2px solid var(--ac, #166534);
+  background: var(--field-caption-bg);
+  color: var(--ac, #166534);
+  backdrop-filter: blur(4px);
+  box-shadow: none;
   cursor: pointer;
   font-size: 0.67rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0px;
   transition: background 0.12s, opacity 0.12s;
-  backdrop-filter: blur(4px);
   overflow: hidden;
   position: relative;
 }
 
 .action-btn-bank:hover:not(:disabled) {
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 248, 236, 1);
+}
+
+/* Match Zap weight on the energy timer (strokeWidth 2.25). */
+.action-btn-bank .action-btn-content svg,
+.action-btn-bank .action-btn-top svg {
+  stroke-width: 2.25;
 }
 
 .action-btn-content {
@@ -2478,8 +2741,567 @@ body.modal-open {
 .action-btn-done {
   flex-direction: column;
   justify-content: center;
-  background: rgba(255,255,255,0.55);
+  background: var(--field-caption-bg);
   cursor: default;
+  color: var(--ac, #166534);
+  border-color: var(--ac, #166534);
+}
+
+.action-btn-done .action-btn-fill {
+  opacity: 0.55;
+  background: var(--ac, #166534);
+}
+
+.action-btn-done .action-btn-top {
+  color: var(--ac, #166534);
+}
+
+/* Unidirectional Care trio → «Уход»: monotonic shrink+converge, no bounce back to 1 */
+.action-buttons-row--converging {
+  gap: 0;
+}
+
+.action-buttons-row--converging .action-btn-bank {
+  /* End state only — monotonic shrink, never return to full size */
+  transform: scale(0.85);
+  opacity: 0;
+  transition:
+    transform var(--care-converge-duration, 0.35s) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity var(--care-converge-duration, 0.35s) cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.action-buttons-row--converging .action-btn-bank .action-btn-fill {
+  /* Keep result fill readable while cubes converge (until faded) */
+  opacity: 0.55;
+}
+
+.action-buttons-row--care-shovel .care-btn,
+.care-btn.care-btn--from-converge {
+  /* Opacity (+ tiny scale) enter — no spring / bounce / scale-from-small */
+  animation:
+    care-btn-appear var(--care-btn-appear-duration, 0.3s) ease-out forwards,
+    care-pulse 1.5s ease-in-out var(--care-btn-appear-duration, 0.3s) infinite;
+}
+
+@keyframes care-btn-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.session-actions--converging {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-buttons-row,
+  .action-buttons-row--converging .action-btn-bank {
+    transition: none !important;
+  }
+
+  .action-buttons-row--care-shovel .care-btn,
+  .care-btn.care-btn--from-converge {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.action-btn-bank:disabled {
+  cursor: default;
+}
+
+/* v3 / tutorial: no reserve yet — same cream as empty root cells */
+.action-btn-bank--v3-locked,
+.action-btn-bank[data-v3-activity-locked="true"] {
+  background: var(--v3-shell-empty, var(--field-caption-bg));
+  border-color: rgba(70, 55, 40, 0.18);
+  color: rgba(70, 55, 40, 0.38);
+  opacity: 1;
+  filter: none;
+  cursor: default;
+  box-shadow: none;
+  animation: none !important;
+  pointer-events: none;
+}
+
+.action-btn-bank--v3-locked:hover,
+.action-btn-bank[data-v3-activity-locked="true"]:hover {
+  background: var(--v3-shell-empty, var(--field-caption-bg));
+}
+
+/* Fertilizer glyph matches Droplets/Sun / Zap size on the control */
+.action-btn-bank .fertilizer-icon-lg {
+  width: var(--action-btn-icon-fert, 16px);
+  height: var(--action-btn-icon-fert, 16px);
+}
+
+/* Metelka replaces the care trio — single centered card in the same row */
+.action-buttons-row--metelka {
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cleaning: entire care/Metelka column out of hit-testing (not only the slot). */
+.action-buttons-row--cleaning {
+  pointer-events: none;
+}
+
+.action-buttons-row--cleaning .action-buttons-row-cleaning-slot {
+  width: var(--action-btn-size, 46px);
+  min-width: var(--action-btn-size, 46px);
+  min-height: var(--action-btn-size, 46px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Excess cleaning countdown — top center of the play field */
+.excess-cleaning-timer {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 17;
+  pointer-events: none;
+}
+
+.excess-cleaning-timer-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid rgba(120, 113, 108, 0.28);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #44403c;
+  line-height: 1;
+  transition:
+    border-color 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.excess-cleaning-timer-capsule--urgent {
+  border-color: rgba(120, 113, 108, 0.48);
+  opacity: 0.92;
+}
+
+.excess-cleaning-timer-capsule--zero {
+  opacity: 0.72;
+  border-color: rgba(120, 113, 108, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .excess-cleaning-timer-capsule {
+    transition: none;
+  }
+}
+
+/* Metelka cobwebs — above left session-actions (z15); layer passes through clicks */
+.excess-cleaning-web-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.excess-cleaning-web {
+  position: absolute;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  /* White cobwebs — readable on green field; alpha in color, not on the button */
+  color: rgba(255, 255, 255, 0.88);
+  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  -webkit-appearance: none;
+  animation: excess-web-appear 0.35s ease-out;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+}
+
+.excess-cleaning-web--special {
+  color: rgba(239, 68, 68, 0.92);
+  filter: drop-shadow(0 1px 2px rgba(127, 29, 29, 0.35));
+  z-index: 1;
+}
+
+.excess-cleaning-web--clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.excess-cleaning-web:disabled {
+  cursor: default;
+}
+
+.excess-cleaning-web-visual {
+  display: block;
+  pointer-events: none;
+  line-height: 0;
+}
+
+.excess-cleaning-web--exiting {
+  animation: excess-web-exit 0.24s ease-in forwards;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .excess-cleaning-web {
+    animation: none;
+  }
+
+  .excess-cleaning-web--exiting {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@keyframes excess-web-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.88;
+  }
+}
+
+@keyframes excess-web-exit {
+  from {
+    opacity: 0.88;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+}
+
+/* Body-portal root — above tree / webs / HUD chrome */
+.excess-cleaning-reward-float-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Per-click Metelka reward floats (viewport-fixed via body portal). */
+.excess-cleaning-reward-float {
+  position: fixed;
+  z-index: 10051;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  color: #1a2e12;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(255, 255, 255, 0.85),
+    0 0 8px rgba(255, 255, 255, 0.55);
+  animation: excess-cleaning-reward-rise 600ms ease-out forwards;
+  --excess-float-dx: 0px;
+  --excess-float-dy: -28px;
+}
+
+.excess-cleaning-reward-float--xp {
+  color: #24540f;
+}
+
+.excess-cleaning-reward-float--money {
+  color: #1f5a28;
+}
+
+.excess-cleaning-reward-float--large {
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: 0.015em;
+}
+
+.excess-cleaning-reward-float--to-chest {
+  animation-name: excess-cleaning-reward-to-chest;
+}
+
+@keyframes excess-cleaning-reward-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0, 0);
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%)
+      translate(0, var(--excess-float-dy, -28px));
+  }
+}
+
+@keyframes excess-cleaning-reward-to-chest {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0, 0);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%)
+      translate(var(--excess-float-dx), var(--excess-float-dy));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .excess-cleaning-reward-float,
+  .excess-cleaning-reward-float--to-chest {
+    animation: excess-cleaning-reward-fade 550ms ease-out forwards;
+  }
+
+  @keyframes excess-cleaning-reward-fade {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%);
+    }
+    18%,
+    72% {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* Metelka claim error near tree coin (coin itself reuses .tree-apple-coin). */
+.metelka-reward-coin-error {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  z-index: 7;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: 160px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 248, 240, 0.92);
+  color: #8b2e1a;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Metelka finish result card (unused in UI — kept for legacy CSS refs). */
+.excess-cleaning-result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 11rem;
+  max-width: 16rem;
+  padding: 0.7rem 0.9rem 0.75rem;
+  border-radius: 12px;
+  background: linear-gradient(
+    165deg,
+    rgba(250, 247, 240, 0.96) 0%,
+    rgba(236, 230, 218, 0.94) 100%
+  );
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  color: #44403c;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(68, 64, 60, 0.08);
+}
+
+.excess-cleaning-result-title {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #57534e;
+}
+
+.excess-cleaning-result-cleared {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #292524;
+}
+
+.excess-cleaning-result-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #44403c;
+  font-variant-numeric: tabular-nums;
+}
+
+.excess-cleaning-result-xp {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: #57534e;
+  font-variant-numeric: tabular-nums;
+}
+
+.excess-cleaning-result-check {
+  color: #57534e;
+  flex-shrink: 0;
+}
+
+.excess-cleaning-result-continue {
+  margin-top: 0.2rem;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  background: rgba(255, 255, 255, 0.72);
+  color: #44403c;
+  border-radius: 8px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+/* Business hold (incomeApplied=false) — disabled, NOT loading. */
+.excess-cleaning-result-continue:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Real HTTP in flight only — wait cursor / busy affordance. */
+.excess-cleaning-result-continue--loading:disabled {
+  cursor: wait;
+}
+
+.action-buttons-row--result {
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .excess-cleaning-result-card {
+    transition: none;
+  }
+}
+
+.metelka-action-btn {
+  --ac: #44403c;
+  width: var(--action-btn-size, 46px);
+  height: var(--action-btn-size, 46px);
+  min-width: var(--action-btn-size, 46px);
+  min-height: var(--action-btn-size, 46px);
+  max-width: var(--action-btn-size, 46px);
+  max-height: var(--action-btn-size, 46px);
+  padding: 0;
+  /* Inherit frosted shell + border from .action-btn-bank via --ac */
+  color: var(--ac);
+  border-color: var(--ac);
+}
+
+.metelka-action-btn--active {
+  cursor: default;
+  background: var(--field-caption-bg);
+  border-color: var(--ac, #44403c);
+  border-width: 2px;
+  animation: metelka-active-soft 2.6s ease-in-out infinite;
+}
+
+@keyframes metelka-active-soft {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(68, 64, 60, 0);
+  }
+  50% {
+    box-shadow: inset 0 0 10px 0 rgba(68, 64, 60, 0.14);
+  }
+}
+
+.metelka-action-content {
+  gap: 0;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Bright rising fill — same intensity as energy timer fill */
+.metelka-action-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  background: rgba(168, 162, 158, 0.5);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 0;
+  transition: height 450ms ease-out;
+}
+
+.metelka-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: inherit;
+  stroke-width: 2.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metelka-action-fill {
+    transition: none;
+  }
+}
+
+/* Economy v2 energy debug — left side of game screen */
+.v2-energy-debug {
+  position: fixed;
+  left: 12px;
+  top: 16px;
+  z-index: 8;
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-width: 168px;
+  max-width: min(200px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  font-family: monospace;
+  pointer-events: auto;
+}
+
+@media (max-width: 520px) {
+  .v2-energy-debug {
+    top: 12px;
+    bottom: auto;
+    left: 8px;
+    max-height: calc(100dvh - 24px);
+    z-index: 8;
+  }
 }
 
 .action-btn-top {
@@ -2499,8 +3321,21 @@ body.modal-open {
   background: var(--ac, #16a34a);
   opacity: 0.22;
   border-radius: 0;
-  transition: height 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height var(--care-fill-duration, 0.9s) cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+  z-index: 0;
+}
+
+.action-btn-bank .action-btn-top,
+.action-btn-bank .action-btn-content {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-btn-fill {
+    transition: none !important;
+  }
 }
 
 .session-actions {
@@ -2790,6 +3625,55 @@ body.modal-open {
   padding: 12px 16px 6px;
 }
 
+.inc-modal-desc {
+  margin: 0;
+  padding: 12px 16px 4px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #4b5563;
+}
+
+.inc-preset-table {
+  padding: 0 0 16px;
+}
+
+.inc-preset-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  color: #1f2937;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.inc-preset-row:last-child {
+  border-bottom: none;
+}
+
+.inc-preset-head {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding-top: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.inc-preset-row span:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #166534;
+}
+
+.inc-preset-head span:last-child {
+  color: #9ca3af;
+  font-weight: 700;
+}
+
 .inc-modal-txns {
   padding: 0 0 16px;
 }
@@ -3001,13 +3885,13 @@ body.modal-open {
 }
 
 .settings-widget {
-  position: absolute;
-  top: 0;
-  right: calc(100% + 4px);
-  background: rgba(200, 230, 160, 0.97);
+  position: relative;
+  top: auto;
+  right: auto;
+  background: transparent;
   border: none;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  border-radius: 0;
+  box-shadow: none;
   padding: 0;
   z-index: 200;
   display: flex;
@@ -3017,11 +3901,19 @@ body.modal-open {
 
 .settings-icon-row {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  align-items: stretch;
   gap: 2px;
   padding: 0;
 }
 
+/* Email / password forms keep a horizontal control row inside the vertical panel */
+.settings-widget:has(.settings-input) .settings-icon-row {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Match floating gear button chrome */
 .settings-action-btn {
   display: flex;
   align-items: center;
@@ -3029,30 +3921,33 @@ body.modal-open {
   width: 22px;
   height: 22px;
   padding: 0;
-  background: rgba(180, 190, 160, 0.45);
+  background: rgba(255, 255, 255, 0.72);
   border: none;
   border-radius: 3px;
   cursor: pointer;
-  color: #111;
+  color: #6b7280;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
   transition: background 0.12s;
 }
 
 .settings-action-btn:hover {
-  background: rgba(160, 175, 140, 0.55);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .settings-action-active {
-  background: rgba(134, 176, 120, 0.55);
-  color: #14532d;
+  background: rgba(255, 255, 255, 0.88);
+  color: #4b5563;
 }
 
 .settings-action-logout {
   color: #b91c1c;
-  background: rgba(254, 202, 202, 0.45);
+  background: rgba(254, 226, 226, 0.88);
 }
 
 .settings-action-logout:hover {
-  background: rgba(252, 165, 165, 0.55);
+  background: rgba(254, 202, 202, 0.95);
+  color: #991b1b;
 }
 
 .settings-form {
@@ -3075,21 +3970,23 @@ body.modal-open {
   height: 22px;
   flex-shrink: 0;
   padding: 0;
-  background: rgba(180, 190, 160, 0.45);
-  color: #111;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6b7280;
   border: none;
   border-radius: 3px;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
   transition: background 0.12s;
 }
-.settings-save-sm:hover { background: rgba(160, 175, 140, 0.55); }
+.settings-save-sm:hover { background: rgba(255, 255, 255, 0.88); }
 .settings-save-sm:disabled { opacity: 0.5; cursor: default; }
 
 .settings-close-sm {
-  background: rgba(180, 190, 160, 0.45);
-  color: #111;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6b7280;
 }
-.settings-close-sm:hover { background: rgba(160, 175, 140, 0.55); }
+.settings-close-sm:hover { background: rgba(255, 255, 255, 0.88); }
 
 .settings-input {
   width: 100px;
@@ -3767,27 +4664,8 @@ canvas {
 }
 
 /* ============================
-   SESSION STATUS BADGE
+   (session status badge removed — gear-only topbar)
 ==============================*/
-.session-status-badge {
-  display: inline-block;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 0 10px;
-  border-radius: 99px;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.session-status-ready {
-  background: none;
-  color: #111;
-}
-
-.session-status-locked {
-  background: none;
-  color: #111;
-}
 
 
 /* ============================
@@ -4334,6 +5212,11 @@ canvas {
   border-radius: 50%;
   background: #92B34D;
   pointer-events: none;
+  z-index: 2;
+}
+.lvl-badge-ach-dot {
+  top: 6px;
+  right: 10px;
   animation: ach-dot-pulse 1.4s ease-in-out infinite;
 }
 @keyframes ach-dot-pulse {
@@ -4516,20 +5399,17 @@ canvas {
   height: 100%;
 }
 
-/* ── Tutorial mode: hide nav panels ────────────────────────── */
-.game-page-tutorial .game-top-bar {
+/* ── Tutorial mode: mute floating gear + bottom nav ─────────── */
+.game-page-tutorial .game-top-controls {
   pointer-events: none;
 }
-.game-page-tutorial .game-top-bar * {
+.game-page-tutorial .game-top-controls * {
   color: rgba(100, 160, 40, 0.35) !important;
   border-color: rgba(100, 160, 40, 0.18) !important;
   background: transparent !important;
   fill: rgba(100, 160, 40, 0.35) !important;
   stroke: rgba(100, 160, 40, 0.35) !important;
   box-shadow: none !important;
-}
-.game-page-tutorial .game-topbar-divider {
-  background: rgba(100, 160, 40, 0.18) !important;
 }
 .game-page-tutorial .game-bottom-nav-btn {
   color: rgba(100, 160, 40, 0.35);
@@ -4553,25 +5433,34 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
   background: #ffffff;
   border: 1px solid rgba(100, 160, 40, 0.55);
   border-radius: 24px;
-  padding: 18px 28px 14px;
+  padding: 16px 24px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
+  max-width: min(260px, calc(100% - 32px));
 }
 .tutorial-intro-tree {
-  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 2rem;
   line-height: 1;
-  margin-bottom: 2px;
+  text-align: center;
+  margin: 0;
 }
 .tutorial-intro-text {
   margin: 0;
-  font-size: 1.05rem;
+  width: 100%;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #166534;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.25;
 }
 .tutorial-intro-arrow {
   margin: 4px 0 2px;
@@ -4582,19 +5471,52 @@ canvas {
   50%       { transform: translateY(6px); }
 }
 .tutorial-intro-hint {
+  display: block;
+  width: 100%;
   font-size: 0.78rem;
   font-weight: 600;
   color: #4b7c25;
   letter-spacing: 0.01em;
+  text-align: center;
 }
 
 /* ── Tutorial water button pulse ────────────────────────────── */
 .tutorial-water-pulse {
   animation: tut-water-pulse 1.0s ease-in-out infinite !important;
 }
+/* Activity-button pulse only — roots use segment glow below. */
 @keyframes tut-water-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.55), 0 2px 8px rgba(0,0,0,0.10); transform: scale(1); }
   50%       { box-shadow: 0 0 0 8px rgba(59,130,246,0.0),  0 4px 16px rgba(59,130,246,0.35); transform: scale(1.06); }
+}
+
+/* Tutorial root target: soft segment blink — no outline / scale / layout shift. */
+.v3-root--tutorial-pulse {
+  outline: none;
+  box-shadow: none;
+  animation: none !important;
+  transform: none;
+}
+.v3-root--tutorial-pulse .v3-root-segments {
+  animation: v3-root-tut-seg-glow 1.6s ease-in-out infinite;
+}
+@keyframes v3-root-tut-seg-glow {
+  0%,
+  100% {
+    opacity: 0.78;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v3-root--tutorial-pulse .v3-root-segments {
+    animation: none;
+    opacity: 1;
+    filter: brightness(1.14);
+  }
 }
 
 /* ── Tutorial minigame hint banner ──────────────────────────── */
@@ -4636,21 +5558,30 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  text-align: center;
   background: #ffffff;
   border: 1px solid rgba(100, 160, 40, 0.55);
   border-radius: 24px;
-  padding: 22px 28px 18px;
+  padding: 22px 24px 18px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
   max-width: 280px;
   width: 90%;
+  box-sizing: border-box;
 }
 .tutorial-welcome-icon {
-  font-size: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 2.8rem;
   line-height: 1;
+  color: #166534;
 }
 .tutorial-welcome-title {
   margin: 0;
+  width: 100%;
   font-size: 1.05rem;
   font-weight: 800;
   color: #166534;
@@ -4658,31 +5589,64 @@ canvas {
 }
 .tutorial-welcome-desc {
   margin: 0;
+  width: 100%;
+  padding: 0;
   font-size: 0.82rem;
   color: #4b7c25;
   font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+.tutorial-welcome-desc--sub {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.9;
+  text-align: center;
 }
 .tutorial-welcome-games {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 6px;
   width: 100%;
   padding: 6px 0 2px;
+  box-sizing: border-box;
 }
 .tutorial-welcome-game-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   font-size: 0.88rem;
   color: #166534;
   font-weight: 600;
+  text-align: left;
   background: rgba(134,239,172,0.18);
   border-radius: 10px;
   padding: 6px 12px;
+  box-sizing: border-box;
+  width: 100%;
 }
-.tutorial-welcome-game-row span:first-child {
-  font-size: 1.15rem;
+.tutorial-welcome-game-icon {
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.tutorial-welcome-game-icon svg {
+  display: block;
+  flex-shrink: 0;
+}
+.tutorial-welcome-game-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.3;
 }
 .tutorial-welcome-btn {
   margin-top: 4px;
@@ -4695,6 +5659,7 @@ canvas {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  text-align: center;
   transition: opacity 0.15s;
 }
 .tutorial-welcome-btn:hover { opacity: 0.9; }
@@ -5062,20 +6027,367 @@ canvas {
 .auth-back-btn:hover { text-decoration: underline; }
 
 /* ============================================================
+   v2 Care — energy HUD / sync errors (production Care path)
+   ============================================================ */
+
+/* Central energy HUD removed — timer sits to the right of roots. */
+
+/* Root timer — capsule patterned after .growth-timer (tree growth countdown). */
+.v2-root-timer-side {
+  display: block;
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 8px;
+  width: auto;
+  max-width: 108px;
+  pointer-events: none;
+  z-index: 6;
+  text-align: left;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.v2-root-timer-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.68);
+  border-radius: 20px;
+  padding: 5px 10px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  white-space: nowrap;
+}
+
+.v2-root-timer-capsule--status {
+  justify-content: flex-start;
+  white-space: normal;
+}
+
+/* Outline energy mark inside the capsule (growth-timer-leaf analogue). */
+.v2-root-timer-icon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  color: #166534;
+  line-height: 0;
+}
+
+.v2-root-timer-icon svg {
+  display: block;
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.v2-root-timer-side[data-timer-kind="hidden"] .v2-root-timer-icon {
+  opacity: 0.55;
+}
+
+.v2-root-timer-capsule__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: rgba(134, 239, 172, 0.5);
+  border-radius: 20px;
+  transition: width 1s linear;
+  pointer-events: none;
+}
+
+.v2-root-timer-capsule__time {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.v2-root-timer-side__message {
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b5a3e;
+  line-height: 1.25;
+  max-width: 72px;
+}
+
+.v2-root-timer-side--pulse .v2-root-timer-capsule__fill {
+  animation: v2-root-timer-capsule-pulse 1.4s ease-in-out infinite;
+}
+
+.v2-root-section--generating .v2-root-section__base,
+.v2-root-section--generating .v2-root-section__fill {
+  animation: v2-root-gen-pulse 1.6s ease-in-out infinite;
+}
+
+.v2-root-section--ready .v2-root-section__ready {
+  animation: v2-root-ready-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes v2-root-timer-capsule-pulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@keyframes v2-root-gen-pulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@keyframes v2-root-ready-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
+}
+
+@keyframes v2-root-collect-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0.18; }
+}
+
+.v2-root-section__collecting {
+  animation: v2-root-collect-flash 0.2s ease-out forwards;
+}
+
+.v2-root-hit--ready path {
+  cursor: pointer;
+}
+
+.v2-root-hit--ready:hover path {
+  stroke: rgba(122, 78, 44, 0.12);
+}
+
+.v2-root-hit-layer {
+  pointer-events: auto;
+}
+
+@keyframes v2-root-collect-float {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -16px);
+  }
+}
+
+.v2-root-collect-floater {
+  position: absolute;
+  z-index: 12;
+  pointer-events: none;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3d5c38;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  animation: v2-root-collect-float 650ms ease-out forwards;
+  white-space: nowrap;
+}
+
+.v2-care-sync-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(127, 45, 45, 0.08);
+  color: #7f2d2d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.v2-care-sync-retry {
+  border: 1px solid rgba(127, 45, 45, 0.35);
+  background: #fff;
+  color: #7f2d2d;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v2-care-sync-retry:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ============================================================
    v2 economy — isolated mock visuals (prefix: v2-root-*, v2-web-*)
    ============================================================ */
 
 .game-area--v2-mocks {
-  --v2-scene-lift: 58px;
+  /* Underground band: raise grass line; roots hang into this zone. */
+  --v2-scene-lift: 120px;
+}
+
+/*
+ * Economy v3 scene stack (vertical):
+ *   Tree → three roots (in soil) → capital chest → earth floor (no bottom nav)
+ *
+ * Layering (unified earth, no overlay mask):
+ *   soil back (z1) → roots (z2) → grass/earth surface (z3) → chest (z4) → tree (z5)
+ * Ground lip extends down over root crowns; tips stay visible in the soil band.
+ */
+.game-area--v3-roots {
+  /*
+   * Underground column (flex): roots → timer → chest, gap 6px everywhere.
+   * Actions sit just above the column (same 6px). Soil height = packed stack.
+   * Raise grass + whole stack together via lift / chest-bottom.
+   */
+  --v3-root-crown-bury: 8px;
+  --v3-actions-top-gap: 12px;
+  --v3-stack-gap: 6px;
+  --v3-actions-roots-gap: var(--v3-stack-gap);
+  --v3-actions-btn-gap: 6px;
+  --v3-roots-depth: 83px; /* 5×15 + 4×2 */
+  --v3-stack-roots-timer-gap: var(--v3-stack-gap);
+  --v3-stack-timer-chest-gap: var(--v3-stack-gap);
+  --care-control-size: 46px;
+  --action-btn-size: var(--care-control-size);
+  --action-btn-icon: 16px;
+  --action-btn-icon-fert: 18px;
+  --v3-timer-size: var(--care-control-size);
+  --v3-timer-energy-icon: 16px;
+  /*
+   * Floor inset: stack sits low (not raised with the grass), but not glued.
+   * Grass stays higher via --v2-scene-lift > packed stack height.
+   */
+  /* Sit lower into former bottom-nav space — soil fills the floor */
+  --v3-chest-bottom: 4px;
+  /* Host height = painted crate; SVG fills with preserveAspectRatio none. */
+  --v3-chest-height: 56px;
+  --v3-chest-top: 60px;
+  --v3-chest-gap: var(--v3-stack-gap);
+  --v3-root-anchor-tuck: -64px;
+  /*
+   * Packed stack from floor ≈ 4+56+6+46+6+83+6+46+8 = 261
+   * Extra lift above that raises only the grass line (more soil above the stack).
+   */
+  --v2-scene-lift: 288px;
+  --v3-timer-bottom: 66px;
+  padding-bottom: 4px;
 }
 
 .game-area--v2-mocks .game-tree-wrap {
-  bottom: var(--v2-scene-lift);
+  /* Seat trunk base / root fork on the grass↔soil line (no stem above the fork) */
+  bottom: calc(var(--v2-scene-lift) - 4px);
+}
+
+/* Trunk graphic under root strokes so majors can cover the stump */
+.game-area--v2-mocks .game-tree-wrap .tree-wrapper {
+  position: relative;
+  z-index: 1;
 }
 
 .game-area--v2-mocks .game-area-bg-ground {
   bottom: var(--v2-scene-lift);
   z-index: 3;
+}
+
+/* v3: earth surface continues slightly into the underground band over crowns. */
+.game-area--v3-roots .game-area-bg-ground {
+  bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury));
+  height: calc(90px + var(--v3-root-crown-bury));
+  z-index: 3;
+}
+
+.game-area--v3-roots .game-tree-wrap {
+  z-index: 5;
+}
+
+/*
+ * Flex column under the grass: roots → timer → chest.
+ * `gap` is the single source of truth (matches actions↔roots).
+ */
+.game-area--v3-roots .v3-underground-stack {
+  position: absolute;
+  left: 50%;
+  bottom: var(--v3-chest-bottom);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--v3-stack-gap);
+  width: max-content;
+  max-width: 92%;
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/*
+ * Decorative wrap roots — fan from the trunk base (grass line) down
+ * through the stack. Top reaches --v2-scene-lift so roots join the tree.
+ */
+.game-area--v3-roots .v3-underground-wrap-roots {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  top: auto;
+  width: min(340px, 98vw);
+  /* Stack bottom → grass/trunk line (+ slight tuck under the stump) */
+  height: calc(
+    var(--v2-scene-lift) - var(--v3-chest-bottom) + var(--v3-root-crown-bury, 8px)
+  );
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* v3 activities: row just above the underground flex column. */
+.game-area--v3-roots .session-actions-wrap {
+  top: auto;
+  left: 50%;
+  right: auto;
+  /* Above stack: floor + chest + gaps + timer + roots + actions↔roots gap */
+  bottom: calc(
+    var(--v3-chest-bottom) + var(--v3-chest-height) + var(--v3-stack-gap) +
+      var(--v3-timer-size) + var(--v3-stack-gap) + var(--v3-roots-depth) +
+      var(--v3-actions-roots-gap)
+  );
+  transform: translateX(-50%);
+  justify-content: center;
+  padding: 0 8px;
+  z-index: 6;
+}
+
+.game-area--v3-roots .session-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+}
+
+.game-area--v3-roots .action-buttons-row {
+  flex-direction: row;
+  gap: var(--v3-actions-btn-gap, 6px);
+  align-items: center;
+  justify-content: center;
+}
+
+.game-area--v3-roots .action-buttons-row--converging {
+  gap: 0;
 }
 
 .v2-underground-zone {
@@ -5086,22 +6398,82 @@ canvas {
   height: var(--v2-scene-lift, 58px);
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(180deg, #b88a5a 0%, #9b7048 100%);
+  overflow: visible;
+  background: transparent;
 }
 
-.v2-root-anchor {
+.v2-underground-soil {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  bottom: 0;
+  /* Peek slightly above the zone so the uneven soil lip can meet the grass */
+  height: calc(100% + 14px);
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/*
+ * Roots attach to `.game-tree-wrap` (not `.game-area`) so tree + roots share
+ * one transform on resize / growth pulse.
+ *
+ * SVG local origin is (100, 4) in a 200×88 view. Positioning:
+ *   left   = trunk center X within the wrap
+ *   bottom = originBottom - (svgHeight - originY)  [= originBottom - 84]
+ *   translateX(-100px) + transform-origin(100px, 4px)
+ *     → local (100, 4) lands on measured trunk bottom (+ overlap into wood).
+ */
+.game-tree-wrap .v2-root-anchor {
   position: absolute;
   left: var(--v2-trunk-base-x, 50%);
-  bottom: calc(var(--v2-trunk-base-bottom, var(--v2-scene-lift, 58px)) - 62px);
+  bottom: calc(
+    var(--v2-trunk-base-bottom, 0px) - var(--v2-root-origin-from-bottom, 84px)
+  );
   transform: translateX(-100px);
-  z-index: 4;
+  transform-origin: 100px 4px;
+  margin: 0;
+  top: auto;
+  z-index: 6;
   pointer-events: none;
   width: 200px;
-  height: 66px;
+  height: 88px;
   min-width: 200px;
-  min-height: 66px;
+  min-height: 88px;
   overflow: visible;
-  /* Geometry is locked by useV2TrunkAnchor after initial measure — size must stay fixed. */
+  box-sizing: border-box;
+  /* Hide until measured trunk bottom is applied — avoids F5 gap flash. */
+  opacity: 0;
+}
+
+.game-tree-wrap .v2-root-anchor[data-anchor-ready="true"] {
+  opacity: 1;
+}
+
+.game-tree-wrap .v2-root-anchor .v2-root-system,
+.game-tree-wrap .v2-root-anchor .v2-root-svg {
+  pointer-events: auto;
+}
+
+/* Legacy mock layer may still mount under .game-area — keep same origin math. */
+.game-area > .v2-root-anchor {
+  position: absolute;
+  left: var(--v2-trunk-base-x, 50%);
+  bottom: calc(
+    var(--v2-trunk-base-bottom, var(--v2-scene-lift, 100px)) -
+      var(--v2-root-origin-from-bottom, 84px)
+  );
+  transform: translateX(-100px);
+  transform-origin: 100px 4px;
+  margin: 0;
+  top: auto;
+  z-index: 6;
+  pointer-events: none;
+  width: 200px;
+  height: 88px;
+  min-width: 200px;
+  min-height: 88px;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -5134,9 +6506,9 @@ canvas {
 .v2-root-system {
   position: relative;
   width: 200px;
-  height: 66px;
+  height: 72px;
   min-width: 200px;
-  min-height: 66px;
+  min-height: 72px;
   /* No flex/grid — slot coordinates must not reflow when roots hide. */
 }
 
@@ -5146,8 +6518,171 @@ canvas {
   top: 0;
   display: block;
   width: 200px;
-  height: 66px;
+  height: 72px;
   overflow: visible;
+}
+
+.v2-capital-chest {
+  pointer-events: none;
+}
+
+.v2-chest-capital {
+  pointer-events: none;
+  user-select: none;
+  overflow: visible;
+}
+
+/* SVG fallback pill (RootEnergySystem label layer) — cream like .field-caption-badge */
+.v2-chest-capital__pill {
+  fill: rgba(255, 248, 236, 0.92);
+  filter: drop-shadow(0 1px 1.2px rgba(80, 40, 20, 0.18));
+}
+
+.v2-chest-capital text,
+.v2-chest-capital__text {
+  font-variant-numeric: tabular-nums;
+  overflow: visible;
+  fill: #c9920a; /* same as .progress-row-deposit */
+  font-weight: 500;
+}
+
+/* HTML capital caption on v3 chest — same pill/type as apple & growth */
+.v3-capital-badge {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+  color: #c9920a;
+  user-select: none;
+}
+.v3-capital-badge--bump {
+  animation: v2-chest-value-bump 420ms ease-out;
+}
+.v3-capital-badge .field-caption-value,
+.v3-capital-badge .field-caption-unit {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Soft reaction when capital value changes — brief, not looping. */
+.v2-chest-capital--bump .v2-chest-capital__text {
+  animation: v2-chest-value-bump 420ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center center;
+}
+
+.v2-chest-motion--react {
+  animation: v2-chest-soft-react 420ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+@keyframes v2-chest-value-bump {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes v2-chest-soft-react {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  35% {
+    transform: rotate(-0.5deg) scale(1.015);
+  }
+  70% {
+    transform: rotate(0.5deg) scale(1.01);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-chest-capital--bump .v2-chest-capital__text,
+  .v2-chest-motion--react,
+  .v3-capital-badge--bump {
+    animation: none !important;
+  }
+}
+
+/* One-shot income float — left of chest (not above). */
+.v2-income-chest-float {
+  position: absolute;
+  right: calc(100% + 6px);
+  left: auto;
+  top: 0;
+  bottom: 0;
+  z-index: 8;
+  margin-block: auto;
+  margin-inline: 0;
+  padding: 0;
+  height: fit-content;
+  pointer-events: none;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #c9920a;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  transform: translateX(0);
+  animation: v2-income-chest-float-side 850ms ease-out forwards;
+}
+
+@keyframes v2-income-chest-float-side {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  12% {
+    opacity: 0.95;
+    transform: translateX(0);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-income-chest-float {
+    animation: v2-income-chest-float-static 650ms ease-out forwards;
+  }
+
+  @keyframes v2-income-chest-float-static {
+    0%,
+    100% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    15%,
+    70% {
+      opacity: 0.95;
+      transform: translateX(0);
+    }
+  }
+}
+
+/* Ensure art layers stay above soil and remain unclipped. */
+.v2-root-system--art,
+.v2-root-system--art .v2-root-svg {
+  overflow: visible;
+}
+
+.v2-root-art--secondary path,
+.v2-root-art--tip path {
+  paint-order: stroke fill;
 }
 
 /* ── Excess webs ── */
@@ -5216,4 +6751,1083 @@ canvas {
 @keyframes v2-web-collect {
   0%   { transform: scale(1); opacity: 1; }
   100% { transform: scale(0.4); opacity: 0; }
+}
+
+/* ---- Economy v3 roots (primary when game.v3Roots.enabled) ---- */
+/*
+ * Hang from the grass line into the underground band.
+ * Anchored on .game-area (not tree-wrap) so earth surface can cover crowns.
+ *
+ * Critical: `bottom` is the BOTTOM of the anchor box. Roots grow from `top: 0`
+ * downward, so the TOP of this box must sit on the grass/trunk line:
+ *   top ≈ --v2-scene-lift, bottom ≈ lift - roots-depth (+ small crown tuck).
+ * (Using `bottom: lift - 8px` wrongly parked the box ABOVE the grass — petal look.)
+ */
+.game-area .v3-root-anchor {
+  position: absolute;
+  left: 50%;
+  /* Top of box = grass line + tuck (tuck < 0 → buried in soil under grass). */
+  bottom: calc(
+    var(--v2-scene-lift, 120px) - var(--v3-roots-depth, 96px) +
+      var(--v3-root-anchor-tuck, -12px)
+  );
+  top: auto;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+  /* Shrink-wrap the three stems under the trunk (no wide 100% band). */
+  width: fit-content;
+  max-width: 92%;
+  height: var(--v3-roots-depth, 96px);
+  box-sizing: border-box;
+}
+
+.game-area .v3-root-anchor .v3-root-system,
+.game-area .v3-root-anchor .v3-root {
+  pointer-events: auto;
+}
+
+/*
+ * v3 capital chest — below root tips with a small clear gap.
+ * Keep below bottom-nav by sitting inside .game-area (nav is a sibling below).
+ */
+.game-area .v3-capital-chest-host {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 80px;
+  max-width: 92%;
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/* Stack children: leave absolute anchoring; flex parent owns placement. */
+.game-area--v3-roots .v3-underground-stack .v3-root-anchor {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  top: auto;
+  transform: none;
+  width: fit-content;
+  max-width: 100%;
+  height: var(--v3-roots-depth);
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.game-area--v3-roots .v3-underground-stack .v3-root-wait-timer-host {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--v3-timer-size);
+  height: var(--v3-timer-size);
+  min-width: var(--v3-timer-size);
+  min-height: var(--v3-timer-size);
+  flex-shrink: 0;
+}
+
+.game-area--v3-roots .v3-underground-stack .v3-capital-chest-host {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  width: min(188px, 82vw);
+  max-width: 100%;
+  height: var(--v3-chest-height);
+  z-index: 4;
+  flex-shrink: 0;
+  /* visible: income float sits to the left of the chest */
+  overflow: visible;
+}
+.game-area--v3-roots .v3-underground-stack .v3-capital-chest-host .v3-capital-chest-layer {
+  /* keep SVG layers from stretching the flex gap */
+  overflow: hidden;
+}
+
+.game-area--v3-roots .v3-underground-stack .v3-capital-chest-layer {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.game-area--v3-roots .v3-root-wait-timer {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: var(--v3-timer-size);
+  height: var(--v3-timer-size);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+}
+
+/* Round timer = same size as activity buttons; fill rises bottom → top. */
+.game-area--v3-roots .v3-root-wait-timer-capsule {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+  width: var(--v3-timer-size);
+  height: var(--v3-timer-size);
+  min-width: var(--v3-timer-size);
+  min-height: var(--v3-timer-size);
+  box-sizing: border-box;
+  background: var(--field-caption-bg);
+  border: 2px solid #166534;
+  border-radius: 50%;
+  padding: 4px 3px;
+  backdrop-filter: blur(4px);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.game-area--v3-roots .v3-root-wait-timer-capsule__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(134, 239, 172, 0.5);
+  border-radius: 0;
+  transition: height 1s linear;
+  pointer-events: none;
+}
+
+.game-area--v3-roots .v3-root-wait-timer-icon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--v3-timer-energy-icon, 16px);
+  height: var(--v3-timer-energy-icon, 16px);
+  color: #166534;
+  line-height: 0;
+}
+
+.game-area--v3-roots .v3-root-wait-timer-icon svg {
+  display: block;
+  width: var(--v3-timer-energy-icon, 16px);
+  height: var(--v3-timer-energy-icon, 16px);
+  fill: none;
+  stroke: currentColor;
+}
+
+.game-area--v3-roots .v3-root-wait-timer-capsule__time {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 700;
+  color: #166534;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.game-area--v3-roots .v3-root-wait-timer--pulse .v3-root-wait-timer-capsule__fill {
+  animation: v2-root-timer-capsule-pulse 1.4s ease-in-out infinite;
+}
+
+/* --v3-timer-bottom follows scene tokens; no separate fragile overrides. */
+
+.v3-capital-chest-host .v3-capital-chest-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  display: block;
+}
+
+/* Fill host — letterboxing must not inflate the timer↔chest flex gap. */
+.game-area--v3-roots .v3-capital-chest-host .v3-capital-chest-layer {
+  object-fit: fill;
+  object-position: top center;
+}
+
+.v3-capital-chest-host .v3-capital-chest-layer--body {
+  z-index: 1;
+}
+
+.v3-capital-chest-host .v3-capital-chest-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Transparent hit target over the capital sum — opens accrual history. */
+.v3-capital-chest-hit {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  transform: translate(-50%, -50%);
+  width: 78%;
+  height: 42%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 3;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.v3-capital-chest-hit:focus-visible {
+  outline: 2px solid rgba(201, 146, 10, 0.75);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.v3-capital-chest-host .v3-capital-chest-layer--label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.v3-root-system {
+  display: block;
+  position: relative;
+  width: fit-content;
+  height: 100%;
+  padding: 0;
+  margin: 0 auto;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.v3-root-system-row {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  /* Compact trio: equal fixed gap between stems; centered, not stretched. */
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  width: fit-content;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0 auto;
+}
+
+.v3-root {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  /*
+   * Hit target stays 52px; negative margin cancels side dead-space so flex `gap`
+   * is measured between the 22px stems (~10px edge-to-edge), not 52px boxes.
+   * No vertical padding — column height must match --v3-roots-depth (83px).
+   */
+  width: 52px;
+  margin: 0 -15px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.v3-root:focus {
+  outline: none;
+}
+
+.v3-root:focus-visible {
+  outline: 2px solid rgba(166, 124, 82, 0.7);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* Layout wrapper only — no rotate / translate / lean. */
+.v3-root-trajectory {
+  display: block;
+}
+
+.v3-root--clickable {
+  cursor: pointer;
+}
+
+.v3-root--clickable:hover .v3-root-segment {
+  filter: brightness(1.05);
+}
+
+.v3-root--disabled {
+  cursor: default;
+}
+
+/*
+ * Metelka obligation: keep three root columns, gray segments, no clicks.
+ * Scoped to .v3-root-system only — tree / Metelka / HUD stay untouched.
+ */
+.v3-root-system--metelka-locked,
+.roots--metelka-locked {
+  pointer-events: none;
+}
+
+.v3-root-system--metelka-locked .v3-root,
+.v3-root--metelka-locked {
+  cursor: default;
+  pointer-events: none;
+  animation: none !important;
+  filter: none;
+}
+
+.v3-root-system--metelka-locked .v3-root--water,
+.v3-root-system--metelka-locked .v3-root--sun,
+.v3-root-system--metelka-locked .v3-root--fertilizer,
+.v3-root--metelka-locked {
+  --v3-shell: #b9b3ab;
+  --v3-shell-empty: #cdc7bf;
+}
+
+.v3-root-system--metelka-locked .v3-root-segment--empty,
+.v3-root--metelka-locked .v3-root-segment--empty {
+  background: var(--v3-shell-empty, #cdc7bf);
+  box-shadow: inset 0 0 0 1px rgba(90, 86, 80, 0.22);
+}
+
+.v3-root-system--metelka-locked .v3-root-segment--partial::after,
+.v3-root-system--metelka-locked .v3-root-segment--full::after,
+.v3-root--metelka-locked .v3-root-segment--partial::after,
+.v3-root--metelka-locked .v3-root-segment--full::after {
+  background: #8a847c;
+  box-shadow: none;
+  filter: none;
+}
+
+.v3-root-system--metelka-locked .v3-root-transfer-energy,
+.v3-root--metelka-locked .v3-root-transfer-energy {
+  background: #8a847c !important;
+}
+
+.v3-root-system--metelka-locked .v3-root--ready .v3-root-segments,
+.v3-root-system--metelka-locked .v3-root--full .v3-root-segments,
+.v3-root-system--metelka-locked .v3-root--waiting-motion .v3-root-segments,
+.v3-root-system--metelka-locked .v3-root--tutorial-pulse .v3-root-segments {
+  animation: none !important;
+  box-shadow: none;
+}
+
+/* Busy = in-flight transfer lock; keep size stable, only soften. */
+.v3-root--busy {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.v3-root-segments {
+  position: relative;
+  display: flex;
+  /*
+   * Bottom-up fill (visual only): logical seg0 fills first and must sit at the
+   * underground tip. column-reverse keeps DOM indices 0→4 but paints tip→crown.
+   * Roots still hang from the grass line (anchor), not “pillars growing up”.
+   * Natural height = 5×15 + 4×2 = 83px (= --v3-roots-depth).
+   */
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+  width: 22px;
+  overflow: visible;
+}
+
+.v3-root-segment {
+  position: relative;
+  flex: 0 0 auto;
+  height: 15px;
+  width: 22px;
+  border-radius: 6px;
+  /* Shell only — never the activity fill color (that belongs on ::after). */
+  background: var(--v3-shell, var(--field-caption-bg));
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.18);
+  /* States must not resize segments (no layout shift). */
+}
+
+/*
+ * Unified shell for all three roots (former fertilizer earth tone).
+ * Empty / partial shells match; only energy fill amount differs.
+ */
+.v3-root--water,
+.v3-root--sun,
+.v3-root--fertilizer {
+  /* Match .field-caption-badge / activity button cream fill */
+  --v3-shell: var(--field-caption-bg);
+  --v3-shell-empty: var(--field-caption-bg);
+}
+
+@media (max-width: 430px) {
+  .game-area--v3-roots {
+    --v3-chest-bottom: 4px;
+    --v3-chest-height: 52px;
+    --v3-chest-top: 56px;
+    --v2-scene-lift: 280px;
+    --v3-timer-bottom: 62px;
+  }
+
+  .game-area .v3-root-anchor {
+    width: fit-content;
+    max-width: 90%;
+  }
+
+  .v3-root-system-row {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .game-area--v3-roots {
+    --v3-root-crown-bury: 10px;
+    --v3-actions-top-gap: 12px;
+    --care-control-size: 42px;
+    --v3-root-anchor-tuck: -60px; /* -(12+42+6) */
+    --v3-chest-bottom: 2px;
+    --v3-chest-height: 50px;
+    --v3-chest-top: 52px;
+    --v2-scene-lift: 270px;
+    --v3-timer-bottom: 58px;
+  }
+
+  .game-area .v3-root-anchor {
+    width: fit-content;
+    max-width: 88%;
+  }
+
+  .v3-root-system-row {
+    gap: 8px;
+  }
+
+  .v3-root {
+    margin: 0 -14px;
+  }
+
+  .game-area .v3-capital-chest-host {
+    width: min(180px, 90%);
+  }
+
+  .game-area:not(.game-area--v3-roots) .v3-capital-chest-host {
+    height: 72px;
+  }
+}
+
+.v3-root-segment--empty {
+  background: var(--v3-shell-empty, var(--v3-shell, var(--field-caption-bg)));
+  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.12);
+}
+
+.v3-root-segment--partial,
+.v3-root-segment--full {
+  /* Keep shell tone — empty top of a partial segment must stay visible. */
+  background: var(--v3-shell, var(--field-caption-bg));
+}
+
+/* Energy fill: anchored to segment floor; height = --v3-seg-fill (e.g. 76.19%). */
+.v3-root-segment--partial::after,
+.v3-root-segment--full::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  width: 100%;
+  height: var(--v3-seg-fill, 100%);
+  max-height: 100%;
+  background: var(--v3-seg-color, #7a5a3a);
+  border-radius: inherit;
+  transform: none;
+  transform-origin: bottom center;
+  pointer-events: none;
+}
+
+.v3-root-segment--full::after {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* empty — muted idle shell, no motion */
+.v3-root--empty {
+  opacity: 0.92;
+}
+
+/* accumulating — calm fill, no blink */
+.v3-root--accumulating .v3-root-segment--partial::after {
+  opacity: 0.95;
+}
+
+/* ready / full+clickable — soft breathe, not casino glow */
+.v3-root--ready.v3-root--clickable .v3-root-segments,
+.v3-root--full.v3-root--clickable .v3-root-segments {
+  animation: v3-root-ready-breathe 2.6s ease-in-out infinite;
+}
+
+@keyframes v3-root-ready-breathe {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.07);
+  }
+}
+
+.v3-root--ready.v3-root--clickable .v3-root-segment--full::after,
+.v3-root--ready.v3-root--clickable .v3-root-segment--partial::after,
+.v3-root--full.v3-root--clickable .v3-root-segment--full::after {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* transferred — rare non-empty edge; calm idle, not pressed/active */
+.v3-root--transferred {
+  opacity: 0.92;
+  filter: none;
+}
+
+.v3-root--transferred .v3-root-segment--partial::after,
+.v3-root--transferred .v3-root-segment--full::after {
+  opacity: 0.15;
+}
+
+.v3-root--transferred.v3-root--waiting-motion,
+.v3-root--transferred.v3-root--waiting {
+  animation: none;
+  filter: none;
+}
+
+/* Empty transferred roots use .v3-root--empty (same calm idle shell). */
+
+/* frozen — temporarily unavailable, not broken */
+.v3-root--frozen {
+  opacity: 0.8;
+  filter: saturate(0.72);
+}
+
+.v3-root--frozen .v3-root-segment {
+  box-shadow: inset 0 0 0 1px rgba(120, 140, 170, 0.55);
+  background: #b4bcc6;
+}
+
+.v3-root--frozen .v3-root-segment--partial::after,
+.v3-root--frozen .v3-root-segment--full::after {
+  filter: saturate(0.65) brightness(0.95);
+}
+
+/* waiting — invite to collect remaining energy during insurance; calm */
+.v3-root--waiting {
+  opacity: 0.92;
+  filter: none;
+}
+
+/* Pulse opacity/brightness only — no geometry transforms. */
+.v3-root--waiting-motion .v3-root-segments {
+  animation: v3-root-waiting-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes v3-root-waiting-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    filter: brightness(1.02);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.07);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-root--waiting-motion .v3-root-segments,
+  .v3-root--ready.v3-root--clickable .v3-root-segments,
+  .v3-root--full.v3-root--clickable .v3-root-segments {
+    animation: none;
+    filter: brightness(1.05);
+  }
+}
+
+/* Tutorial root pulse (v3 scene): segments only — see .v3-root--tutorial-pulse above. */
+.game-area--v3-roots .v3-root--tutorial-pulse {
+  outline: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Immediate press feedback — no layout shift. */
+.v3-root--press .v3-root-segments {
+  filter: brightness(1.08);
+}
+
+.v3-root--press .v3-root-segment--full::after,
+.v3-root--press .v3-root-segment--partial::after {
+  filter: brightness(1.1);
+}
+
+/* Manual transfer: drain in-root while flight travels to the activity card. */
+.v3-root--transferring {
+  cursor: wait;
+}
+
+.v3-root--transferring .v3-root-segment--full::after,
+.v3-root--transferring .v3-root-segment--partial::after {
+  animation: v3-root-transfer-drain 700ms ease-in forwards;
+}
+
+.v3-root-transfer-channel {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.v3-root-transfer-energy {
+  position: absolute;
+  left: 18%;
+  width: 64%;
+  height: 22%;
+  bottom: 4%;
+  border-radius: 999px;
+  opacity: 0.92;
+  animation:
+    v3-root-transfer-rise 550ms ease-in forwards,
+    v3-root-transfer-fade 150ms ease-out 550ms forwards;
+}
+
+@keyframes v3-root-transfer-rise {
+  0% {
+    transform: translateY(0);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(-280%);
+    opacity: 0.8;
+  }
+}
+
+@keyframes v3-root-transfer-fade {
+  0% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes v3-root-transfer-drain {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-root--transferring .v3-root-segment--full::after,
+  .v3-root--transferring .v3-root-segment--partial::after,
+  .v3-root-transfer-energy {
+    animation: none;
+  }
+
+  .v3-root--transferring {
+    filter: brightness(1.05);
+    opacity: 0.85;
+  }
+}
+
+.v3-root--full .v3-root-segment--full::after {
+  opacity: 1;
+}
+
+.v3-root--ready .v3-root-segment--full::after,
+.v3-root--ready .v3-root-segment--partial::after {
+  filter: saturate(1.04);
+}
+
+.v3-root-transfer-error {
+  color: #f38ba8;
+  font-size: 0.58rem;
+  line-height: 1.25;
+  max-width: 140px;
+  word-break: break-word;
+}
+
+/* Economy v3 activity-card continuous reserve fill (bottom → top) */
+.action-btn-bank--v3-reserve {
+  width: 58px;
+  min-height: 72px;
+  padding: 4px 3px 5px;
+}
+
+.action-btn-bank--v3-reserve .action-btn-content {
+  gap: 0;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.v3-activity-reserve-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  background: var(--v3-act-reserve-color, rgba(122, 143, 92, 0.4));
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 0;
+}
+
+.v3-activity-reserve-fill--animate {
+  transition: height 450ms ease-out;
+}
+
+.v3-activity-reserve-fill--muted {
+  opacity: 0.45;
+  filter: saturate(0.75);
+}
+
+.action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-fill {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-activity-reserve-fill--animate {
+    transition: none !important;
+  }
+}
+
+/* Legacy five-segment meter kept for tests / rollback previews — not mounted in production UI. */
+.v3-activity-reserve {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.v3-activity-reserve-segments {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  width: 100%;
+  justify-content: center;
+}
+
+.v3-activity-reserve-segment {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 8px;
+  height: 10px;
+  border-radius: 2px;
+  background: #c9b8a0;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.18);
+}
+
+.v3-activity-reserve-segment--partial::after,
+.v3-activity-reserve-segment--full::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: var(--v3-act-seg-fill, 100%);
+  background: var(--v3-act-seg-color, #7a5a3a);
+}
+
+.v3-activity-reserve-seconds {
+  font-size: 0.52rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #5c4a38;
+  opacity: 0.85;
+}
+
+.action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-segment {
+  opacity: 0.55;
+}
+
+.v3-activity-preview-status {
+  margin-top: 6px;
+  max-width: 220px;
+  text-align: center;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: #f9e2af;
+  font-family: monospace;
+}
+
+/*
+ * Soft energy flight: root → matching activity reserve.
+ * Fixed layer; pointer-events none — never blocks bottom nav / care buttons.
+ */
+.v3-transfer-flight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.v3-transfer-flight-blob {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--v3-flight-color, #5f93c9);
+  opacity: 0.88;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--v3-flight-color, #5f93c9) 35%, transparent);
+  animation: v3-transfer-flight-move var(--v3-flight-ms, 520ms) ease-in-out forwards;
+  will-change: transform, opacity;
+}
+
+.v3-transfer-flight-blob--soft {
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  opacity: 0.28;
+  filter: blur(1.5px);
+  animation-delay: 20ms;
+}
+
+@keyframes v3-transfer-flight-move {
+  0% {
+    transform: translate(var(--v3-flight-x0), var(--v3-flight-y0)) scale(0.85);
+    opacity: 0.2;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  55% {
+    transform: translate(var(--v3-flight-xm), var(--v3-flight-ym)) scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(var(--v3-flight-x1), var(--v3-flight-y1)) scale(0.45);
+    opacity: 0.05;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-transfer-flight-layer {
+    display: none;
+  }
+}
+
+/* Calm receive pulse on the activity card when energy arrives. */
+.action-btn-bank.v3-activity-card--receive {
+  animation: v3-activity-receive 420ms ease-out;
+}
+
+@keyframes v3-activity-receive {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(1.06);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-btn-bank.v3-activity-card--receive {
+    animation: none;
+    filter: brightness(1.04);
+  }
+}
+
+/* Economy v3 activity-card continuous reserve fill (bottom → top).
+   Same square as .action-btn-bank — fill is absolute, no taller card. */
+.action-btn-bank--v3-reserve {
+  width: var(--action-btn-size, 46px);
+  height: var(--action-btn-size, 46px);
+  min-width: var(--action-btn-size, 46px);
+  min-height: var(--action-btn-size, 46px);
+  max-width: var(--action-btn-size, 46px);
+  max-height: var(--action-btn-size, 46px);
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.action-btn-bank--v3-reserve .action-btn-content {
+  gap: 0;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.v3-activity-reserve-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  background: var(--v3-act-reserve-color, rgba(122, 143, 92, 0.4));
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 0;
+}
+
+.v3-activity-reserve-fill--animate {
+  transition: height 450ms ease-out;
+}
+
+.v3-activity-reserve-fill--muted {
+  opacity: 0.45;
+  filter: saturate(0.75);
+}
+
+.action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-fill {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-activity-reserve-fill--animate {
+    transition: none !important;
+  }
+}
+
+/* Legacy five-segment meter kept for tests / rollback previews — not mounted in production UI. */
+.v3-activity-reserve {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.v3-activity-reserve-segments {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  width: 100%;
+  justify-content: center;
+}
+
+.v3-activity-reserve-segment {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 8px;
+  height: 10px;
+  border-radius: 2px;
+  background: #c9b8a0;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.18);
+}
+
+.v3-activity-reserve-segment--partial::after,
+.v3-activity-reserve-segment--full::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: var(--v3-act-seg-fill, 100%);
+  background: var(--v3-act-seg-color, #7a5a3a);
+}
+
+.v3-activity-reserve-seconds {
+  font-size: 0.52rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #5c4a38;
+  opacity: 0.85;
+}
+
+.action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-segment {
+  opacity: 0.55;
+}
+
+/* Fixed shovel slot — status/error must not shift the «Уход» button on X/Y. */
+.session-actions-care-shovel-slot {
+  position: relative;
+  width: var(--action-btn-size, 46px);
+  min-width: var(--action-btn-size, 46px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* v3 horizontal trio: ghost | shovel | ghost — slot spans the full row width. */
+.game-area--v3-roots .session-actions-care-shovel-slot {
+  width: auto;
+  min-width: calc(
+    var(--action-btn-size, 46px) * 3 + var(--v3-actions-btn-gap, 6px) * 2
+  );
+}
+
+.v3-activity-preview-status {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  width: max-content;
+  max-width: min(220px, 70vw);
+  text-align: center;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: #f9e2af;
+  font-family: monospace;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Activity-card branch: keep status out of the button row flow. */
+.session-actions > .v3-activity-preview-status {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
 }

@@ -35,6 +35,14 @@ export type EconomyV2ActivityCompletionResult =
     earnedXp: number;
   };
 
+/** Reference capital where 1 game-second accumulates in exactly 12 minutes. */
+export const V2_REFERENCE_CAPITAL = 100_000;
+export const V2_CAPITAL_EXPONENT = 0.15;
+/** Real seconds needed for +1 energy at reference capital (12 minutes). */
+export const V2_SECONDS_PER_ENERGY_AT_REFERENCE = 12 * 60;
+export const V2_ENERGY_BANK_MIN = 0;
+export const V2_ENERGY_BANK_MAX = 60;
+
 export function isActivityDurationPreset(
   value: number,
 ): value is ActivityDurationPreset {
@@ -54,10 +62,38 @@ export function energyToActivityDuration(
   return clampedSeconds as ActivityDurationPreset;
 }
 
-const CAPITAL_EXPONENT = 0.15;
-const FULL_REGEN_SECONDS = 8 * 60 * 60;
-const RAW_ENERGY_SCALE = 10;
 const PERFECT_ACTIVITY_XP = 100;
+
+/**
+ * Capital multiplier M(K) = (K / 100000) ^ 0.15.
+ * Non-finite / non-positive capital → 0 (no generation).
+ */
+export function capitalMultiplier(capital: number): number {
+  if (!Number.isFinite(capital) || capital <= 0) {
+    return 0;
+  }
+  return Math.pow(capital / V2_REFERENCE_CAPITAL, V2_CAPITAL_EXPONENT);
+}
+
+/**
+ * Energy generated over elapsed real time at the given capital.
+ * generatedEnergy = elapsedSeconds / 720 × M(K)
+ */
+export function generateEnergyFromElapsed(
+  capital: number,
+  elapsedSeconds: number,
+): number {
+  const safeElapsed = Number.isFinite(elapsedSeconds)
+    ? Math.max(0, elapsedSeconds)
+    : 0;
+  if (safeElapsed === 0) return 0;
+  return (safeElapsed / V2_SECONDS_PER_ENERGY_AT_REFERENCE) * capitalMultiplier(capital);
+}
+
+export function clampV2EnergyBank(value: number): number {
+  if (!Number.isFinite(value)) return V2_ENERGY_BANK_MIN;
+  return Math.min(V2_ENERGY_BANK_MAX, Math.max(V2_ENERGY_BANK_MIN, value));
+}
 
 export function calculateMaxXpForDuration(
   duration: ActivityDurationPreset,
@@ -106,20 +142,15 @@ export function applyFreshnessToEnergy(
   return normalizedRawEnergy * normalizedFreshness;
 }
 
-/** Isolated v2 economy stub — not wired into production game flow. */
+/**
+ * Continuous energy accumulation (pre-cap).
+ * Single source of truth for the capital × elapsed formula.
+ */
 export function calculateEconomyV2(input: EconomyV2Input): EconomyV2Result {
-  const normalizedCapital = Number.isFinite(input.capital)
-    ? Math.max(0, input.capital)
-    : 0;
-
-  const normalizedElapsedSeconds = Number.isFinite(input.elapsedSeconds)
-    ? Math.max(0, input.elapsedSeconds)
-    : 0;
-
-  const rawEnergy =
-    Math.pow(normalizedCapital, CAPITAL_EXPONENT) *
-    (normalizedElapsedSeconds / FULL_REGEN_SECONDS) *
-    RAW_ENERGY_SCALE;
+  const rawEnergy = generateEnergyFromElapsed(
+    input.capital,
+    input.elapsedSeconds,
+  );
 
   const freshnessCoefficient = input.freshnessCoefficient ?? 1;
   const normalizedFreshnessCoefficient =
@@ -166,3 +197,16 @@ export function calculateEconomyV2ActivityCompletion(
     earnedXp,
   };
 }
+
+/**
+ * @deprecated Bank auto-accrual removed. Use settleEconomyV2Roots from economy-v2-roots.
+ * Kept type aliases for gradual import migration in tests.
+ */
+export type SettleEconomyV2EnergyInput = {
+  energySeconds: number;
+  energyAnchorAt: number | null | undefined;
+  capital: number;
+  nowMs: number;
+  rootReadyMask?: bigint | string | number | null;
+  rootGenerationProgress?: number | null;
+};

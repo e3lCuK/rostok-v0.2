@@ -74,10 +74,10 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
                 </div>
               </div>
               <div className="landing-minigame">
-                <span className="landing-minigame-icon">🍃</span>
+                <span className="landing-minigame-icon">🫘</span>
                 <div>
-                  <div className="landing-minigame-name">Листва</div>
-                  <div className="landing-minigame-desc">Листочки падают сверху рядами — собирайте три одного цвета подряд. Чем длиннее серия, тем выше очки.</div>
+                  <div className="landing-minigame-name">Удобрение</div>
+                  <div className="landing-minigame-desc">Гранулы удобрения на поле — собирайте три одного цвета в ряд. Чем длиннее серия, тем выше очки.</div>
                 </div>
               </div>
             </div>

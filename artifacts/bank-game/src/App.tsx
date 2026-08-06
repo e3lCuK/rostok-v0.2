@@ -4,6 +4,14 @@ import { queryClient } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { UserState } from "@/lib/engine";
+import { emptyV2CareState, normalizeV2Care } from "@/lib/economyV2CareClient";
+import { emptyV2RootsState, normalizeV2Roots } from "@/lib/v2Roots";
+import {
+  normalizeEconomyV3AutoTransfer,
+  normalizeEconomyV3RootsSnapshot,
+} from "@/lib/v3Roots";
+import { isEconomyV3GameCycleEnabled } from "@/lib/v3GameCycle";
+import { normalizeV2Excess } from "@/components/v2/EconomyV2EnergyDebugControls";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
@@ -30,6 +38,8 @@ function AppShell() {
         return;
       }
       const history = (data.history ?? []) as UserState["history"];
+      const v3Roots = normalizeEconomyV3RootsSnapshot(data.game!.v3Roots);
+      const useV3 = isEconomyV3GameCycleEnabled(v3Roots);
 
       const userState: UserState = {
       balances: data.balances!,
@@ -37,9 +47,26 @@ function AppShell() {
         ...(data.game! as UserState["game"]),
         xpHistory: data.game!.xpHistory ?? [],
         tutorialDone: data.game!.tutorialDone ?? true,
+        // v3 exclusive: do not hydrate v2 Care / bank / roots into the live cycle.
+        v2EnergySeconds: useV3 ? 0 : (data.game!.v2EnergySeconds ?? 0),
+        v2EnergyAnchorAt: useV3 ? null : (data.game!.v2EnergyAnchorAt ?? null),
+        v2Care: useV3 ? emptyV2CareState() : normalizeV2Care(data.game!.v2Care),
+        v2Roots: useV3 ? emptyV2RootsState() : normalizeV2Roots(data.game!.v2Roots),
+        v2Excess: normalizeV2Excess(data.game!.v2Excess),
+        v3Roots,
+        v3AutoTransfer: normalizeEconomyV3AutoTransfer(
+          data.game!.v3AutoTransfer,
+        ),
       },
       history,
+      incomeByPreset: data.incomeByPreset ?? [],
     };
+    if (!useV3 && userState.game.v2Care?.inProgress) {
+      // v2 Care UI is gated by v2Care.* — do not force v1 sessionInProgress.
+      userState.game.water = userState.game.v2Care.completed.water;
+      userState.game.sun = userState.game.v2Care.completed.sun;
+      userState.game.fertilizer = userState.game.v2Care.completed.fertilizer;
+    }
       setState(userState);
     } catch {
       // silent retry

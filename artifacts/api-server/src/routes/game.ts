@@ -1,5 +1,17 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
+import {
+  isEconomyV2TutorialActive,
+  settleAndPersistEconomyV2Energy,
+} from "../services/economy-v2-energy-settle";
+import { V2_ENERGY_BANK_MAX } from "../services/economy-v2";
+import { buildIncomeByPresetTable } from "../services/economy-v2-care-income";
+import { mapGameStateRowToV2Care } from "../services/economy-v2-care";
+import { isEconomyV3RootsEnabled } from "../services/economy-v3-feature";
+import { buildEconomyV3RootsPublicState } from "../services/economy-v3-roots";
+import { settleAndPersistEconomyV3Roots } from "../services/economy-v3-roots-settle";
+import { V3_TUTORIAL_COMPLETE_CLEAR_SQL } from "../services/economy-v3-tutorial";
+import { readMetelkaPendingRewardFromRow } from "../services/economy-v2-excess-metelka-pending";
 
 const COOLDOWN_MS = 8 * 60 * 60 * 1000;
 const SESSIONS_PER_DAY = 3; // 1 session per 8 hours
@@ -57,6 +69,100 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
       }
     }
 
+    // Economy v2: settle root maturation from capital × elapsed since anchor.
+    // Collected bank (v2_energy_seconds) is unchanged by settle.
+    // Does not touch last_session_time or the v1 Care session pipeline.
+    let v2EnergySeconds = 0;
+    let v2EnergyAnchorAt: number | null = null;
+    let v2Roots = {
+      readyMask: "0",
+      readyCount: 0,
+      generationProgress: 0,
+      secondsPerSection: 0,
+      secondsUntilNextSection: null as number | null,
+      isFull: false,
+      storageFull: false,
+      storageOccupied: 0,
+      storageFree: 60,
+      storageOverCapacity: false,
+    };
+    let v2Excess = {
+      excessSeconds: 0,
+      excessElapsedMs: 0,
+      excessFinanciallyValid: true,
+      excessCycle: 0,
+      excessAvailable: false,
+      excessPresetSeconds: 5,
+      excessRate: 0.015,
+      session: {
+        active: false,
+        startedAt: null as number | null,
+        sourceSeconds: null as number | null,
+        sourceElapsedMs: null as number | null,
+        capital: null as number | null,
+        presetSeconds: null as number | null,
+        rate: null as number | null,
+      },
+    };
+    let v2Care = mapGameStateRowToV2Care(gameRow.rows.length > 0 ? game : null);
+    let v3RootsSnapshot = null as ReturnType<
+      typeof buildEconomyV3RootsPublicState
+    > | null;
+    let v3AutoTransfer = null as
+      | import("../services/economy-v3-roots").EconomyV3AutoTransferPublic
+      | null;
+    if (gameRow.rows.length > 0) {
+      const settled = await settleAndPersistEconomyV2Energy(userId);
+      if (settled) {
+        v2EnergySeconds = Math.min(
+          V2_ENERGY_BANK_MAX,
+          Math.max(0, settled.energySeconds),
+        );
+        v2EnergyAnchorAt = settled.energyAnchorAt;
+        v2Roots = settled.roots;
+        v2Excess = settled.excess;
+      }
+      // Re-read Care snapshot after settle so F5 recovery sees latest completed flags.
+      // Settle does not mutate Care columns; a concurrent activity may have.
+      const careRow = await pool.query(
+        `SELECT
+           v2_care_in_progress,
+           v2_care_cycle_id,
+           v2_care_water_seconds,
+           v2_care_sun_seconds,
+           v2_care_fertilizer_seconds,
+           v2_care_water_completed,
+           v2_care_sun_completed,
+           v2_care_fertilizer_completed,
+           v2_care_started_at,
+           v2_care_water_score,
+           v2_care_sun_score,
+           v2_care_fertilizer_score
+         FROM game_state
+         WHERE user_id = $1`,
+        [userId],
+      );
+      if (careRow.rows.length > 0) {
+        v2Care = mapGameStateRowToV2Care(careRow.rows[0]);
+      }
+
+      // Economy v3 parallel roots — single settle when flag is on.
+      // Owns ordinary generation + excess gate; refreshes v2Excess from ledger.
+      if (isEconomyV3RootsEnabled()) {
+        const v3Settled = await settleAndPersistEconomyV3Roots(userId);
+        if (v3Settled) {
+          v3RootsSnapshot = v3Settled.snapshot;
+          v3AutoTransfer = v3Settled.autoTransfer;
+          if (v3Settled.excessLedger) {
+            v2Excess = v3Settled.excessLedger.excess;
+          }
+        } else {
+          const capital = parseFloat(String(acc.active_balance ?? "0")) || 0;
+          v3RootsSnapshot = buildEconomyV3RootsPublicState(game, { capital });
+        }
+      }
+    }
+
     return res.json({
       exists: true,
       balances: {
@@ -75,6 +181,7 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
         missedSessions: game.missed_sessions || 0,
         pendingBaseReward: parseFloat(game.pending_base_reward) || 0,
         pendingBonusReward: parseFloat(game.pending_bonus_reward) || 0,
+        metelkaPendingReward: readMetelkaPendingRewardFromRow(game),
         pendingStoredSessions: parseInt(game.pending_stored_sessions) || 1,
         treeGrowthMM: parseInt(game.tree_growth_mm) || 0,
         treeGrowthRemainder: parseFloat(game.tree_growth_remainder) || 0,
@@ -88,12 +195,44 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
           ? game.xp_history
           : (game.xp_history ? JSON.parse(game.xp_history) : []),
         tutorialDone: game.tutorial_done !== false,
+        // Collected Care bank (0–60). Root maturation is in v2Roots.
+        v2EnergySeconds,
+        v2EnergyAnchorAt,
+        v2Roots,
+        v2Excess,
+        v2Care: {
+          inProgress: v2Care.inProgress,
+          cycleId: v2Care.cycleId,
+          allocation: v2Care.allocation,
+          completed: v2Care.completed,
+          allCompleted: v2Care.allCompleted,
+          scores: v2Care.scores,
+        },
+        v2Freshness:
+          game.v2_freshness != null
+            ? parseFloat(String(game.v2_freshness))
+            : 1,
+        v2IncomeAnchorAt: game.v2_income_anchor_at
+          ? parseInt(String(game.v2_income_anchor_at), 10)
+          : null,
+        // Legacy v1 scores (unchanged for v1 mode).
+        sessionWaterScore: parseInt(game.session_water_score) || 0,
+        sessionSunScore: parseInt(game.session_sun_score) || 0,
+        sessionFertilizerScore: parseInt(game.session_fertilizer_score) || 0,
+        // Economy v3 storage snapshot — omitted when flag is off (default).
+        ...(v3RootsSnapshot ? { v3Roots: v3RootsSnapshot } : {}),
+        // One-shot metadata for this request only (not persisted).
+        ...(v3AutoTransfer ? { v3AutoTransfer } : {}),
       },
       history: historyRows.rows.map((r: any) => ({
         amount: parseFloat(r.amount),
         type: r.type,
         date: r.earned_date,
       })),
+      /** Catalog: income for one completed mini-game by duration (SoT). */
+      incomeByPreset: buildIncomeByPresetTable({
+        capital: parseFloat(acc.active_balance) || 0,
+      }),
     });
   } catch (err) {
     req.log.error({ err }, "Error fetching game state");
@@ -131,15 +270,42 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
   }
 });
 
-// POST /api/game/tutorial/complete — mark tutorial as done
+// POST /game/tutorial/complete — mark tutorial as done and start Economy clocks
 router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
   const userId = req.userId;
+  const now = Date.now();
   try {
-    await pool.query(
-      `UPDATE game_state SET tutorial_done = TRUE, updated_at = NOW() WHERE user_id = $1`,
-      [userId],
-    );
-    return res.json({ success: true });
+    // Start ordinary root generation from this moment (no tutorial backfill).
+    // Clear any ready sections / fractional progress that may have accrued before
+    // the tutorial gate existed; collected Care bank is left untouched.
+    // When Economy v3 is on, also clear tutorial roots/reserves/care and start
+    // the v3 generation anchor (no backfill).
+    if (isEconomyV3RootsEnabled()) {
+      await pool.query(
+        `UPDATE game_state
+         SET tutorial_done = TRUE,
+             v2_energy_anchor_at = $2,
+             v2_root_generation_progress = 0,
+             v2_root_ready_mask = '0',
+             ${V3_TUTORIAL_COMPLETE_CLEAR_SQL},
+             updated_at = NOW()
+         WHERE user_id = $1`,
+        // $2 = v2 bigint epoch-ms; $3 = v3 TIMESTAMP (separate types — avoid 42P08)
+        [userId, now, new Date(now)],
+      );
+    } else {
+      await pool.query(
+        `UPDATE game_state
+         SET tutorial_done = TRUE,
+             v2_energy_anchor_at = $2,
+             v2_root_generation_progress = 0,
+             v2_root_ready_mask = '0',
+             updated_at = NOW()
+         WHERE user_id = $1`,
+        [userId, now],
+      );
+    }
+    return res.json({ success: true, energyAnchorAt: now });
   } catch (err) {
     req.log.error({ err }, "Error completing tutorial");
     return res.status(500).json({ error: "Internal server error" });
@@ -151,7 +317,7 @@ router.post("/game/accrue", requireAuth, async (_req: any, res) => {
   return res.json({ accrued: 0, days: 0 });
 });
 
-// POST /api/game/session/start — begin a session
+// POST /api/game/session/start — begin a v1 session (pure v1; no Economy v2 Care bridge).
 router.post("/game/session/start", requireAuth, async (req: any, res) => {
   const userId = req.userId;
 
@@ -167,8 +333,9 @@ router.post("/game/session/start", requireAuth, async (req: any, res) => {
     const g = gameRow.rows[0];
     const now = Date.now();
 
+    // Idempotent resume: v1 session already open.
     if (g.session_in_progress) {
-      return res.status(409).json({ error: "Session already in progress" });
+      return res.json({ success: true, resumed: true });
     }
 
     if (g.last_session_time && now - parseInt(g.last_session_time) < COOLDOWN_MS) {
@@ -179,15 +346,13 @@ router.post("/game/session/start", requireAuth, async (req: any, res) => {
     // Calculate how many sessions were missed since the last one.
     // If last_session_time is null (never played), fall back to start_date so
     // players who were away from day 1 still accumulate super sessions.
-    let additionalMissed = 0;
     const referenceTime = g.last_session_time
       ? parseInt(g.last_session_time)
       : parseInt(accRow.rows[0].start_date);
     const elapsed = now - referenceTime;
     // Each full cooldown period that passed is a potential session;
     // subtract 1 because the current session is the one being started now.
-    additionalMissed = Math.max(0, Math.floor(elapsed / COOLDOWN_MS) - 1);
-
+    const additionalMissed = Math.max(0, Math.floor(elapsed / COOLDOWN_MS) - 1);
     const newMissedSessions = (g.missed_sessions || 0) + additionalMissed;
 
     await pool.query(
@@ -236,6 +401,14 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
 
     const g = gameRow.rows[0];
     const acc = accRow.rows[0];
+
+    // Prevent double XP/rewards while Economy v2 Care owns the cycle.
+    if (g.v2_care_in_progress === true || g.v2_care_in_progress === "t") {
+      return res.status(409).json({
+        error: "Economy v2 Care cycle is active — use /game/v2/care/activity",
+        code: "v2_care_active",
+      });
+    }
 
     if (!g.session_in_progress) {
       return res.status(409).json({ error: "No active session" });
@@ -382,6 +555,13 @@ router.post("/game/session/claimAll", requireAuth, async (req: any, res) => {
     if (gameRow.rows.length === 0) return res.status(404).json({ error: "Account not found" });
 
     const g = gameRow.rows[0];
+    if (isEconomyV2TutorialActive(g.tutorial_done)) {
+      return res.status(409).json({
+        error: "Tutorial active — rewards are not claimable",
+        code: "tutorial_active",
+      });
+    }
+
     const baseAmount = parseFloat(g.pending_base_reward) || 0;
     const bonusAmount = parseFloat(g.pending_bonus_reward) || 0;
     const totalAmount = baseAmount + bonusAmount;
@@ -450,6 +630,13 @@ router.post("/game/session/claim", requireAuth, async (req: any, res) => {
     if (gameRow.rows.length === 0) return res.status(404).json({ error: "Account not found" });
 
     const g = gameRow.rows[0];
+    if (isEconomyV2TutorialActive(g.tutorial_done)) {
+      return res.status(409).json({
+        error: "Tutorial active — rewards are not claimable",
+        code: "tutorial_active",
+      });
+    }
+
     const amount = parseFloat(g[col]) || 0;
 
     if (amount <= 0) {

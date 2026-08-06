@@ -7,10 +7,22 @@ import {
   calculateMaxXpForDuration,
   normalizePerformanceCoefficient,
   calculateEarnedXp,
+  capitalMultiplier,
+  generateEnergyFromElapsed,
   calculateEconomyV2,
   calculateEconomyV2Activity,
   calculateEconomyV2ActivityCompletion,
+  V2_REFERENCE_CAPITAL,
+  V2_SECONDS_PER_ENERGY_AT_REFERENCE,
+  V2_ENERGY_BANK_MAX,
 } from "./economy-v2";
+import {
+  countReadySections,
+  settleEconomyV2Roots,
+} from "./economy-v2-roots";
+
+const REF = V2_REFERENCE_CAPITAL;
+const T = V2_SECONDS_PER_ENERGY_AT_REFERENCE; // 720
 
 describe("isActivityDurationPreset", () => {
   it.each([
@@ -89,10 +101,6 @@ describe("calculateMaxXpForDuration", () => {
   ] as const)("%s → %s", (duration, expected) => {
     expect(calculateMaxXpForDuration(duration)).toBe(expected);
   });
-
-  it("returns exactly 56 for duration 14", () => {
-    expect(calculateMaxXpForDuration(14)).toBe(56);
-  });
 });
 
 describe("normalizePerformanceCoefficient", () => {
@@ -134,34 +142,79 @@ describe("calculateEarnedXp", () => {
   );
 });
 
+describe("capitalMultiplier / generateEnergyFromElapsed", () => {
+  it("reference capital has multiplier 1", () => {
+    expect(capitalMultiplier(REF)).toBeCloseTo(1, 10);
+  });
+
+  it("100 000 ₽ + 720 s → +1 energy", () => {
+    expect(generateEnergyFromElapsed(REF, T)).toBeCloseTo(1, 10);
+  });
+
+  it("100 000 ₽ + 3600 s → +5 energy", () => {
+    expect(generateEnergyFromElapsed(REF, 60 * 60)).toBeCloseTo(5, 10);
+  });
+
+  it("100 000 ₽ + 43 200 s → +60 energy", () => {
+    expect(generateEnergyFromElapsed(REF, 12 * 60 * 60)).toBeCloseTo(60, 10);
+  });
+
+  it("capital below reference is slower", () => {
+    const low = generateEnergyFromElapsed(50_000, T);
+    const ref = generateEnergyFromElapsed(REF, T);
+    expect(low).toBeLessThan(ref);
+    expect(low).toBeCloseTo(Math.pow(0.5, 0.15), 10);
+  });
+
+  it("capital above reference is faster", () => {
+    const high = generateEnergyFromElapsed(200_000, T);
+    const ref = generateEnergyFromElapsed(REF, T);
+    expect(high).toBeGreaterThan(ref);
+    expect(high).toBeCloseTo(Math.pow(2, 0.15), 10);
+  });
+
+  it("capital 0 / negative / NaN / Infinity → 0", () => {
+    expect(generateEnergyFromElapsed(0, T)).toBe(0);
+    expect(generateEnergyFromElapsed(-1000, T)).toBe(0);
+    expect(generateEnergyFromElapsed(NaN, T)).toBe(0);
+    expect(generateEnergyFromElapsed(Infinity, T)).toBe(0);
+  });
+
+  it("negative / NaN / Infinity elapsed → 0", () => {
+    expect(generateEnergyFromElapsed(REF, -1)).toBe(0);
+    expect(generateEnergyFromElapsed(REF, NaN)).toBe(0);
+    expect(generateEnergyFromElapsed(REF, Infinity)).toBe(0);
+  });
+});
+
 describe("calculateEconomyV2", () => {
   it("uses default freshness when omitted", () => {
     const result = calculateEconomyV2({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: T,
     });
 
-    expect(result.rawEnergy).toBeCloseTo(28.1838293126);
+    expect(result.rawEnergy).toBeCloseTo(1, 10);
     expect(result.freshnessCoefficient).toBe(1);
-    expect(result.usableEnergy).toBeCloseTo(28.1838293126);
+    expect(result.usableEnergy).toBeCloseTo(1, 10);
   });
 
   it("applies freshnessCoefficient 0.5", () => {
     const result = calculateEconomyV2({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: T,
       freshnessCoefficient: 0.5,
     });
 
-    expect(result.rawEnergy).toBeCloseTo(28.1838293126);
+    expect(result.rawEnergy).toBeCloseTo(1, 10);
     expect(result.freshnessCoefficient).toBe(0.5);
-    expect(result.usableEnergy).toBeCloseTo(14.0919146563);
+    expect(result.usableEnergy).toBeCloseTo(0.5, 10);
   });
 
   it("clamps freshnessCoefficient above 1", () => {
     const result = calculateEconomyV2({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: T,
       freshnessCoefficient: 2,
     });
 
@@ -171,8 +224,8 @@ describe("calculateEconomyV2", () => {
 
   it("treats NaN freshness as 0", () => {
     const result = calculateEconomyV2({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: T,
       freshnessCoefficient: NaN,
     });
 
@@ -181,12 +234,12 @@ describe("calculateEconomyV2", () => {
   });
 
   it.each([
-    [{ capital: -1000, elapsedSeconds: 28800 }, 0],
-    [{ capital: NaN, elapsedSeconds: 28800 }, 0],
-    [{ capital: Infinity, elapsedSeconds: 28800 }, 0],
-    [{ capital: 1000, elapsedSeconds: -1 }, 0],
-    [{ capital: 1000, elapsedSeconds: NaN }, 0],
-    [{ capital: 1000, elapsedSeconds: Infinity }, 0],
+    [{ capital: -1000, elapsedSeconds: T }, 0],
+    [{ capital: NaN, elapsedSeconds: T }, 0],
+    [{ capital: Infinity, elapsedSeconds: T }, 0],
+    [{ capital: REF, elapsedSeconds: -1 }, 0],
+    [{ capital: REF, elapsedSeconds: NaN }, 0],
+    [{ capital: REF, elapsedSeconds: Infinity }, 0],
   ] as const)(
     "returns rawEnergy 0 for invalid capital/elapsed %#",
     (input, expected) => {
@@ -199,7 +252,7 @@ describe("calculateEconomyV2Activity", () => {
   it("maps zero energy to minimum duration", () => {
     const result = calculateEconomyV2Activity({
       capital: 0,
-      elapsedSeconds: 28800,
+      elapsedSeconds: T,
     });
 
     expect(result.usableEnergy).toBe(0);
@@ -207,45 +260,46 @@ describe("calculateEconomyV2Activity", () => {
     expect(result.maxXp).toBe(20);
   });
 
-  it("maps half regen time to duration 14", () => {
+  it("maps 14 reference-minutes to duration 14", () => {
     const result = calculateEconomyV2Activity({
-      capital: 1000,
-      elapsedSeconds: 14400,
+      capital: REF,
+      elapsedSeconds: 14 * T,
     });
 
-    expect(result.usableEnergy).toBeCloseTo(14.0919146563);
+    expect(result.usableEnergy).toBeCloseTo(14, 10);
     expect(result.activityDuration).toBe(14);
     expect(result.maxXp).toBe(56);
   });
 
-  it("maps full regen to maximum duration", () => {
+  it("maps full bank time to maximum duration", () => {
     const result = calculateEconomyV2Activity({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: V2_ENERGY_BANK_MAX * T,
     });
 
+    expect(result.usableEnergy).toBeCloseTo(60, 10);
     expect(result.activityDuration).toBe(25);
     expect(result.maxXp).toBe(100);
   });
 
   it("applies freshness 0.5 to activity duration", () => {
     const result = calculateEconomyV2Activity({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: 14 * T,
       freshnessCoefficient: 0.5,
     });
 
-    expect(result.usableEnergy).toBeCloseTo(14.0919146563);
-    expect(result.activityDuration).toBe(14);
-    expect(result.maxXp).toBe(56);
+    expect(result.usableEnergy).toBeCloseTo(7, 10);
+    expect(result.activityDuration).toBe(7);
+    expect(result.maxXp).toBe(28);
   });
 });
 
 describe("calculateEconomyV2ActivityCompletion", () => {
   it("earns half XP at full duration with performance 0.5", () => {
     const result = calculateEconomyV2ActivityCompletion({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: V2_ENERGY_BANK_MAX * T,
       performanceCoefficient: 0.5,
     });
 
@@ -256,8 +310,8 @@ describe("calculateEconomyV2ActivityCompletion", () => {
 
   it("earns half XP at duration 14 with performance 0.5", () => {
     const result = calculateEconomyV2ActivityCompletion({
-      capital: 1000,
-      elapsedSeconds: 14400,
+      capital: REF,
+      elapsedSeconds: 14 * T,
       performanceCoefficient: 0.5,
     });
 
@@ -266,23 +320,10 @@ describe("calculateEconomyV2ActivityCompletion", () => {
     expect(result.earnedXp).toBe(28);
   });
 
-  it("earns full XP for duration 14 with freshness 0.5 and performance 1", () => {
-    const result = calculateEconomyV2ActivityCompletion({
-      capital: 1000,
-      elapsedSeconds: 28800,
-      freshnessCoefficient: 0.5,
-      performanceCoefficient: 1,
-    });
-
-    expect(result.activityDuration).toBe(14);
-    expect(result.maxXp).toBe(56);
-    expect(result.earnedXp).toBe(56);
-  });
-
   it("earns 0 XP for NaN performance", () => {
     const result = calculateEconomyV2ActivityCompletion({
-      capital: 1000,
-      elapsedSeconds: 28800,
+      capital: REF,
+      elapsedSeconds: V2_ENERGY_BANK_MAX * T,
       performanceCoefficient: NaN,
     });
 
@@ -290,28 +331,152 @@ describe("calculateEconomyV2ActivityCompletion", () => {
     expect(result.maxXp).toBe(100);
     expect(result.earnedXp).toBe(0);
   });
+});
 
-  it("clamps performance above 1 to full XP", () => {
-    const result = calculateEconomyV2ActivityCompletion({
-      capital: 1000,
-      elapsedSeconds: 28800,
-      performanceCoefficient: 2,
+describe("settleEconomyV2Roots (via energy settle migration)", () => {
+  const now = 1_700_000_000_000;
+
+  it("100 000 ₽ + 12 minutes = 1 ready section; bank unchanged", () => {
+    const result = settleEconomyV2Roots({
+      energySeconds: 0,
+      energyAnchorAt: now - T * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
     });
-
-    expect(result.activityDuration).toBe(25);
-    expect(result.maxXp).toBe(100);
-    expect(result.earnedXp).toBe(100);
+    expect(countReadySections(result.rootReadyMask)).toBe(1);
+    expect(result.generatedEnergy).toBeCloseTo(1, 10);
+    expect(result.energySeconds).toBe(0);
+    expect(result.energyAnchorAt).toBe(now);
   });
 
-  it("earns 0 XP for negative performance", () => {
-    const result = calculateEconomyV2ActivityCompletion({
-      capital: 1000,
-      elapsedSeconds: 28800,
-      performanceCoefficient: -1,
+  it("100 000 ₽ + 60 minutes = 5 ready sections", () => {
+    const result = settleEconomyV2Roots({
+      energySeconds: 0,
+      energyAnchorAt: now - 60 * 60 * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
     });
+    expect(countReadySections(result.rootReadyMask)).toBe(5);
+  });
 
-    expect(result.activityDuration).toBe(25);
-    expect(result.maxXp).toBe(100);
-    expect(result.earnedXp).toBe(0);
+  it("100 000 ₽ + 12 hours = 60 ready (roots cap)", () => {
+    const result = settleEconomyV2Roots({
+      energySeconds: 0,
+      energyAnchorAt: now - 12 * 60 * 60 * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
+    });
+    expect(countReadySections(result.rootReadyMask)).toBe(60);
+    expect(result.generatedEnergy).toBeCloseTo(60, 10);
+  });
+
+  it("collected bank is never increased by settle", () => {
+    const result = settleEconomyV2Roots({
+      energySeconds: 50,
+      energyAnchorAt: now - 10 * T * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
+    });
+    expect(result.generatedEnergy).toBeCloseTo(10, 10);
+    expect(result.energySeconds).toBe(50);
+    expect(countReadySections(result.rootReadyMask)).toBe(10);
+  });
+
+  it("lower capital matures roots slower", () => {
+    const low = settleEconomyV2Roots({
+      energySeconds: 0,
+      energyAnchorAt: now - T * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: 50_000,
+      nowMs: now,
+    });
+    const ref = settleEconomyV2Roots({
+      energySeconds: 0,
+      energyAnchorAt: now - T * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
+    });
+    expect(low.generatedEnergy).toBeLessThan(ref.generatedEnergy);
+  });
+
+  it("capital 0 → no generation", () => {
+    const result = settleEconomyV2Roots({
+      energySeconds: 3,
+      energyAnchorAt: now - T * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: 0,
+      nowMs: now,
+    });
+    expect(result.energySeconds).toBe(3);
+    expect(result.generatedEnergy).toBe(0);
+  });
+
+  it("missing anchor → no backfill, anchor set to now", () => {
+    const result = settleEconomyV2Roots({
+      energySeconds: 4,
+      energyAnchorAt: null,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
+    });
+    expect(result.energySeconds).toBe(4);
+    expect(result.generatedEnergy).toBe(0);
+    expect(result.elapsedSeconds).toBe(0);
+    expect(result.energyAnchorAt).toBe(now);
+  });
+
+  it("preserves fractional root progress across settles", () => {
+    const first = settleEconomyV2Roots({
+      energySeconds: 10.4,
+      energyAnchorAt: now - 504 * 1000,
+      rootReadyMask: 0n,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
+    });
+    expect(countReadySections(first.rootReadyMask)).toBe(0);
+    expect(first.rootGenerationProgress).toBeCloseTo(0.7, 10);
+    expect(first.energySeconds).toBe(10.4);
+
+    const later = now + 216 * 1000; // +0.3 energy
+    const second = settleEconomyV2Roots({
+      energySeconds: first.energySeconds,
+      energyAnchorAt: first.energyAnchorAt,
+      rootReadyMask: first.rootReadyMask,
+      rootGenerationProgress: first.rootGenerationProgress,
+      capital: REF,
+      nowMs: later,
+    });
+    expect(countReadySections(second.rootReadyMask)).toBe(1);
+    expect(second.rootGenerationProgress).toBeCloseTo(0, 10);
+  });
+
+  it("roots full still advances anchor", () => {
+    let mask = 0n;
+    for (let i = 0; i < 60; i++) mask |= 1n << BigInt(i);
+    const result = settleEconomyV2Roots({
+      energySeconds: 12,
+      energyAnchorAt: now - T * 1000,
+      rootReadyMask: mask,
+      rootGenerationProgress: 0,
+      capital: REF,
+      nowMs: now,
+    });
+    expect(result.energySeconds).toBe(12);
+    expect(result.energyAnchorAt).toBe(now);
+    expect(result.rootGenerationProgress).toBe(0);
   });
 });

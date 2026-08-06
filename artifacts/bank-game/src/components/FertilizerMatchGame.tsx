@@ -1,10 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { Leaf } from "lucide-react";
 import GameTimer from "./GameTimer";
+import FertilizerIcon from "./FertilizerIcon";
+import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
+
+/**
+ * Match-3 fertilizer activity (former leaf collector).
+ * Gameplay unchanged — only user-facing name/icons are fertilizer-themed.
+ */
 
 interface Props {
   onComplete: (skillScore: number, count: number) => void;
   bonusSeconds?: number;
+  /** Economy v2: absolute duration in whole seconds (overrides 15 + bonus). */
+  durationSec?: number;
 }
 
 const GRID = 5;
@@ -18,9 +26,9 @@ type Grid = (Color | null)[][];
 
 const TILE_BG: Record<Color, string> = {
   green:  "#22c55e",
-  brown:  "#a16207",
+  brown:  V3_ACTIVITY_ACCENT_COLORS.fertilizer,
   yellow: "#eab308",
-  blue:   "#3b82f6",
+  blue:   V3_ACTIVITY_ACCENT_COLORS.water,
   purple: "#a855f7",
 };
 
@@ -32,7 +40,7 @@ interface Result {
 function resultLabel(m: number): string {
   if (m < 6) return "Попробуйте ещё";
   if (m <= 12) return "Хорошо";
-  return "Отлично 🌿";
+  return "Отлично!";
 }
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -124,8 +132,10 @@ function makeGrid(): Grid {
   return g;
 }
 
-export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Props) {
-  const totalMs = GAME_MS + bonusSeconds * 1000;
+export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, durationSec }: Props) {
+  const resolvedSec = durationSec != null ? Math.max(1, Math.floor(durationSec)) : 15 + bonusSeconds;
+  const totalMs = resolvedSec * 1000;
+  const maxMatches = Math.max(1, Math.round(MAX_MATCHES * (resolvedSec / 15)));
   const [grid, setGrid] = useState<Grid>(() => makeGrid());
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
@@ -153,7 +163,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
     setGameOver(true);
     setProcessing(false);
     const m = matchRef.current;
-    const skillFactor = Math.min(1, m / MAX_MATCHES);
+    const skillFactor = Math.min(1, m / maxMatches);
     const skillScore = Math.round(skillFactor * 100);
     setResult({ matchCount: m, skillScore });
   }
@@ -288,7 +298,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
           trackColor="#dcfce7"
         />
         <div className="mini-game-counter">
-          <span>🍃</span>
+          <FertilizerIcon size={20} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} />
           <span className="mini-game-counter-val">{matchCount}</span>
         </div>
       </div>
@@ -309,7 +319,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
               >
                 {cell && (
                   <div className="m3-tile" style={{ background: TILE_BG[cell] }}>
-                    <Leaf size={15} color="rgba(255,255,255,0.88)" strokeWidth={2.5} />
+                    <FertilizerIcon size={18} color="rgba(255,255,255,0.92)" />
                   </div>
                 )}
               </button>
@@ -325,7 +335,9 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0 }: Pr
           style={{ background: "rgba(240,253,244,0.97)" }}
           onClick={() => handleContinue(result.skillScore, result.matchCount)}
         >
-          <span className="mini-game-result-emoji">🍃</span>
+          <span className="mini-game-result-emoji" aria-hidden="true">
+            <FertilizerIcon size={42} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} />
+          </span>
           <p className="mini-game-result-count" style={{ color: "#166534" }}>
             Собрано: {result.matchCount}
           </p>

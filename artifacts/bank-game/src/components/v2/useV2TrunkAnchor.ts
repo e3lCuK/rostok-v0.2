@@ -1,28 +1,34 @@
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { ROOT_ART_VIEW, ROOT_TRUNK_OVERLAP_PX } from "./rootArtCatalog";
 
-/** Must match RootEnergySystem SVG layout (local origin). */
-const ROOT_SVG = { width: 200, height: 66, originX: 100, originY: 4 } as const;
+/** Must match RootEnergySystem / ROOT_SYSTEM_VIEW / ROOT_ART_VIEW layout. */
+const ROOT_SVG = {
+  width: ROOT_ART_VIEW.width,
+  height: ROOT_ART_VIEW.height,
+  originX: ROOT_ART_VIEW.originX,
+  originY: ROOT_ART_VIEW.originY,
+} as const;
 
-const ANCHOR_BOTTOM_OFFSET = ROOT_SVG.height - ROOT_SVG.originY;
+/** Distance from SVG bottom edge to local origin Y — used in CSS `bottom` math. */
+const ANCHOR_BOTTOM_OFFSET = ROOT_SVG.height - ROOT_SVG.originY; // 84
 
 const STABLE_PX = 0.5;
 const STABLE_FRAMES_REQUIRED = 2;
 const MAX_RAF_FRAMES = 90;
 
 export interface V2TrunkAnchorMetrics {
-  /** Trunk base center — px from .game-area left edge. */
   trunkBaseX: number;
-  /** Trunk base — px from .game-area bottom edge. */
   trunkBaseBottom: number;
-  /** SVG local origin (100, 4) mapped to game-area — should match trunk base. */
+  /** trunkBaseBottom + overlap — value written to CSS for origin placement */
+  originBottom: number;
   svgOriginX: number;
   svgOriginBottom: number;
+  overlapPx: number;
 }
 
 export interface V2TrunkAnchorResult {
   metrics: V2TrunkAnchorMetrics | null;
   anchorReady: boolean;
-  /** Dev-only: log anchor geometry once after first root click (verification). */
   logPostClickMeasure: () => void;
 }
 
@@ -37,31 +43,55 @@ function metricsEqual(a: V2TrunkAnchorMetrics, b: V2TrunkAnchorMetrics) {
   );
 }
 
+function findTrunkEl(treeWrap: Element | null): Element | null {
+  if (treeWrap) {
+    const inWrap = treeWrap.querySelector(".tree-trunk");
+    if (inWrap) return inWrap;
+  }
+  return (
+    document.querySelector(".game-tree-wrap .tree-trunk") ??
+    document.querySelector(".tree-trunk")
+  );
+}
+
+/**
+ * Aligns `.v2-root-anchor` so SVG local origin sits on the measured trunk base,
+ * shifted UP by ROOT_TRUNK_OVERLAP_PX so root strokes cover the stump.
+ * Anchor must be a descendant of `.game-tree-wrap` so tree + roots share one transform.
+ */
 export function useV2TrunkAnchor(
   anchorRef: RefObject<HTMLElement | null>,
 ): V2TrunkAnchorResult {
   const [metrics, setMetrics] = useState<V2TrunkAnchorMetrics | null>(null);
   const [anchorReady, setAnchorReady] = useState(false);
   const postClickLoggedRef = useRef(false);
-  /** After initial alignment, keep CSS vars frozen unless the viewport/layout size changes. */
-  const lockedRef = useRef(false);
   const lastAppliedRef = useRef<V2TrunkAnchorMetrics | null>(null);
 
   const measureAnchor = useCallback(
     (phase: string, opts?: { apply?: boolean; force?: boolean }): V2TrunkAnchorMetrics | null => {
-      const area = document.querySelector(".game-area");
-      const trunk = document.querySelector(".game-tree-wrap .tree-trunk");
       const anchor = anchorRef.current;
-      if (!area || !trunk || !anchor) return null;
+      if (!anchor) return null;
 
-      const gameRect = area.getBoundingClientRect();
+      const treeWrap = anchor.closest(".game-tree-wrap");
+      const container =
+        treeWrap ??
+        (anchor.closest(".game-area") as HTMLElement | null) ??
+        document.querySelector(".game-area");
+      const trunk = findTrunkEl(treeWrap);
+      if (!container || !trunk) return null;
+
+      const containerRect = container.getBoundingClientRect();
       const trunkRect = trunk.getBoundingClientRect();
 
-      const trunkBaseX = trunkRect.left + trunkRect.width / 2 - gameRect.left;
-      const trunkBaseBottom = gameRect.bottom - trunkRect.bottom;
+      // Distance from wrap bottom → trunk bottom (screen space, after all transforms).
+      const trunkBaseX =
+        trunkRect.left + trunkRect.width / 2 - containerRect.left;
+      const trunkBaseBottom = containerRect.bottom - trunkRect.bottom;
+      // Place origin slightly INTO the trunk so path starts overlap wood (no hairline gap).
+      const originBottom = trunkBaseBottom + ROOT_TRUNK_OVERLAP_PX;
 
       const applyRequested = opts?.apply !== false;
-      const shouldApply = opts?.force === true || (applyRequested && !lockedRef.current);
+      const shouldApply = opts?.force === true || applyRequested;
 
       if (shouldApply) {
         const prev = lastAppliedRef.current;
@@ -69,36 +99,54 @@ export function useV2TrunkAnchor(
           !prev ||
           Math.abs(prev.trunkBaseX - trunkBaseX) >= STABLE_PX ||
           Math.abs(prev.trunkBaseBottom - trunkBaseBottom) >= STABLE_PX;
-        // Skip sub-pixel jitter that would nudge the whole root system.
         if (changed || opts?.force) {
           anchor.style.setProperty("--v2-trunk-base-x", `${trunkBaseX}px`);
-          anchor.style.setProperty("--v2-trunk-base-bottom", `${trunkBaseBottom}px`);
+          anchor.style.setProperty("--v2-trunk-base-bottom", `${originBottom}px`);
+          anchor.style.setProperty(
+            "--v2-root-origin-from-bottom",
+            `${ANCHOR_BOTTOM_OFFSET}px`,
+          );
+          anchor.dataset.trunkBaseX = trunkBaseX.toFixed(2);
+          anchor.dataset.trunkBaseBottom = trunkBaseBottom.toFixed(2);
+          anchor.dataset.rootOriginBottom = originBottom.toFixed(2);
+          anchor.dataset.rootOverlapPx = String(ROOT_TRUNK_OVERLAP_PX);
           lastAppliedRef.current = {
             trunkBaseX,
             trunkBaseBottom,
+            originBottom,
             svgOriginX: 0,
             svgOriginBottom: 0,
+            overlapPx: ROOT_TRUNK_OVERLAP_PX,
           };
         }
       }
 
       const anchorRect = anchor.getBoundingClientRect();
-      const svgOriginScreenY = anchorRect.top + ROOT_SVG.originY;
+      // Local origin in screen space (1 CSS px ≈ 1 viewBox unit for our 200×72 svg).
+      const svgOriginScreenY =
+        anchorRect.top + (ROOT_SVG.originY / ROOT_SVG.height) * anchorRect.height;
+      const svgOriginScreenX =
+        anchorRect.left + (ROOT_SVG.originX / ROOT_SVG.width) * anchorRect.width;
       const result: V2TrunkAnchorMetrics = {
         trunkBaseX,
         trunkBaseBottom,
-        svgOriginX: anchorRect.left + ROOT_SVG.originX - gameRect.left,
-        svgOriginBottom: gameRect.bottom - svgOriginScreenY,
+        originBottom,
+        svgOriginX: svgOriginScreenX - containerRect.left,
+        svgOriginBottom: containerRect.bottom - svgOriginScreenY,
+        overlapPx: ROOT_TRUNK_OVERLAP_PX,
       };
 
       if (import.meta.env.DEV) {
         console.info(`[v2 anchor measure ${phase}]`, {
           apply: shouldApply,
-          locked: lockedRef.current,
-          gameRect: rectSnapshot(gameRect),
+          container: treeWrap ? "game-tree-wrap" : "game-area",
+          containerRect: rectSnapshot(containerRect),
           trunkRect: rectSnapshot(trunkRect),
           trunkBaseX,
           trunkBaseBottom,
+          originBottom,
+          overlapPx: ROOT_TRUNK_OVERLAP_PX,
+          deltaOriginToTrunkY: result.svgOriginBottom - trunkBaseBottom,
           css: {
             left: anchor.style.getPropertyValue("--v2-trunk-base-x"),
             bottom: anchor.style.getPropertyValue("--v2-trunk-base-bottom"),
@@ -115,7 +163,6 @@ export function useV2TrunkAnchor(
   const logPostClickMeasure = useCallback(() => {
     if (!import.meta.env.DEV || postClickLoggedRef.current) return;
     postClickLoggedRef.current = true;
-    // Read-only verification — never rewrite CSS vars after roots are clicked.
     measureAnchor("post-click", { apply: false });
   }, [measureAnchor]);
 
@@ -127,7 +174,6 @@ export function useV2TrunkAnchor(
 
     const finishInitial = () => {
       if (cancelled) return;
-      lockedRef.current = true;
       setAnchorReady(true);
     };
 
@@ -137,7 +183,7 @@ export function useV2TrunkAnchor(
 
       const tick = (index: number) => {
         if (cancelled) return;
-        const current = measureAnchor(`raf-stable-${index}`, { apply: true });
+        const current = measureAnchor(`raf-stable-${index}`, { apply: true, force: true });
         if (current && last && metricsEqual(current, last)) {
           stableCount += 1;
           if (stableCount >= STABLE_FRAMES_REQUIRED) {
@@ -158,35 +204,33 @@ export function useV2TrunkAnchor(
       stableFrame = requestAnimationFrame(() => tick(frameIndex));
     };
 
-    measureAnchor("initial", { apply: true });
+    measureAnchor("initial", { apply: true, force: true });
 
     frame1 = requestAnimationFrame(() => {
-      measureAnchor("raf1", { apply: true });
+      measureAnchor("raf1", { apply: true, force: true });
       frame2 = requestAnimationFrame(() => {
-        const r2 = measureAnchor("raf2", { apply: true });
+        const r2 = measureAnchor("raf2", { apply: true, force: true });
         runStableLoop(r2, 3);
       });
     });
 
     const onViewportChange = () => {
-      // Explicit layout changes only — not SVG ink/overflow from collecting roots.
-      lockedRef.current = false;
       measureAnchor("resize", { force: true });
-      lockedRef.current = true;
     };
 
     window.addEventListener("resize", onViewportChange);
 
-    const ro = new ResizeObserver((entries) => {
-      // Ignore noise from SVG content bbox / absolute children; only react to game-area box size.
-      for (const entry of entries) {
-        if (!(entry.target as Element).classList?.contains("game-area")) continue;
-        onViewportChange();
-        return;
-      }
+    const ro = new ResizeObserver(() => {
+      onViewportChange();
     });
+    const treeWrap = anchorRef.current?.closest(".game-tree-wrap");
+    if (treeWrap) ro.observe(treeWrap);
     const area = document.querySelector(".game-area");
     if (area) ro.observe(area);
+    const trunk = findTrunkEl(treeWrap ?? null);
+    if (trunk) ro.observe(trunk);
+    const treeWrapper = treeWrap?.querySelector(".tree-wrapper");
+    if (treeWrapper) ro.observe(treeWrapper);
 
     return () => {
       cancelled = true;
@@ -196,7 +240,7 @@ export function useV2TrunkAnchor(
       ro.disconnect();
       window.removeEventListener("resize", onViewportChange);
     };
-  }, [measureAnchor]);
+  }, [measureAnchor, anchorRef]);
 
   return { metrics, anchorReady, logPostClickMeasure };
 }

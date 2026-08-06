@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import RootEnergySystem, { type RootSegment } from "./RootEnergySystem";
-
 import ExcessWebs from "./ExcessWebs";
-
 import { useV2TrunkAnchor } from "./useV2TrunkAnchor";
 
 import { registerV2MockResetRoots, registerV2MockResetWebs } from "@/lib/v2MockDebug";
@@ -22,6 +20,7 @@ function cloneInitialRoots(): RootSegment[] {
 
 /**
  * Debug-only wrapper: local state, no API, no v1 side effects.
+ * Still uses full artistic root composition (chest + secondaries + taper).
  */
 export default function EconomyV2MockLayer() {
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -80,8 +79,6 @@ export default function EconomyV2MockLayer() {
 
   return (
     <>
-      <div className="v2-underground-zone" aria-hidden="true" />
-
       {anchorMetrics && (
         <div className="v2-root-debug-markers" aria-hidden="true">
           <span
@@ -95,12 +92,21 @@ export default function EconomyV2MockLayer() {
         </div>
       )}
 
+      {/*
+        Mock roots still mount under .game-area (debug-only).
+        Production roots live inside .game-tree-wrap via RootEnergyLayer.
+        Art composition is always on — not gated by readyMask.
+      */}
       <div
-        className="v2-root-anchor"
+        className="v2-root-anchor v2-root-anchor--art"
         ref={anchorRef}
-        style={{ visibility: anchorReady ? "visible" : "hidden" }}
+        data-anchor-ready={anchorReady ? "true" : "false"}
       >
-        <RootEnergySystem segments={segments} onSegmentCollect={handleSegmentCollect} />
+        <RootEnergySystem
+          artMode
+          segments={segments}
+          onSegmentCollect={handleSegmentCollect}
+        />
       </div>
 
       {!websDone && <ExcessWebs key={websKey} onComplete={handleWebsComplete} />}

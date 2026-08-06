@@ -16,29 +16,39 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"
         >
-        {/* Sun */}
-        <g opacity="0.35" className="bg-sun">
-          <circle cx="298" cy="28" r="9" fill="#fde68a" />
-          <line x1="310" y1="28"  x2="316" y2="28"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="307" y1="37"  x2="311" y2="41"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="298" y1="40"  x2="298" y2="46"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="290" y1="37"  x2="286" y2="41"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="286" y1="28"  x2="280" y2="28"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="290" y1="19"  x2="286" y2="15"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="298" y1="16"  x2="298" y2="10"  stroke="#f59e0b" strokeWidth="1.5" />
-          <line x1="307" y1="19"  x2="311" y2="15"  stroke="#f59e0b" strokeWidth="1.5" />
+        {/* Soft sky wash — fills the top after topbar removal */}
+        <defs>
+          <linearGradient id="bg-sky-wash" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#b7dff5" stopOpacity="0.55" />
+            <stop offset="28%" stopColor="#cfe9c0" stopOpacity="0.28" />
+            <stop offset="55%" stopColor="#d4edaa" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="340" height="280" fill="url(#bg-sky-wash)" />
+
+        {/* Sun — high right; short rays stay clear of the gear */}
+        <g opacity="0.4" className="bg-sun">
+          <circle cx="292" cy="22" r="9" fill="#fde68a" />
+          <line x1="303" y1="22"  x2="308" y2="22"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="300" y1="31"  x2="304" y2="35"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="292" y1="34"  x2="292" y2="39"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="284" y1="31"  x2="280" y2="35"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="281" y1="22"  x2="276" y2="22"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="284" y1="13"  x2="280" y2="10"  stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="292" y1="11"  x2="292" y2="7"   stroke="#f59e0b" strokeWidth="1.5" />
+          <line x1="300" y1="13"  x2="304" y2="10"  stroke="#f59e0b" strokeWidth="1.5" />
         </g>
 
-        {/* Clouds */}
+        {/* Clouds — clear of the top-left level badge along the whole drift path */}
         <g opacity="0.55" className="bg-cloud-left">
-          <ellipse cx="55" cy="65" rx="22" ry="13" fill="#fff" />
-          <ellipse cx="39" cy="71" rx="14" ry="10" fill="#fff" />
-          <ellipse cx="72" cy="71" rx="13" ry="9"  fill="#fff" />
+          <ellipse cx="130" cy="20" rx="20" ry="11" fill="#fff" />
+          <ellipse cx="116" cy="25" rx="12" ry="8"  fill="#fff" />
+          <ellipse cx="145" cy="25" rx="11" ry="7"  fill="#fff" />
         </g>
         <g opacity="0.45" className="bg-cloud-right">
-          <ellipse cx="200" cy="55" rx="18" ry="10" fill="#fff" />
-          <ellipse cx="186" cy="60" rx="11" ry="8"  fill="#fff" />
-          <ellipse cx="214" cy="60" rx="10" ry="7"  fill="#fff" />
+          <ellipse cx="220" cy="18" rx="18" ry="10" fill="#fff" />
+          <ellipse cx="206" cy="23" rx="11" ry="8"  fill="#fff" />
+          <ellipse cx="234" cy="23" rx="10" ry="7"  fill="#fff" />
         </g>
 
         {/* Birds (purchased) */}
@@ -76,28 +86,24 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        <path d="M0,90 L0,45 Q215,20 430,45 L430,90 Z" fill="#8dc63f" opacity="0.35" />
+        <defs>
+          <linearGradient id="bg-grass-fade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#8dc63f" stopOpacity="0.36" />
+            <stop offset="100%" stopColor="#8dc63f" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+        {/* Soft grass lip — gentle, nearly flat horizon */}
+        <path
+          d="M0,44 Q215,40 430,44 L430,86 C390,87 350,85 300,86 S210,85 160,86 S70,85 0,86 Z"
+          fill="url(#bg-grass-fade)"
+        />
 
-        {/* Grass tufts left */}
-        <g fill="#5a9e1e" opacity="0.55">
-          <ellipse cx="22" cy="57" rx="12" ry="7" />
-          <ellipse cx="36" cy="54" rx="9"  ry="6" />
-          <ellipse cx="10" cy="54" rx="7"  ry="5" />
-        </g>
-
-        {/* Grass tufts right */}
-        <g fill="#5a9e1e" opacity="0.55">
-          <ellipse cx="408" cy="57" rx="12" ry="7" />
-          <ellipse cx="394" cy="54" rx="9"  ry="6" />
-          <ellipse cx="420" cy="54" rx="7"  ry="5" />
-        </g>
-
-        {/* Bush left */}
+        {/* Bush left — nudged right so the apple basket sits clearly to its left */}
         <g className="bg-bush-left">
-          <ellipse cx="55" cy="54" rx="26" ry="10" fill="#6ab22a" />
-          <circle  cx="55" cy="42" r="14"           fill="#4a8f12" />
-          <circle  cx="44" cy="46" r="10"           fill="#5aab1a" />
-          <circle  cx="66" cy="47" r="10"           fill="#5aab1a" />
+          <ellipse cx="78" cy="54" rx="26" ry="10" fill="#6ab22a" />
+          <circle  cx="78" cy="42" r="14"           fill="#4a8f12" />
+          <circle  cx="67" cy="46" r="10"           fill="#5aab1a" />
+          <circle  cx="89" cy="47" r="10"           fill="#5aab1a" />
         </g>
 
         {/* Bush right */}
@@ -130,9 +136,6 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           </>
         )}
 
-        {/* Stones */}
-        <ellipse cx="145" cy="62" rx="7" ry="4" fill="#a8a29e" opacity="0.3" />
-        <ellipse cx="285" cy="63" rx="5" ry="3" fill="#a8a29e" opacity="0.25" />
       </svg>
     </>
   );

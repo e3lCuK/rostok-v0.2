@@ -1,0 +1,219 @@
+/**
+ * After Care shovel claim, the existing handleGoToRewards queue must run
+ * (XP → tree growth → apples → income). Guards against the regression where
+ * acknowledge exited UI immediately and skipped animations.
+ */
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import {
+  resolveV3CareShovelAction,
+  sessionScoresFromV3Claim,
+  shouldAcknowledgeV3CareCycle,
+  shouldShowV3RewardPreview,
+} from "./v3CareClient";
+import { normalizeEconomyV3RootsSnapshot } from "./v3Roots";
+import type { EconomyV3RootsState } from "./api";
+import { shouldExitPostCareUi } from "./careSessionActionsUi";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const pageSrc = readFileSync(join(here, "../pages/GamePage.tsx"), "utf8");
+
+function finishedUnclaimed(): EconomyV3RootsState {
+  const snap = normalizeEconomyV3RootsSnapshot({
+    enabled: true,
+    dailyCapSeconds: 20,
+    dayKey: "2026-07-25",
+    roots: {
+      water: {
+        seconds: 0,
+        fullSegments: 0,
+        partialSegmentSeconds: 0,
+        capacitySeconds: 25,
+        fillFraction: 0,
+        playableFromRoot: false,
+        transferred: true,
+        frozen: false,
+      },
+      sun: {
+        seconds: 0,
+        fullSegments: 0,
+        partialSegmentSeconds: 0,
+        capacitySeconds: 25,
+        fillFraction: 0,
+        playableFromRoot: false,
+        transferred: true,
+        frozen: false,
+      },
+      fertilizer: {
+        seconds: 0,
+        fullSegments: 0,
+        partialSegmentSeconds: 0,
+        capacitySeconds: 25,
+        fillFraction: 0,
+        playableFromRoot: false,
+        transferred: true,
+        frozen: false,
+      },
+    },
+    reserves: {
+      water: { seconds: 0, capacitySeconds: 20, playable: false },
+      sun: { seconds: 0, capacitySeconds: 20, playable: false },
+      fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
+    },
+    careAvailability: {
+      water: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
+      sun: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
+      fertilizer: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
+    },
+    careSession: {
+      active: false,
+      activity: null,
+      presetSeconds: null,
+      startedAt: null,
+      finishedAt: null,
+      status: null,
+      skill: null,
+    },
+    careCycle: {
+      startedAt: "t0",
+      completedAt: "t1",
+      finishedAt: "t2",
+      status: "finished",
+      allCompleted: true,
+      readyToFinish: false,
+      totalPresetSeconds: 15,
+      averageSkill: 0.7,
+      activities: {
+        water: { completed: true, presetSeconds: 5, skill: 0.7 },
+        sun: { completed: true, presetSeconds: 5, skill: 0.7 },
+        fertilizer: { completed: true, presetSeconds: 5, skill: 0.7 },
+      },
+      rewardPreview: {
+        available: true,
+        xp: 45,
+        apples: 0,
+        treeGrowth: 3,
+        income: { base: 2, bonus: 1, total: 3 },
+      },
+      claim: {
+        claimed: false,
+        claimedAt: null,
+        xp: 0,
+        treeGrowth: 0,
+        income: { base: 0, bonus: 0, total: 0 },
+      },
+    },
+    generation: {
+      anchorAt: null,
+      progress: 0,
+      frozenAt: null,
+      insuranceDeadlineAt: null,
+      firstTransferredRoot: null,
+      transferredRoots: ["water", "sun", "fertilizer"],
+      secondsUntilNextWholeSecond: null,
+      accumulating: false,
+    },
+    excessGate: {
+      ordinaryFull: false,
+      rootsFull: false,
+      reservesFull: { water: false, sun: false, fertilizer: false },
+      generatingExcess: false,
+    },
+  });
+  if (!snap) throw new Error("snap");
+  return snap;
+}
+
+describe("v3 Care final reward animation queue", () => {
+  it("1–2. shovel claim path wires finish→claim→ack(skipUiExit)→handleGoToRewards", () => {
+    expect(resolveV3CareShovelAction(finishedUnclaimed())).toBe("claim-cycle");
+    expect(shouldShowV3RewardPreview(finishedUnclaimed())).toBe(true);
+    expect(pageSrc).toContain("await claimV3CareCycleOnce()");
+    expect(pageSrc).toContain(
+      "acknowledgeV3CareCycleOnce({ skipUiExit: true })",
+    );
+    expect(pageSrc).toContain("handleGoToRewards(scores)");
+    expect(pageSrc).toContain("Existing project sequence:");
+  });
+
+  it("3–6. reward queue still contains XP / growth / apples / income steps", () => {
+    const claimFn = pageSrc.match(
+      /async function claimV3CareCycleOnce\([\s\S]*?\n  async function handleV3CareShovelClick/,
+    )?.[0] ?? "";
+    expect(claimFn).toContain("handleGoToRewards(scores)");
+    expect(claimFn).toContain("pendingXpRef.current = {");
+    // Tutorial branch must not call the spectacle queue.
+    expect(claimFn).toContain("if (!tutorialDone)");
+    expect(claimFn).toContain("Tutorial Care claim");
+    expect(claimFn).not.toMatch(/setShowXpPopup\(true\)[\s\S]*?await acknowledgeV3CareCycleOnce\(\)/);
+
+    expect(pageSrc).toContain("setShowXpPopup(true)");
+    expect(pageSrc).toContain("setShowGrowthAnim(true)");
+    expect(pageSrc).toContain("setShowMmPopup(true)");
+    expect(pageSrc).toContain("setShowApples(true)");
+    expect(pageSrc).toContain("claimApplesAndIncome");
+    expect(pageSrc).toContain("animateGrowth(");
+    expect(pageSrc).toContain("if (!tutorialDone) return;");
+  });
+
+  it("7–8. claim maps scores once; careClicked freezes shovel", () => {
+    expect(
+      sessionScoresFromV3Claim({
+        xp: 45,
+        treeGrowth: 3,
+        income: { base: 2, bonus: 1, total: 3 },
+      }),
+    ).toEqual({
+      water: 0,
+      sun: 0,
+      fert: 0,
+      xp: 45,
+      base: 2,
+      bonus: 1,
+      mm: 3,
+    });
+    expect(pageSrc).toContain("setCareClicked(true)");
+    expect(pageSrc).toMatch(
+      /if \(\(!tutorialDone && !liveTutorial\) \|\| careClicked\) return/,
+    );
+    expect(pageSrc).toContain("v3ClaimCycleInFlightRef");
+  });
+
+  it("9–10. post-care exits only after rewards claimed (showRewards + pending 0)", () => {
+    expect(
+      shouldExitPostCareUi({
+        tutorialDone: true,
+        pendingBase: 3,
+        pendingBonus: 0,
+        showCompletionStage: true,
+        showActivityGhost: true,
+        showCareButton: true,
+        showRewards: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldExitPostCareUi({
+        tutorialDone: true,
+        pendingBase: 0,
+        pendingBonus: 0,
+        showCompletionStage: true,
+        showActivityGhost: true,
+        showCareButton: true,
+        showRewards: true,
+      }),
+    ).toBe(true);
+    // skipUiExit must not wipe chrome before the queue
+    expect(pageSrc).toContain("Keep sessionScores / fills for handleGoToRewards");
+    expect(shouldAcknowledgeV3CareCycle(finishedUnclaimed())).toBe(false);
+  });
+
+  it("handleGoToRewards accepts scoresOverride for async v3 claim", () => {
+    expect(pageSrc).toContain("scoresOverride");
+    expect(pageSrc).toContain(
+      "const scores = scoresOverride ?? sessionScores",
+    );
+  });
+});

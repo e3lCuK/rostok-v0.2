@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import GameTimer from "./GameTimer";
+import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
 
 interface Props {
   onComplete: (skillScore: number, count: number) => void;
   bonusSeconds?: number;
+  /** Economy v2: absolute duration in whole seconds (overrides 15 + bonus). */
+  durationSec?: number;
 }
 
 const GAME_MS = 15_000;
@@ -18,8 +21,8 @@ const H = 348;
 const CFG = {
   bg: "rgba(255,251,235,0.97)",
   timerBg: "#fef3c7",
-  timerColor: "#f59e0b",
-  border: "2px solid #fde68a",
+  timerColor: V3_ACTIVITY_ACCENT_COLORS.sun,
+  border: "2px solid #fcd34d",
   scoreFg: "#92400e",
   resultColor: "#92400e",
 };
@@ -41,7 +44,7 @@ function drawSun(
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.shadowColor = "#fbbf24";
+  ctx.shadowColor = V3_ACTIVITY_ACCENT_COLORS.sun;
   ctx.shadowBlur = 20;
 
   ctx.beginPath();
@@ -56,15 +59,15 @@ function drawSun(
     r,
   );
 
-  grad.addColorStop(0, "#fef9c3");
-  grad.addColorStop(0.5, "#fbbf24");
-  grad.addColorStop(1, "#f59e0b");
+  grad.addColorStop(0, "#fef08a");
+  grad.addColorStop(0.5, "#ffc107");
+  grad.addColorStop(1, V3_ACTIVITY_ACCENT_COLORS.sun);
 
   ctx.fillStyle = grad;
   ctx.fill();
 
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = "#fbbf24";
+  ctx.strokeStyle = V3_ACTIVITY_ACCENT_COLORS.sun;
   ctx.lineWidth = 2.5;
   ctx.lineCap = "round";
 
@@ -86,8 +89,10 @@ function drawSun(
   ctx.restore();
 }
 
-export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
-  const totalMs = GAME_MS + bonusSeconds * 1000;
+export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec }: Props) {
+  const resolvedSec = durationSec != null ? Math.max(1, Math.floor(durationSec)) : 15 + bonusSeconds;
+  const totalMs = resolvedSec * 1000;
+  const skillDenom = Math.max(1, Math.round(SKILL_DENOM * (resolvedSec / 15)));
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const doneRef = useRef(false);
@@ -139,7 +144,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
 
       const skillScore = Math.min(
         100,
-        Math.round((catches / SKILL_DENOM) * 100),
+        Math.round((catches / skillDenom) * 100),
       );
 
       console.log(
@@ -305,7 +310,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0 }: Props) {
 
       canvas.style.cursor = "default";
     };
-  }, [totalMs]);
+  }, [totalMs, skillDenom]);
 
   return (
     <div

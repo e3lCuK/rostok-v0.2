@@ -1,206 +1,264 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type MouseEvent } from "react";
 
+import { V2CapitalChest } from "./V2CapitalChest";
 import {
   MAJOR_MOCK_BRANCH_CATALOG,
-  MAJOR_MOCK_BRANCH_BY_ID,
   MAJOR_MOCK_PATH_LENGTH,
-  MAJOR_MOCK_ROOT_COLOR,
-  type MajorMockBranchDef,
+  MAJOR_TAPER_FILL_BY_ID,
+  ROOT_SYSTEM_VIEW,
 } from "./rootMajorMockBranches";
+import {
+  V2_ROOT_EMPTY_COLOR,
+  V2_ROOT_GENERATING_FILL_COLOR,
+  V2_ROOT_READY_COLOR,
+} from "@/lib/v2RootColors";
+import {
+  findGeneratingSectionIndex,
+  getNextCollectableSectionIndex,
+  parseReadyMask,
+  resolveSectionVisualState,
+  ROOT_SECTION_PATH_LENGTH,
+  ROOT_SECTION_VISUAL_LEN,
+  rootHasReadySection,
+  sectionDashOffset,
+  sectionStrokeWidthFactor,
+  type RootSectionVisualState,
+  V2_ROOT_COUNT,
+  V2_ROOT_SECTION_COUNT,
+  V2_SECTIONS_PER_ROOT,
+} from "@/lib/v2Roots";
 
 export type RootSegmentState = "empty" | "growing" | "ready" | "collected";
-
 export type RootWhorl = 1 | 2 | 3 | 4;
 
 export interface RootSegment {
   id: string;
-  /** Growth whorl 1–4 (each whorl = 15 s, 5 branches × 3 s). */
   whorl: RootWhorl;
   state: RootSegmentState;
-  /** 0–1 visual fill for growing state; omit for indeterminate animation */
   growProgress?: number;
 }
 
 interface Props {
-  segments: RootSegment[];
+  readyMask?: string;
+  generatingProgress?: number;
+  /** When true: capital chest (section art when production mask is set). */
+  artMode?: boolean;
+  /** Same capital value as the top-left HUD (`balances.balance`). */
+  capital?: number;
+  segments?: RootSegment[];
+  /** Production: collect one tip→base section on this root. */
+  onRootCollect?: (rootIndex: number, event: MouseEvent) => void;
+  /** Fallback if onRootCollect is absent — receives tip→base sectionIndex. */
+  onSectionCollect?: (sectionIndex: number) => void;
   onSegmentCollect?: (id: string) => void;
+  collectingSectionIndices?: ReadonlySet<number> | null;
+  collectingRootIndices?: ReadonlySet<number> | null;
+  /**
+   * When false, production root hit-paths stay non-interactive (Tutorial).
+   * Default true — does not affect mock/art-only segment collect.
+   */
+  productionCollectEnabled?: boolean;
 }
 
-/** Trunk base at soil line — all branches sprout from here. */
-const ORIGIN = { x: 100, y: 4 };
+const COLLECT_ANIM_MS = 200;
+const PATH_LEN = MAJOR_MOCK_PATH_LENGTH;
+const MAJOR_HIT_STROKE_WIDTH = 18;
+/** Whole-root hit stroke — generous tap target along centerline. */
+const ROOT_HIT_STROKE_WIDTH = 28;
+/** Visual base width — slightly under hit width so round-cap gaps stay readable. */
+const SECTION_VISUAL_BASE_WIDTH = 6.8;
+const SECTION_DASH = `${ROOT_SECTION_VISUAL_LEN} ${ROOT_SECTION_PATH_LENGTH}`;
 
-export interface RootBranchDef {
-  id: string;
-  whorl: RootWhorl;
-  end: { x: number; y: number };
+function sectionStrokeWidth(sectionInRoot: number): number {
+  return SECTION_VISUAL_BASE_WIDTH * sectionStrokeWidthFactor(sectionInRoot);
 }
 
-/**
- * 20 collectible terminal branches — 5 per whorl.
- * Reserved for production economy; not used in current mock visual.
- */
-export const ROOT_BRANCH_CATALOG: readonly RootBranchDef[] = [
-  { id: "root-w1-1", whorl: 1, end: { x: 100, y: 22 } },
-  { id: "root-w1-2", whorl: 1, end: { x: 91, y: 20 } },
-  { id: "root-w1-3", whorl: 1, end: { x: 109, y: 20 } },
-  { id: "root-w1-4", whorl: 1, end: { x: 84, y: 18 } },
-  { id: "root-w1-5", whorl: 1, end: { x: 116, y: 18 } },
-  { id: "root-w2-1", whorl: 2, end: { x: 70, y: 32 } },
-  { id: "root-w2-2", whorl: 2, end: { x: 130, y: 32 } },
-  { id: "root-w2-3", whorl: 2, end: { x: 82, y: 30 } },
-  { id: "root-w2-4", whorl: 2, end: { x: 118, y: 30 } },
-  { id: "root-w2-5", whorl: 2, end: { x: 100, y: 36 } },
-  { id: "root-w3-1", whorl: 3, end: { x: 52, y: 46 } },
-  { id: "root-w3-2", whorl: 3, end: { x: 148, y: 46 } },
-  { id: "root-w3-3", whorl: 3, end: { x: 68, y: 44 } },
-  { id: "root-w3-4", whorl: 3, end: { x: 132, y: 44 } },
-  { id: "root-w3-5", whorl: 3, end: { x: 100, y: 50 } },
-  { id: "root-w4-1", whorl: 4, end: { x: 28, y: 58 } },
-  { id: "root-w4-2", whorl: 4, end: { x: 172, y: 58 } },
-  { id: "root-w4-3", whorl: 4, end: { x: 48, y: 60 } },
-  { id: "root-w4-4", whorl: 4, end: { x: 152, y: 60 } },
-  { id: "root-w4-5", whorl: 4, end: { x: 100, y: 62 } },
-] as const;
-
-const CATALOG_GEOMETRY = ROOT_BRANCH_CATALOG.map((def) => {
-  const length = Math.hypot(def.end.x - ORIGIN.x, def.end.y - ORIGIN.y);
-  return {
-    ...def,
-    d: `M ${ORIGIN.x} ${ORIGIN.y} L ${def.end.x} ${def.end.y}`,
-    length,
-    kind: "catalog" as const,
-  };
-});
-
-const CATALOG_BY_ID = new Map(CATALOG_GEOMETRY.map((b) => [b.id, b]));
-
-const MAJOR_MOCK_STROKE_WIDTH = 6;
-const MAJOR_MOCK_HIT_WIDTH = 18;
-const COLLECT_ANIM_MS = 480;
-
-type VisualState = RootSegmentState | "collecting";
-
-interface BranchStroke {
+function SectionDashPath({
+  d,
+  sectionInRoot,
+  stroke,
+  strokeWidth,
+  className,
+  opacity = 1,
+  dashLength = ROOT_SECTION_VISUAL_LEN,
+}: {
+  d: string;
+  sectionInRoot: number;
   stroke: string;
   strokeWidth: number;
-  strokeDasharray: string;
-  strokeDashoffset: number;
-  opacity: number;
-  filter?: string;
-  pulse?: boolean;
-  fadeOut?: boolean;
+  className?: string;
+  opacity?: number;
+  dashLength?: number;
+}) {
+  const offset = sectionDashOffset(sectionInRoot);
+  const dash =
+    dashLength === ROOT_SECTION_VISUAL_LEN
+      ? SECTION_DASH
+      : `${dashLength} ${ROOT_SECTION_PATH_LENGTH}`;
+
+  return (
+    <path
+      className={className}
+      d={d}
+      fill="none"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      pathLength={PATH_LEN}
+      strokeDasharray={dash}
+      strokeDashoffset={offset}
+      opacity={opacity}
+      pointerEvents="none"
+    />
+  );
 }
 
-function catalogStroke(
-  state: VisualState,
-  whorl: RootWhorl,
-  length: number,
-  growProgress?: number,
-): BranchStroke {
-  const baseW = ({ 1: 2.5, 2: 3, 3: 3.5, 4: 4 } as const)[whorl];
-
-  switch (state) {
-    case "empty":
-      return {
-        stroke: "rgba(74, 55, 40, 0.5)",
-        strokeWidth: baseW,
-        strokeDasharray: `${length * 0.14} ${length}`,
-        strokeDashoffset: 0,
-        opacity: 0.55,
-      };
-    case "growing": {
-      const progress = Math.min(1, Math.max(0, growProgress ?? 0.65));
-      return {
-        stroke: "#7a5c2e",
-        strokeWidth: baseW + 0.5,
-        strokeDasharray: `${length}`,
-        strokeDashoffset: length * (1 - progress),
-        opacity: 0.88,
-      };
-    }
-    case "ready":
-      return {
-        stroke: "#e8d5a8",
-        strokeWidth: baseW + 2,
-        strokeDasharray: `${length}`,
-        strokeDashoffset: 0,
-        opacity: 1,
-        filter: "url(#v2-root-ready-glow)",
-        pulse: true,
-      };
-    case "collecting":
-      return {
-        stroke: "#e8d5a8",
-        strokeWidth: baseW + 2,
-        strokeDasharray: `${length}`,
-        strokeDashoffset: 0,
-        opacity: 1,
-        filter: "url(#v2-root-ready-glow)",
-        fadeOut: true,
-      };
-    case "collected":
-      return {
-        stroke: "rgba(74, 55, 40, 0.42)",
-        strokeWidth: baseW,
-        strokeDasharray: `${length * 0.22} ${length}`,
-        strokeDashoffset: 0,
-        opacity: 0.45,
-      };
-  }
-}
-
-type ResolvedBranch =
-  | { kind: "major"; branch: MajorMockBranchDef }
-  | { kind: "catalog"; branch: (typeof CATALOG_GEOMETRY)[number] };
-
-function resolveBranch(id: string): ResolvedBranch | null {
-  const major = MAJOR_MOCK_BRANCH_BY_ID.get(id);
-  if (major) return { kind: "major", branch: major };
-  const catalog = CATALOG_BY_ID.get(id);
-  if (catalog) return { kind: "catalog", branch: catalog };
-  return null;
-}
-
-function MajorMockRootPath({
+/** Visible section bead — light base always; ready/generating/collecting overlays on top. */
+function VisibleRootSection({
   d,
+  sectionIndex,
+  sectionInRoot,
   state,
-  isCollecting,
+  generatingProgress,
+}: {
+  d: string;
+  sectionIndex: number;
+  sectionInRoot: number;
+  state: RootSectionVisualState;
+  generatingProgress: number;
+}) {
+  const width = sectionStrokeWidth(sectionInRoot);
+  const progress = Math.min(1, Math.max(0, generatingProgress));
+
+  return (
+    <g
+      data-section-index={sectionIndex}
+      data-section-in-root={sectionInRoot}
+      data-section-state={state}
+      data-section-visual="true"
+      className={`v2-root-section v2-root-section--${state}`}
+    >
+      <SectionDashPath
+        d={d}
+        sectionInRoot={sectionInRoot}
+        stroke={V2_ROOT_EMPTY_COLOR}
+        strokeWidth={width}
+        className="v2-root-section__bead v2-root-section__base"
+      />
+
+      {state === "generating" && progress > 0.02 && (
+        <SectionDashPath
+          d={d}
+          sectionInRoot={sectionInRoot}
+          stroke={V2_ROOT_GENERATING_FILL_COLOR}
+          strokeWidth={width}
+          className="v2-root-section__fill"
+          dashLength={Math.max(0.15, ROOT_SECTION_VISUAL_LEN * progress)}
+        />
+      )}
+
+      {state === "ready" && (
+        <SectionDashPath
+          d={d}
+          sectionInRoot={sectionInRoot}
+          stroke={V2_ROOT_READY_COLOR}
+          strokeWidth={width}
+          className="v2-root-section__bead v2-root-section__ready"
+        />
+      )}
+
+      {state === "collecting" && (
+        <SectionDashPath
+          d={d}
+          sectionInRoot={sectionInRoot}
+          stroke={V2_ROOT_READY_COLOR}
+          strokeWidth={width}
+          className="v2-root-section__bead v2-root-section__collecting"
+        />
+      )}
+    </g>
+  );
+}
+
+/** Transparent whole-root hit path along the centerline. */
+function RootHitPath({
+  d,
+  rootIndex,
+  hasReady,
+  disabled,
   onClick,
 }: {
   d: string;
-  state: RootSegmentState;
-  isCollecting: boolean;
-  onClick: () => void;
+  rootIndex: number;
+  hasReady: boolean;
+  disabled: boolean;
+  onClick: (event: MouseEvent) => void;
 }) {
-  const isCollected = state === "collected";
-  const isClickable = state === "ready" && !isCollecting;
-  // Stay in the DOM with fixed path `d` — never unmount slots (avoids layout/bbox reflow).
-  const faded = isCollected && !isCollecting;
+  const clickable = hasReady && !disabled;
 
   return (
-    <g>
+    <g
+      data-root-hit={rootIndex}
+      data-root-has-ready={hasReady ? "true" : "false"}
+      className={`v2-root-hit${clickable ? " v2-root-hit--ready" : ""}`}
+    >
       <path
         d={d}
         fill="none"
         stroke="transparent"
-        strokeWidth={MAJOR_MOCK_HIT_WIDTH}
+        strokeWidth={ROOT_HIT_STROKE_WIDTH}
         strokeLinecap="round"
-        strokeLinejoin="round"
-        pathLength={MAJOR_MOCK_PATH_LENGTH}
-        pointerEvents={isClickable ? "stroke" : "none"}
-        style={{ cursor: isClickable ? "pointer" : "default" }}
-        onClick={isClickable ? onClick : undefined}
+        pathLength={PATH_LEN}
+        pointerEvents={clickable ? "stroke" : "none"}
+        style={{ cursor: clickable ? "pointer" : "default" }}
+        onClick={clickable ? onClick : undefined}
       />
+    </g>
+  );
+}
+
+/** Debug mock: whole-root tapered fill (no readyMask). */
+function MajorRootStroke({
+  d,
+  fillD,
+  state,
+  isCollecting,
+  interactive,
+  onClick,
+}: {
+  d: string;
+  fillD: string;
+  state: RootSegmentState;
+  isCollecting: boolean;
+  interactive: boolean;
+  onClick?: () => void;
+}) {
+  const isCollected = state === "collected";
+  const isClickable = interactive && state === "ready" && !isCollecting;
+  const faded = isCollected && !isCollecting;
+
+  return (
+    <g data-root-kind="major">
+      {interactive && (
+        <path
+          d={d}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={MAJOR_HIT_STROKE_WIDTH}
+          strokeLinecap="round"
+          pathLength={PATH_LEN}
+          pointerEvents={isClickable ? "stroke" : "none"}
+          style={{ cursor: isClickable ? "pointer" : "default" }}
+          onClick={isClickable ? onClick : undefined}
+        />
+      )}
       <path
-        d={d}
-        fill="none"
-        stroke={MAJOR_MOCK_ROOT_COLOR}
-        strokeWidth={MAJOR_MOCK_STROKE_WIDTH}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        pathLength={MAJOR_MOCK_PATH_LENGTH}
-        pointerEvents="none"
+        d={fillD}
+        fill={V2_ROOT_READY_COLOR}
+        stroke="none"
         opacity={faded ? 0 : 1}
+        pointerEvents="none"
       >
         {isCollecting && (
           <animate attributeName="opacity" from="1" to="0" dur="0.48s" fill="freeze" />
@@ -210,57 +268,74 @@ function MajorMockRootPath({
   );
 }
 
-function logMajorRootBounds(phase: "before" | "after", rootId: string) {
-  if (!import.meta.env.DEV) return;
-  const anchor = document.querySelector(".v2-root-anchor");
-  const svg = document.querySelector(".v2-root-svg");
-  const toBox = (el: Element | null) => {
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { x: r.x, y: r.y, width: r.width, height: r.height };
-  };
-  console.info(`[v2 root bounds ${phase}]`, { rootId, anchor: toBox(anchor), svg: toBox(svg) });
-}
+export default function RootEnergySystem({
+  readyMask,
+  generatingProgress = 0,
+  artMode = true,
+  capital,
+  segments,
+  onRootCollect,
+  onSectionCollect,
+  onSegmentCollect,
+  collectingSectionIndices = null,
+  collectingRootIndices = null,
+  productionCollectEnabled = true,
+}: Props) {
+  const [localCollectingId, setLocalCollectingId] = useState<string | null>(null);
+  const productionMode = readyMask != null;
+  const showArt = artMode;
 
-export default function RootEnergySystem({ segments, onSegmentCollect }: Props) {
-  const [collectingId, setCollectingId] = useState<string | null>(null);
+  const mask = useMemo(
+    () => (productionMode ? parseReadyMask(readyMask) : 0n),
+    [productionMode, readyMask],
+  );
+
+  const generatingSectionIndex = useMemo(
+    () => (productionMode ? findGeneratingSectionIndex(mask) : null),
+    [productionMode, mask],
+  );
+
+  const handleRootClick = useCallback(
+    (rootIndex: number, event: MouseEvent) => {
+      if (!productionMode || !productionCollectEnabled) return;
+      if (collectingRootIndices?.has(rootIndex)) return;
+      if (!rootHasReadySection(rootIndex, mask)) return;
+      if (onRootCollect) {
+        onRootCollect(rootIndex, event);
+        return;
+      }
+      const sectionIndex = getNextCollectableSectionIndex(rootIndex, mask);
+      if (sectionIndex == null) return;
+      onSectionCollect?.(sectionIndex);
+    },
+    [
+      productionMode,
+      productionCollectEnabled,
+      collectingRootIndices,
+      mask,
+      onRootCollect,
+      onSectionCollect,
+    ],
+  );
 
   const segmentById = useMemo(() => {
     const map = new Map<string, RootSegment>();
-    for (const segment of segments) map.set(segment.id, segment);
+    for (const segment of segments ?? []) map.set(segment.id, segment);
     return map;
   }, [segments]);
 
   const handleMajorClick = useCallback(
     (segment: RootSegment) => {
-      if (segment.state !== "ready" || collectingId) return;
-      logMajorRootBounds("before", segment.id);
-      setCollectingId(segment.id);
+      if (segment.state !== "ready" || localCollectingId) return;
+      setLocalCollectingId(segment.id);
       window.setTimeout(() => {
-        setCollectingId(null);
-        onSegmentCollect?.(segment.id);
-        logMajorRootBounds("after", segment.id);
-      }, COLLECT_ANIM_MS);
-    },
-    [collectingId, onSegmentCollect],
-  );
-
-  const handleCatalogClick = useCallback(
-    (segment: RootSegment) => {
-      if (segment.state !== "ready" || collectingId) return;
-      setCollectingId(segment.id);
-      window.setTimeout(() => {
-        setCollectingId(null);
+        setLocalCollectingId(null);
         onSegmentCollect?.(segment.id);
       }, COLLECT_ANIM_MS);
     },
-    [collectingId, onSegmentCollect],
+    [localCollectingId, onSegmentCollect],
   );
 
-  /**
-   * Always render the four permanent major-mock slots (fixed path geometry).
-   * Collected roots stay in the DOM — only visual/interaction state changes.
-   */
   const majorSlots = useMemo(() => {
     return MAJOR_MOCK_BRANCH_CATALOG.map((branch) => {
       const segment = segmentById.get(branch.id) ?? {
@@ -271,128 +346,130 @@ export default function RootEnergySystem({ segments, onSegmentCollect }: Props) 
       return {
         branch,
         segment,
-        isCollecting: collectingId === branch.id,
+        isCollecting: localCollectingId === branch.id,
       };
     });
-  }, [segmentById, collectingId]);
+  }, [segmentById, localCollectingId]);
 
-  const catalogLayers = useMemo(() => {
-    return segments
-      .map((segment) => {
-        if (MAJOR_MOCK_BRANCH_BY_ID.has(segment.id)) return null;
-        const resolved = resolveBranch(segment.id);
-        if (!resolved || resolved.kind !== "catalog") return null;
-
-        const isCollecting = collectingId === segment.id;
-        const visualState: VisualState = isCollecting ? "collecting" : segment.state;
-        const growPct =
-          segment.state === "growing" && segment.growProgress != null
-            ? Math.min(1, Math.max(0, segment.growProgress))
-            : undefined;
-        const stroke = catalogStroke(visualState, resolved.branch.whorl, resolved.branch.length, growPct);
-        const clickable = segment.state === "ready" && !isCollecting;
-
-        return { segment, resolved, stroke, clickable, isCollecting };
-      })
-      .filter((layer): layer is NonNullable<typeof layer> => layer != null)
-      .sort((a, b) => a.resolved.branch.whorl - b.resolved.branch.whorl);
-  }, [segments, collectingId]);
+  const { width, height, originX, originY } = ROOT_SYSTEM_VIEW;
 
   return (
-    <div className="v2-root-system" aria-hidden="true">
+    <div
+      className={`v2-root-system${showArt ? " v2-root-system--art" : ""}`}
+      data-generating-section={generatingSectionIndex ?? undefined}
+      data-art-mode={showArt ? "true" : "false"}
+      data-origin-x={originX}
+      data-origin-y={originY}
+      data-production={productionMode ? "true" : "false"}
+    >
       <svg
         className="v2-root-svg"
-        width={200}
-        height={66}
-        viewBox="0 0 200 66"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
         overflow="visible"
-        aria-hidden="true"
+        role="group"
+        aria-label="Корневая система и капитал"
       >
-        <defs>
-          <filter id="v2-root-ready-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur" />
-            <feColorMatrix
-              in="blur"
-              type="matrix"
-              values="0 0 0 0 0.55  0 0 0 0 0.85  0 0 0 0 0.25  0 0 0 0.65 0"
-              result="glow"
-            />
-            <feMerge>
-              <feMergeNode in="glow" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* Permanent bbox stabilizer — geometry must not depend on visible root count. */}
         <rect
           className="v2-root-bbox-stabilizer"
           x={0}
           y={0}
-          width={200}
-          height={66}
+          width={width}
+          height={height}
           fill="transparent"
           pointerEvents="none"
           aria-hidden="true"
         />
 
-        {majorSlots.map(({ branch, segment, isCollecting }) => (
-          <g key={branch.id} data-root-slot={branch.id} data-whorl={branch.whorl}>
-            <MajorMockRootPath
-              d={branch.d}
-              state={segment.state}
-              isCollecting={isCollecting}
-              onClick={() => handleMajorClick(segment)}
-            />
-          </g>
-        ))}
+        {showArt && <V2CapitalChest capital={capital} layer="body" />}
 
-        {catalogLayers.map((layer) => {
-          const { segment, resolved, stroke, clickable } = layer;
-          const d = resolved.branch.d;
-
-          return (
-            <g key={segment.id} data-whorl={resolved.branch.whorl}>
-              {clickable && (
-                <path
-                  d={d}
-                  fill="none"
-                  stroke="transparent"
-                  strokeWidth={14}
-                  strokeLinecap="round"
-                  pointerEvents="stroke"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleCatalogClick(segment)}
-                />
-              )}
-              <path
-                d={d}
-                fill="none"
-                strokeLinecap="round"
-                stroke={stroke.stroke}
-                strokeWidth={stroke.strokeWidth}
-                strokeDasharray={stroke.strokeDasharray}
-                strokeDashoffset={stroke.strokeDashoffset}
-                opacity={stroke.opacity}
-                filter={stroke.filter}
-                pointerEvents={clickable ? "none" : "stroke"}
-              >
-                {stroke.pulse && (
-                  <animate
-                    attributeName="opacity"
-                    values="0.82;1;0.82"
-                    dur="1.4s"
-                    repeatCount="indefinite"
-                  />
-                )}
-                {stroke.fadeOut && (
-                  <animate attributeName="opacity" from="1" to="0" dur="0.48s" fill="freeze" />
-                )}
-              </path>
+        {productionMode ? (
+          <>
+            <g className="v2-root-majors v2-root-majors--sections">
+              {MAJOR_MOCK_BRANCH_CATALOG.map((branch, rootIndex) => (
+                <g
+                  key={branch.id}
+                  data-root-kind="major"
+                  data-root={rootIndex}
+                  data-root-slot={branch.id}
+                  data-whorl={branch.whorl}
+                  data-root-ready={
+                    rootHasReadySection(rootIndex, mask) ? "true" : "false"
+                  }
+                >
+                  {Array.from({ length: V2_SECTIONS_PER_ROOT }, (_, sectionInRoot) => {
+                    const sectionIndex =
+                      rootIndex * V2_SECTIONS_PER_ROOT + sectionInRoot;
+                    const state = resolveSectionVisualState({
+                      sectionIndex,
+                      readyMask: mask,
+                      generatingSectionIndex,
+                      collectingSectionIndices,
+                    });
+                    return (
+                      <VisibleRootSection
+                        key={sectionIndex}
+                        d={branch.d}
+                        sectionIndex={sectionIndex}
+                        sectionInRoot={sectionInRoot}
+                        state={state}
+                        generatingProgress={
+                          state === "generating" ? generatingProgress : 0
+                        }
+                      />
+                    );
+                  })}
+                </g>
+              ))}
             </g>
-          );
-        })}
+
+            {showArt && <V2CapitalChest capital={capital} layer="label" />}
+
+            <g className="v2-root-hit-layer" aria-hidden="true">
+              {MAJOR_MOCK_BRANCH_CATALOG.map((branch, rootIndex) => (
+                <RootHitPath
+                  key={branch.id}
+                  d={branch.d}
+                  rootIndex={rootIndex}
+                  hasReady={rootHasReadySection(rootIndex, mask)}
+                  disabled={
+                    !productionCollectEnabled ||
+                    collectingRootIndices?.has(rootIndex) === true
+                  }
+                  onClick={(event) => handleRootClick(rootIndex, event)}
+                />
+              ))}
+            </g>
+          </>
+        ) : (
+          <>
+            <g className="v2-root-majors">
+              {majorSlots.map(({ branch, segment, isCollecting }) => {
+                const fillD = MAJOR_TAPER_FILL_BY_ID.get(branch.id) ?? branch.d;
+                return (
+                  <g key={branch.id} data-root-slot={branch.id} data-whorl={branch.whorl}>
+                    <MajorRootStroke
+                      d={branch.d}
+                      fillD={fillD}
+                      state={segment.state}
+                      isCollecting={isCollecting}
+                      interactive
+                      onClick={() => handleMajorClick(segment)}
+                    />
+                  </g>
+                );
+              })}
+            </g>
+            {showArt && <V2CapitalChest capital={capital} layer="label" />}
+          </>
+        )}
       </svg>
+      {productionMode && (
+        <span className="v2-root-section-count" hidden>
+          {V2_ROOT_COUNT}:{V2_SECTIONS_PER_ROOT}:{V2_ROOT_SECTION_COUNT}
+        </span>
+      )}
     </div>
   );
 }

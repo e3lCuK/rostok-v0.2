@@ -9,13 +9,15 @@ const MIN_DURATION_SEC = 5;
 const MAX_DURATION_SEC = 25;
 const DROPS_PER_SEC = 2;
 
-function buildWaterPreset(durationSec: number): WaterPreset {
-  const totalDrops = durationSec * DROPS_PER_SEC;
+/** Build a water preset for any positive whole-second duration (Economy v2). */
+export function buildWaterPreset(durationSec: number): WaterPreset {
+  const safe = Math.max(1, Math.floor(durationSec));
+  const totalDrops = safe * DROPS_PER_SEC;
   return {
-    id: `water-${durationSec}`,
-    durationSec,
+    id: `water-${safe}`,
+    durationSec: safe,
     totalDrops,
-    spawnIntervalMs: Math.round((durationSec * 1000) / totalDrops),
+    spawnIntervalMs: Math.round((safe * 1000) / totalDrops),
   };
 }
 

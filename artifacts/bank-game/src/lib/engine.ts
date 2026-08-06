@@ -33,6 +33,16 @@ export interface UserState {
     missedSessions: number;
     pendingBaseReward: number;
     pendingBonusReward: number;
+    metelkaPendingReward?: {
+      active: boolean;
+      baseAmount: number;
+      bonusAmount: number;
+      totalAmount: number;
+      xpAmount: number;
+      createdAt: number | null;
+      claimToken: string | null;
+      claimedAt: number | null;
+    };
     pendingStoredSessions: number;
     treeGrowthMM: number;
     treeGrowthRemainder: number;
@@ -42,12 +52,43 @@ export interface UserState {
     totalApples: number;
     purchasedItems: string[];
     tutorialDone: boolean;
+    /** Economy v2 available activity seconds (0–60). Isolated from v1 8h lock. */
+    v2EnergySeconds?: number;
+    v2EnergyAnchorAt?: number | null;
+    /** Economy v2 Care cycle snapshot from GET /game/state (server source of truth). */
+    v2Care?: import("@/lib/api").EconomyV2CareStateResponse | null;
+    /** Ordinary Care Freshness 0.50–1.00 (informational; money uses server calc). */
+    v2Freshness?: number;
+    /** Epoch ms of last ordinary Care income settle. */
+    v2IncomeAnchorAt?: number | null;
+    /** Root maturation (ready mask). Collected bank is v2EnergySeconds. */
+    v2Roots?: import("@/lib/api").EconomyV2RootsState | null;
+    /** Excess beyond ordinary 60-capacity (server snapshot). */
+    v2Excess?: import("@/lib/api").EconomyV2ExcessState | null;
+    /** Economy v3 parallel roots — null when feature flag off / omitted. */
+    v3Roots?: import("@/lib/api").EconomyV3RootsState | null;
+    /** One-shot auto-transfer from last GET (not persisted). */
+    v3AutoTransfer?: import("@/lib/api").EconomyV3AutoTransferPublic | null;
   };
   history: {
     date: string;
     amount: number;
-    type: "base" | "bonus";
+    type:
+      | "base"
+      | "bonus"
+      | "metelka"
+      | "excess"
+      | "excess_base"
+      | "excess_bonus"
+      | string;
   }[];
+  /** Server SoT catalog — income for one completed mini-game by duration. */
+  incomeByPreset?: Array<{
+    presetSeconds: number;
+    income: number;
+    base: number;
+    bonus: number;
+  }>;
 }
 
 export interface XpHistoryEntry {
@@ -109,10 +150,44 @@ export function computeMissedSessions(game: UserState["game"], startDate: number
   return (game.missedSessions ?? 0) + additional;
 }
 
-// ---- Streak bonus seconds (day 1=+1s … day 5=+5s, capped — resets on miss) ----
+// ---- Streak / visit day (must match api-server resolveV3CurrentVisitDay) ----
+/**
+ * 1-based current visit day from persisted streak_days.
+ * streak ≤ 0 (legacy unset) → day 1; streak ≥ 1 → that day.
+ */
+export function resolveCurrentVisitDay(streakDays: unknown): number {
+  const n =
+    typeof streakDays === "number"
+      ? streakDays
+      : parseInt(String(streakDays ?? "0"), 10);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return Math.floor(n);
+}
+
+/**
+ * Daily preset bonus seconds: day 1 → +1 … day 5+ → +5.
+ * Same mapping as backend computeV3VisitBonusSeconds.
+ */
 export function getStreakBonusSeconds(streakDays: number): number {
-  if (streakDays <= 0) return 1;
-  return Math.min(streakDays, 5);
+  const day = resolveCurrentVisitDay(streakDays);
+  return Math.min(5, day);
+}
+
+/** Calendar slot state for the 5 visit-reward cards (labels День 1…5). */
+export function getVisitRewardCalendarState(currentVisitDay: number): {
+  visitDay: number;
+  allMaxed: boolean;
+  /** 0-based index of the active (⭐) card; ignored when allMaxed. */
+  activeIndex: number;
+} {
+  const visitDay = Math.max(1, Math.floor(Number(currentVisitDay) || 1));
+  // Day 5 is still the active card; only day 6+ marks the cycle complete.
+  const allMaxed = visitDay > 5;
+  return {
+    visitDay,
+    allMaxed,
+    activeIndex: Math.min(visitDay, 5) - 1,
+  };
 }
 
 // ---- Session helpers ----

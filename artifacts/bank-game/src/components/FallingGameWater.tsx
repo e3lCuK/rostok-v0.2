@@ -4,6 +4,7 @@ import {
   buildWaterV1LegacyPreset,
   type WaterPreset,
 } from "@/lib/gamePresets/waterPresets";
+import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
 
 export type GameType = "water" | "sun" | "fertilizer";
 
@@ -19,26 +20,26 @@ const CONFIGS = {
   water: {
     bg:          "rgba(239,246,255,0.97)",
     timerBg:     "#dbeafe",
-    timerColor:  "#3b82f6",
+    timerColor:  V3_ACTIVITY_ACCENT_COLORS.water,
     scoreFg:     "#1e40af",
     scoreEmoji:  "💧",
-    dropColor:   "#3b82f6",
-    dropShadow:  "rgba(59,130,246,0.15)",
-    barColor:    "#2563eb",
+    dropColor:   V3_ACTIVITY_ACCENT_COLORS.water,
+    dropShadow:  "rgba(43,127,255,0.22)",
+    barColor:    "#1565e0",
     resultColor: "#1d4ed8",
-    border:      "2px solid #bfdbfe",
+    border:      "2px solid #93c5fd",
   },
   sun: {
     bg:          "rgba(255,251,235,0.97)",
     timerBg:     "#fef3c7",
-    timerColor:  "#f59e0b",
+    timerColor:  V3_ACTIVITY_ACCENT_COLORS.sun,
     scoreFg:     "#92400e",
     scoreEmoji:  "☀️",
-    dropColor:   "#f59e0b",
-    dropShadow:  "rgba(245,158,11,0.15)",
-    barColor:    "#d97706",
+    dropColor:   V3_ACTIVITY_ACCENT_COLORS.sun,
+    dropShadow:  "rgba(255,193,7,0.22)",
+    barColor:    "#e8900c",
     resultColor: "#92400e",
-    border:      "2px solid #fde68a",
+    border:      "2px solid #fcd34d",
   },
   fertilizer: {
     bg:          "rgba(240,253,244,0.97)",

@@ -4,14 +4,26 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+/** Local Vite UI port — never reuse api-server's PORT (usually 8080). */
 const DEFAULT_DEV_PORT = 22399;
+/** Default Express listen port for the /api proxy target. */
+const DEFAULT_API_PORT = 8080;
 
-const rawPort = process.env.PORT ?? String(DEFAULT_DEV_PORT);
-
+// Prefer VITE_PORT. Do NOT fall back to process.env.PORT — that belongs to api-server
+// and caused Vite to bind 8080 ("Cannot GET /" when opening the backend as if it were the game).
+const rawPort = process.env.VITE_PORT ?? String(DEFAULT_DEV_PORT);
 const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+  throw new Error(`Invalid VITE_PORT value: "${rawPort}"`);
+}
+
+const rawApiPort =
+  process.env.API_PORT ?? process.env.PORT ?? String(DEFAULT_API_PORT);
+const apiPort = Number(rawApiPort);
+
+if (Number.isNaN(apiPort) || apiPort <= 0) {
+  throw new Error(`Invalid API proxy port value: "${rawApiPort}"`);
 }
 
 const basePath = process.env.BASE_PATH ?? "/";
@@ -50,6 +62,7 @@ export default defineConfig({
   },
   server: {
     port,
+    strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
     fs: {
@@ -58,13 +71,14 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: `http://localhost:${apiPort}`,
         changeOrigin: true,
       },
     },
   },
   preview: {
     port,
+    strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
   },

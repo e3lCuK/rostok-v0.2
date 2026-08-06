@@ -5,6 +5,8 @@ interface Props {
   totalXP: number;
   level: number;
   xpGain?: number | null;
+  /** Claimable achievements — green dot on the diamond. */
+  pendingAchievements?: boolean;
   onClick?: () => void;
 }
 
@@ -33,7 +35,13 @@ function getLevelProgress(totalXP: number, level: number): number {
 
 function pt(p: [number, number]) { return p.join(","); }
 
-export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) {
+export default function LevelWidget({
+  totalXP,
+  level,
+  xpGain,
+  pendingAchievements = false,
+  onClick,
+}: Props) {
   const [showGain, setShowGain] = useState(false);
   const [gainVal, setGainVal] = useState(0);
 
@@ -50,7 +58,7 @@ export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) 
   }, [fillY, fillH, springY, springH]);
 
   useEffect(() => {
-    if (xpGain) {
+    if (xpGain != null && xpGain > 0) {
       setGainVal(xpGain);
       setShowGain(true);
       const t = setTimeout(() => setShowGain(false), 1400);
@@ -60,7 +68,10 @@ export default function LevelWidget({ totalXP, level, xpGain, onClick }: Props) 
   }, [xpGain]);
 
   return (
-    <div className="lvl-badge-wrap" onClick={onClick}>
+    <div className="lvl-badge-wrap" data-level-widget="true" onClick={onClick}>
+      {pendingAchievements ? (
+        <span className="ach-fire-dot lvl-badge-ach-dot" aria-hidden="true" />
+      ) : null}
       <motion.div
         className="lvl-badge"
         animate={showGain
