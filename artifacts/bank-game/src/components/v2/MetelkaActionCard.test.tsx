@@ -301,18 +301,18 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(html).toContain('aria-label="Вода"');
   });
 
-  it("3–4. active session → Metelka hidden, care trio absent, cleaning slot", () => {
+  it("3–4. active session → Metelka hidden, care trio frozen (grey)", () => {
     expect(shouldShowMetelkaCard(sessionActive)).toBe(false);
     expect(isExcessCleaningMode(sessionActive)).toBe(true);
     const html = renderToStaticMarkup(
       <GameSessionActionsParent v2Excess={sessionActive} />,
     );
     expect(html).not.toContain('data-game-metelka="true"');
-    expect(html).not.toContain('aria-label="Вода"');
-    expect(html).not.toContain('aria-label="Свет"');
-    expect(html).not.toContain('aria-label="Удобрение"');
     expect(html).toContain('data-care-actions-mode="cleaning"');
-    expect(html).toContain('data-care-actions-slot="cleaning"');
+    expect(html).toContain('data-care-actions-slot="cleaning-frozen"');
+    expect(html).toContain('aria-label="Вода"');
+    expect(html).toContain('aria-label="Свет"');
+    expect(html).toContain('aria-label="Удобрение"');
   });
 
   it("cleaning mode: left actions column is out of hit-testing", () => {
@@ -340,12 +340,13 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(Number(webZ?.[1])).toBeGreaterThan(15);
   });
 
-  it("active + excessAvailable=false → still cleaning, no care", () => {
+  it("active + excessAvailable=false → still cleaning, frozen care trio", () => {
     const html = renderToStaticMarkup(
       <GameSessionActionsParent v2Excess={sessionActiveNoAvail} />,
     );
     expect(html).toContain('data-care-actions-mode="cleaning"');
-    expect(html).not.toContain('aria-label="Удобрение"');
+    expect(html).toContain('data-care-actions-slot="cleaning-frozen"');
+    expect(html).toContain('aria-label="Удобрение"');
   });
 
   it("after reset → care returns", () => {
@@ -355,7 +356,7 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(html).toContain('aria-label="Вода"');
   });
 
-  it("never both Metelka and care buttons in DOM", () => {
+  it("never both Metelka card and interactive care mode", () => {
     for (const excess of [
       inactiveNone,
       availableInactive,
@@ -366,8 +367,10 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
         <GameSessionActionsParent v2Excess={excess} />,
       );
       const hasMetelka = html.includes('data-game-metelka="true"');
-      const hasCare = html.includes('aria-label="Вода"');
-      expect(hasMetelka && hasCare).toBe(false);
+      const hasInteractiveCare =
+        html.includes('data-care-actions-mode="care"') &&
+        html.includes('aria-label="Вода"');
+      expect(hasMetelka && hasInteractiveCare).toBe(false);
     }
   });
 
@@ -378,6 +381,8 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(page).toContain("startEconomyV2ExcessSession");
     expect(page).toContain("ExcessCleaningTimer");
     expect(page).toContain("hideEnergyTimer={excessCleaning}");
+    expect(page).toContain("frozen={excessCleaning}");
+    expect(page).toContain("useUndergroundRootsScene && !excessCleaning");
     expect(page).toContain("excess_session_already_active");
     expect(page).toContain("excess_not_available");
   });
@@ -566,13 +571,23 @@ describe("MetelkaActionCard visual — button fill + Brush", () => {
     expect(second).not.toContain("height:9.1%");
   });
 
-  it("css keeps cleaning slot + Metelka solid fill styles", () => {
+  it("css keeps cleaning slot + Metelka timer-contrast wash", () => {
     expect(css).toContain("excess-cleaning-timer");
-    expect(css).toContain("action-buttons-row-cleaning-slot");
+    expect(css).toContain("action-buttons-row-cleaning-frozen");
     expect(css).toContain(".metelka-action-fill");
     expect(css).toMatch(/\.metelka-action-fill[\s\S]*?bottom:\s*0/);
+    // Opaque --ac rim + light --ac-wash (not rim RGB).
     expect(css).toMatch(
-      /\.metelka-action-fill[\s\S]*?background:\s*rgba\(168,\s*162,\s*158,\s*0\.5\)/,
+      /\.metelka-action-fill[\s\S]*?background:\s*var\(--ac-wash/,
     );
+    expect(css).toMatch(
+      /\.metelka-icon\s*\{[\s\S]*?color:\s*inherit/,
+    );
+    expect(css).toMatch(
+      /\.metelka-icon\s*\{[\s\S]*?drop-shadow\(0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.55\)/,
+    );
+    expect(cardSrc).toContain("V3_METELKA_RIM");
+    expect(cardSrc).toContain("V3_METELKA_WASH");
+    expect(cardSrc).toContain("--ac-wash");
   });
 });

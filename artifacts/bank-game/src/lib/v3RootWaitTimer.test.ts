@@ -272,6 +272,37 @@ describe("v3 root wait timer — full cycle semantics", () => {
     expect(rem).toBeLessThan(715);
   });
 
+  it("5c-handoff. merge keeps tutorial remaining when server resets to ~12:00", () => {
+    const t0 = 3_500_000;
+    const prev = captureV3RootWaitTimer({
+      v3Roots: sampleV3({
+        secondsUntilNextWholeSecond: 594,
+        nextWholeSecondAt: new Date(t0 + 594_000).toISOString(),
+        cycleDurationSeconds: 720,
+      }),
+      capital: 100_000,
+      nowMs: t0,
+      tutorialDone: true,
+    });
+    const reset = captureV3RootWaitTimer({
+      v3Roots: sampleV3({
+        secondsUntilNextWholeSecond: 720,
+        nextWholeSecondAt: new Date(t0 + 720_000).toISOString(),
+        cycleDurationSeconds: 720,
+      }),
+      capital: 100_000,
+      nowMs: t0,
+      tutorialDone: true,
+    });
+    const merged = mergeV3RootWaitTimerSnapshot({
+      prev,
+      next: reset,
+      nowMs: t0,
+      protectTutorialHandoff: true,
+    });
+    expect(merged?.deadlineAtMs).toBe(prev?.deadlineAtMs);
+  });
+
   it("5c. merge accepts new cycle when remaining jumps up", () => {
     const t0 = 3_000_000;
     const prev = captureV3RootWaitTimer({
@@ -389,13 +420,14 @@ describe("v3 root wait timer — full cycle semantics", () => {
     });
   });
 
-  it("10. host CSS keeps timer visible between roots and chest (≤430 / ≤360)", () => {
+  it("10. host CSS keeps capital-hourglass nested in chest (≤430 / ≤360)", () => {
     expect(cssSrc).toContain("--v3-stack-gap");
     expect(cssSrc).toMatch(
       /\.game-area--v3-roots \.v3-underground-stack\s*\{[\s\S]*?gap:\s*var\(--v3-stack-gap\)/,
     );
+    expect(cssSrc).toContain("v3-capital-hourglass-slot");
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots \.v3-underground-stack \.v3-root-wait-timer-host\s*\{[\s\S]*?z-index:\s*6/,
+      /\.game-area--v3-roots \.v3-capital-hourglass-slot\s*\{[\s\S]*?z-index:\s*3/,
     );
     expect(cssSrc).toMatch(
       /\.game-area--v3-roots \.v3-root-wait-timer\s*\{[\s\S]*?opacity:\s*1/,
@@ -404,28 +436,41 @@ describe("v3 root wait timer — full cycle semantics", () => {
       /\.game-area--v3-roots\s*\{[\s\S]*?--v3-roots-depth:\s*83px/,
     );
     expect(pageSrc).toContain("v3-underground-stack");
-    expect(pageSrc).toContain("v3-root-wait-timer-host");
+    expect(pageSrc).toContain("v3-capital-chest-host--with-hourglass");
+    expect(pageSrc).toContain("<CapitalChestUnderRoots");
   });
 
-  it("capsule matches activity button size; fill bottom→top; larger energy icon", () => {
+  it("Metelka cleaning freezes timer (grey, non-ticking) instead of hiding it", () => {
+    expect(compSrc).toContain("frozen = false");
+    expect(compSrc).toContain("v3-root-wait-timer--frozen");
+    expect(compSrc).toContain('data-timer-frozen={frozen ? "true" : "false"}');
+    expect(pageSrc).toContain("frozen={excessCleaning}");
+    expect(cssSrc).toContain(".v3-root-wait-timer--frozen");
+  });
+
+  it("capsule is tall capital-hourglass; fill bottom→top", () => {
     expect(cssSrc).toContain("--care-control-size: 46px");
-    expect(cssSrc).toMatch(/--v3-timer-size:\s*var\(--care-control-size\)/);
-    expect(cssSrc).toContain("--v3-timer-energy-icon: 16px");
+    expect(cssSrc).toMatch(/--v3-timer-size:\s*var\(--v3-hourglass-height\)/);
+    expect(cssSrc).toContain("--v3-hourglass-width");
     expect(cssSrc).toContain("--v3-chest-top");
     expect(cssSrc).toContain("--v3-stack-gap: 6px");
     expect(cssSrc).toMatch(
       /\.game-area--v3-roots \.v3-underground-stack\s*\{[\s\S]*?flex-direction:\s*column/,
     );
+    expect(cssSrc).toContain("v3-root-wait-timer-hourglass");
+    expect(cssSrc).toContain("v3-capital-badge--in-bulb");
+    // Same palette as before: green rim + mint wash.
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots \.v3-root-wait-timer-capsule\s*\{[\s\S]*?border-radius:\s*50%/,
+      /\.v3-root-wait-timer-hourglass__rim[\s\S]*?stroke:\s*#166534/,
     );
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots \.v3-root-wait-timer-capsule__fill\s*\{[\s\S]*?bottom:\s*0[\s\S]*?height:\s*0%[\s\S]*?transition:\s*height/,
+      /\.v3-root-wait-timer-capsule__fill\s*\{[\s\S]*?fill:\s*rgba\(134,\s*239,\s*172,\s*0\.5\)/,
     );
-    expect(compSrc).toContain("height: `${timer.barProgress * 100}%`");
+    expect(compSrc).toContain("V3WaitTimerHourglass");
+    expect(compSrc).toContain("barProgress={timer.barProgress}");
+    expect(compSrc).toContain('testId="v3-root-wait-timer-capsule"');
+    expect(compSrc).toContain("IDLE_TIMER");
     expect(compSrc).not.toContain("width: `${timer.barProgress * 100}%`");
-    expect(compSrc).toContain("Zap size={16}");
-    expect(compSrc).toContain("v3-root-wait-timer-capsule__time");
   });
 
   it("server exposes nextWholeSecondAt + cycleDurationSeconds (v2 section parity)", () => {

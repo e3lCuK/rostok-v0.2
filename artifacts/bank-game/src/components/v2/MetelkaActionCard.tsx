@@ -4,6 +4,7 @@ import type { EconomyV2ExcessState, EconomyV3RootsState } from "@/lib/api";
 import { isExcessCleaningMode } from "@/lib/excessCleaningCountdown";
 import { isExcessResultAvailable } from "@/lib/excessResultUi";
 import { metelkaFillProgress, metelkaVisualPresetSeconds } from "@/lib/metelkaFillProgress";
+import { V3_METELKA_RIM, V3_METELKA_WASH } from "@/lib/v3ActivityColors";
 import { shouldShowMetelkaCardWithV3Gate } from "@/lib/v3MetelkaUi";
 import ExcessCleaningResultCard from "./ExcessCleaningResultCard";
 
@@ -80,7 +81,7 @@ type CareActionsRowProps = {
  * Ready-row slot:
  * - legacy pending result → result card;
  * - available Metelka → card (unless Care cycle blocks it);
- * - active cleaning → empty placeholder (no care trio);
+ * - active cleaning → care trio frozen (grey, non-interactive);
  * - otherwise → care activities.
  * Version=2 never enters result mode (finish settles immediately).
  *
@@ -134,10 +135,12 @@ export function CareActionsRow({
         />
       ) : cleaning ? (
         <div
-          className="action-buttons-row-cleaning-slot"
-          data-care-actions-slot="cleaning"
+          className="action-buttons-row-cleaning-frozen"
+          data-care-actions-slot="cleaning-frozen"
           aria-hidden="true"
-        />
+        >
+          {children}
+        </div>
       ) : showMetelka ? (
         <MetelkaActionCard
           excess={excess}
@@ -189,7 +192,12 @@ export default function MetelkaActionCard({
       data-metelka-visual-preset={
         visualPreset != null ? String(visualPreset) : ""
       }
-      style={{ "--ac": "#44403c" } as CSSProperties}
+      style={
+        {
+          "--ac": V3_METELKA_RIM,
+          "--ac-wash": V3_METELKA_WASH,
+        } as CSSProperties
+      }
       onClick={clickable ? onClick : undefined}
       disabled={!clickable}
       aria-label={ariaLabel}

@@ -3,7 +3,7 @@
 //  UI must NOT compute anything; call these functions instead
 // ============================================================
 
-export const APP_VERSION = "beta v0.2";
+export const APP_VERSION = "BETA V0.3";
 export const APP_NAME = "Банк";
 
 // ---- Constants ----
@@ -235,10 +235,10 @@ export function formatTreeGrowth(mm: number): string {
   return `${(mm / 1000).toFixed(2)} м`;
 }
 
-export function formatLbSessions(n: number): string {
-  if (n === 0) return "0 с.";
-  if (n < 3) return `${n} с.`;
-  return `${Math.floor(n / 3)} сут.`;
+/** Leaderboard: total login days (calendar days with a game open). */
+export function formatLbLoginDays(n: number): string {
+  const days = Math.max(0, Math.floor(Number(n) || 0));
+  return `${days} дн.`;
 }
 
 export function formatLbGrowth(mm: number): string {

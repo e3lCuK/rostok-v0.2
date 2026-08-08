@@ -245,6 +245,14 @@ describe("debugMutateEconomyV3Roots", () => {
     expect(result.v3Roots.roots.sun.seconds).toBe(22);
     expect(result.v3Roots.roots.fertilizer.seconds).toBe(22);
     expect(result.v3Roots.reserves.water.seconds).toBe(3);
+    // Stale transfer / Care journal must clear so roots are clickable again.
+    expect(result.v3Roots.roots.water.transferred).toBe(false);
+    expect(result.v3Roots.roots.sun.transferred).toBe(false);
+    expect(result.v3Roots.roots.fertilizer.transferred).toBe(false);
+    expect(result.v3Roots.generation.transferredRoots).toEqual([]);
+    expect(result.v3Roots.generation.firstTransferredRoot).toBeNull();
+    expect(result.v3Roots.careCycle.activities.water.completed).toBe(false);
+    expect(result.v3Roots.careSession.status).toBeNull();
   });
 
   it("fillToCapacity can still fill roots and reserves via API (UI removed)", async () => {

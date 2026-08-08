@@ -32,8 +32,8 @@
   /* Keep in sync with CARE_FILL_ANIMATION_MS in careActionsPhase.ts */
   --care-fill-duration: 0.9s;
   /* Keep in sync with CARE_TO_SHOVEL_MS / care converge CSS */
-  --care-converge-duration: 0.35s;
-  --care-btn-appear-duration: 0.3s;
+  --care-converge-duration: 0.7s;
+  --care-btn-appear-duration: 0.35s;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
 }
 
@@ -600,7 +600,8 @@ body {
   right: 4px;
   font-size: 0.56rem;
   font-weight: 400;
-  color: rgba(120, 140, 100, 0.65);
+  /* Match cream fill of apple / growth / capital caption badges */
+  color: rgb(255, 248, 236);
   letter-spacing: 0.3px;
   text-transform: uppercase;
   line-height: 1;
@@ -717,6 +718,42 @@ body {
   bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury) + 14px);
   left: 0;
   right: auto;
+}
+
+/* Field visibility stub — right edge, below grass/soil horizon. */
+.field-visibility-btn {
+  position: absolute;
+  right: 10px;
+  bottom: calc(var(--v2-scene-lift, 120px) - 44px);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgb(255, 248, 236);
+  cursor: pointer;
+  pointer-events: auto;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.field-visibility-btn:active {
+  transform: scale(0.94);
+  opacity: 0.85;
+}
+
+.game-area--v2-mocks .field-visibility-btn {
+  bottom: calc(var(--v2-scene-lift) - 40px);
+}
+
+.game-area--v3-roots .field-visibility-btn {
+  bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury, 8px) - 36px);
 }
 .apple-basket {
   pointer-events: auto;
@@ -1119,23 +1156,12 @@ body {
   transform: scale(0.96);
   background: rgba(255, 248, 236, 1);
 }
-.tree-growth-badge-popup {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  color: #166534;
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: rgba(255, 248, 236, 0.92);
-  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.16);
-}
-
-/* Growth countdown — left of tree, same anchor as .tree-growth-badge-host */
-.growth-timer {
+/*
+ * Fixed left-of-tree anchor for growth countdown AND +N мм accrual.
+ * Position lives only here — Framer must not set transform on this host
+ * (that would override translateY(-50%) and shift the accrual up/down).
+ */
+.growth-side-host {
   position: absolute;
   right: 100%;
   left: auto;
@@ -1144,13 +1170,14 @@ body {
   margin-right: 6px;
   margin-left: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
   pointer-events: none;
   z-index: 10;
 }
 
-/* Match .field-caption-badge chrome; tree icon left of the countdown */
+/* Shared chrome: timer row and мм accrual are the same pill in the same host. */
 .growth-timer-row {
   display: flex;
   align-items: center;
@@ -1168,6 +1195,18 @@ body {
   line-height: 1.1;
   white-space: nowrap;
   color: #166534;
+}
+
+.growth-mm-accrual {
+  color: #15803d;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.growth-mm-accrual-label {
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
 }
 
 .growth-timer-bar {
@@ -1433,6 +1472,8 @@ body.modal-open {
   border: none;
   background: transparent;
   cursor: pointer;
+  line-height: 0;
+  font-size: 0;
   -webkit-tap-highlight-color: transparent;
 }
 .tree-wrapper--hit:focus-visible {
@@ -2619,7 +2660,9 @@ body.modal-open {
 }
 
 .care-btn {
+  /* Timer model: opaque rim + light wash; icon = rim. */
   --ac: #92400e;
+  --ac-wash: rgba(251, 191, 36, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2650,13 +2693,18 @@ body.modal-open {
   overflow: hidden;
 }
 
-.care-btn svg {
+/* Shovel above wash; rim color + timer-style readability halo. */
+.care-btn > svg {
+  position: relative;
+  z-index: 1;
   stroke-width: 2.25;
+  color: inherit;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
-/* Bright rising fill — same intensity as timer green fill */
+/* Light wash under opaque --ac rim (not rim RGB). */
 .care-btn .action-btn-fill {
-  background: rgba(251, 191, 36, 0.5);
+  background: var(--ac-wash, rgba(251, 191, 36, 0.5));
   opacity: 1;
 }
 
@@ -2756,61 +2804,81 @@ body.modal-open {
   color: var(--ac, #166534);
 }
 
-/* Unidirectional Care trio → «Уход»: monotonic shrink+converge, no bounce back to 1 */
+/*
+ * Care trio → «Уход»: Framer motion (careConvergeMotion.ts).
+ * Shovel stays in the normal 3-slot row (spacers always on) so ending merge
+ * does not layout-jump. Trio overlays during converge, then unmounts.
+ */
 .action-buttons-row--converging {
-  gap: 0;
+  gap: var(--v3-actions-btn-gap, 6px);
 }
 
 .action-buttons-row--converging .action-btn-bank {
-  /* End state only — monotonic shrink, never return to full size */
-  transform: scale(0.85);
-  opacity: 0;
-  transition:
-    transform var(--care-converge-duration, 0.35s) cubic-bezier(0.4, 0, 0.2, 1),
-    opacity var(--care-converge-duration, 0.35s) cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+  transition: none !important;
 }
 
 .action-buttons-row--converging .action-btn-bank .action-btn-fill {
-  /* Keep result fill readable while cubes converge (until faded) */
   opacity: 0.55;
 }
 
-.action-buttons-row--care-shovel .care-btn,
-.care-btn.care-btn--from-converge {
-  /* Opacity (+ tiny scale) enter — no spring / bounce / scale-from-small */
-  animation:
-    care-btn-appear var(--care-btn-appear-duration, 0.3s) ease-out forwards,
-    care-pulse 1.5s ease-in-out var(--care-btn-appear-duration, 0.3s) infinite;
-}
-
-@keyframes care-btn-appear {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.action-buttons-row--care-shovel .care-btn {
+  animation: care-pulse 1.5s ease-in-out infinite;
 }
 
 .session-actions--converging {
+  position: relative;
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .action-buttons-row,
-  .action-buttons-row--converging .action-btn-bank {
-    transition: none !important;
-  }
+/* Shovel row stays in normal flow (stable center) during merge */
+.session-actions--converging .session-actions-care-shovel-slot {
+  position: relative;
+  z-index: 2;
+}
 
-  .action-buttons-row--care-shovel .care-btn,
-  .care-btn.care-btn--from-converge {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
+/* Trio overlays the shovel row while sliding together */
+.session-actions--converging .action-buttons-row--converging {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 1;
+  width: max-content;
+}
+
+.session-actions--converging .care-btn {
+  animation: none !important;
+}
+
+/* Reverse: «Уход» splits back into three inactive cubes */
+.session-actions--diverging {
+  position: relative;
+  pointer-events: none;
+}
+
+.session-actions--diverging .session-actions-care-shovel-slot {
+  position: relative;
+  z-index: 1;
+}
+
+.session-actions--diverging .action-buttons-row--diverging {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 2;
+  width: max-content;
+  gap: var(--v3-actions-btn-gap, 6px);
+}
+
+.session-actions--diverging .action-btn-bank {
+  transition: none !important;
+  pointer-events: none;
+}
+
+.session-actions--diverging .care-btn {
+  animation: none !important;
 }
 
 .action-btn-bank:disabled {
@@ -2853,12 +2921,45 @@ body.modal-open {
   pointer-events: none;
 }
 
+/* Legacy empty cleaning slot (kept for rollback CSS); live UI uses frozen trio. */
 .action-buttons-row--cleaning .action-buttons-row-cleaning-slot {
   width: var(--action-btn-size, 46px);
   min-width: var(--action-btn-size, 46px);
   min-height: var(--action-btn-size, 46px);
   visibility: hidden;
   pointer-events: none;
+}
+
+/* Metelka cleaning: care trio stays visible but grey / inert. */
+.action-buttons-row--cleaning .action-buttons-row-cleaning-frozen {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v3-actions-btn-gap, 6px);
+  pointer-events: none;
+}
+
+.action-buttons-row--cleaning .action-buttons-row-cleaning-frozen .action-btn-bank {
+  filter: grayscale(1) saturate(0.35);
+  opacity: 0.72;
+  cursor: default;
+  --ac: #8a847c;
+  color: #8a847c;
+  border-color: #8a847c;
+}
+
+.action-buttons-row--cleaning
+  .action-buttons-row-cleaning-frozen
+  .v3-activity-reserve-fill {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+
+.action-buttons-row--cleaning
+  .action-buttons-row-cleaning-frozen
+  .v3-activity-reserve-seconds {
+  opacity: 0.7;
 }
 
 /* Excess cleaning countdown — top center of the play field */
@@ -3207,7 +3308,9 @@ body.modal-open {
 }
 
 .metelka-action-btn {
+  /* Timer model: opaque rim + light wash; brush = rim. */
   --ac: #44403c;
+  --ac-wash: rgba(168, 162, 158, 0.5);
   width: var(--action-btn-size, 46px);
   height: var(--action-btn-size, 46px);
   min-width: var(--action-btn-size, 46px);
@@ -3245,14 +3348,14 @@ body.modal-open {
   z-index: 1;
 }
 
-/* Bright rising fill — same intensity as energy timer fill */
+/* Light wash under opaque --ac rim (timer mint / activity washes). */
 .metelka-action-fill {
   position: absolute;
   left: 0;
   bottom: 0;
   width: 100%;
   height: 0;
-  background: rgba(168, 162, 158, 0.5);
+  background: var(--ac-wash, rgba(168, 162, 158, 0.5));
   pointer-events: none;
   z-index: 0;
   border-radius: 0;
@@ -3266,6 +3369,7 @@ body.modal-open {
   flex-shrink: 0;
   color: inherit;
   stroke-width: 2.25;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5425,8 +5529,10 @@ canvas {
   inset: 0;
   z-index: 20;
   display: flex;
-  align-items: center;
+  /* Sit in the sky band so the card does not cover trunk / roots / activities. */
+  align-items: flex-start;
   justify-content: center;
+  padding-top: clamp(52px, 14vh, 110px);
   pointer-events: none;
 }
 .tutorial-intro-card {
@@ -5480,17 +5586,30 @@ canvas {
   text-align: center;
 }
 
-/* ── Tutorial water button pulse ────────────────────────────── */
+/* ── Activity button pulse (tutorial + live recommend) ──────── */
 .tutorial-water-pulse {
-  animation: tut-water-pulse 1.0s ease-in-out infinite !important;
+  animation: tut-activity-pulse 1.0s ease-in-out infinite !important;
 }
-/* Activity-button pulse only — roots use segment glow below. */
-@keyframes tut-water-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.55), 0 2px 8px rgba(0,0,0,0.10); transform: scale(1); }
-  50%       { box-shadow: 0 0 0 8px rgba(59,130,246,0.0),  0 4px 16px rgba(59,130,246,0.35); transform: scale(1.06); }
+/* Pulse tint follows button --ac (water/sun/fertilizer). */
+@keyframes tut-activity-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--ac, #2b7fff) 55%, transparent),
+      0 2px 8px rgba(0, 0, 0, 0.10);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px transparent,
+      0 4px 16px color-mix(in srgb, var(--ac, #2b7fff) 35%, transparent);
+    transform: scale(1.06);
+  }
 }
 
-/* Tutorial root target: soft segment blink — no outline / scale / layout shift. */
+/*
+ * Root collect pulse — same blink as .tutorial-water-pulse / activities
+ * (scale + --ac glow). No outline on the column; segments animate only.
+ */
 .v3-root--tutorial-pulse {
   outline: none;
   box-shadow: none;
@@ -5498,24 +5617,16 @@ canvas {
   transform: none;
 }
 .v3-root--tutorial-pulse .v3-root-segments {
-  animation: v3-root-tut-seg-glow 1.6s ease-in-out infinite;
-}
-@keyframes v3-root-tut-seg-glow {
-  0%,
-  100% {
-    opacity: 0.78;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.12);
-  }
+  animation: tut-activity-pulse 1s ease-in-out infinite !important;
+  border-radius: 6px;
 }
 @media (prefers-reduced-motion: reduce) {
   .v3-root--tutorial-pulse .v3-root-segments {
-    animation: none;
+    animation: none !important;
     opacity: 1;
     filter: brightness(1.14);
+    transform: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac, #2b7fff) 40%, transparent);
   }
 }
 
@@ -6250,10 +6361,21 @@ canvas {
  */
 .game-area--v3-roots {
   /*
-   * Underground column (flex): roots → timer → chest, gap 6px everywhere.
+   * Underground column (flex): roots → capital-hourglass+chest, gap 6px.
+   * Timer is nested in the chest host (tall hourglass tucked under the lid).
    * Actions sit just above the column (same 6px). Soil height = packed stack.
-   * Raise grass + whole stack together via lift / chest-bottom.
+   *
+   * Soil art lip sits below --v2-scene-lift (peek + path inset in
+   * UndergroundSoilArt). Trunk + wrap-root fork share this join Y.
+   *
+   * CALIBRATED: --v3-horizon-drop / --v3-wrap-roots-nudge-y seat the flat
+   * stump base on the grass↔soil lip (no float gap; no buried tip when eye-masked).
+   * APPROVED: 11px + flat stump on the lip (17 buried; 10 floated).
    */
+  --v3-horizon-drop: 11px;
+  --v3-trunk-join: calc(var(--v2-scene-lift) - var(--v3-horizon-drop));
+  /* Lower the whole wrap drawing (collar+fan) a bit under the stump. */
+  --v3-wrap-roots-nudge-y: 6px;
   --v3-root-crown-bury: 8px;
   --v3-actions-top-gap: 12px;
   --v3-stack-gap: 6px;
@@ -6261,29 +6383,40 @@ canvas {
   --v3-actions-btn-gap: 6px;
   --v3-roots-depth: 83px; /* 5×15 + 4×2 */
   --v3-stack-roots-timer-gap: var(--v3-stack-gap);
-  --v3-stack-timer-chest-gap: var(--v3-stack-gap);
+  --v3-stack-timer-chest-gap: 0px;
   --care-control-size: 46px;
   --action-btn-size: var(--care-control-size);
   --action-btn-icon: 16px;
   --action-btn-icon-fert: 18px;
-  --v3-timer-size: var(--care-control-size);
-  --v3-timer-energy-icon: 16px;
+  /* Hourglass slot; painted glass width follows viewBox 80×140. */
+  --v3-hourglass-width: 72%;
+  --v3-hourglass-height: 112px;
+  --v3-hourglass-paint-width: calc(var(--v3-hourglass-height) * 80 / 140);
+  /* Shared rim for hourglass + capital face (px — also used as CSS height). */
+  --v3-hourglass-rim-width: 2.4px;
+  --v3-hourglass-tuck: 46px; /* lower bulb under chest lid — neck sits lower */
+  --v3-timer-size: var(--v3-hourglass-height);
+  --v3-timer-energy-icon: 14px;
   /*
    * Floor inset: stack sits low (not raised with the grass), but not glued.
    * Grass stays higher via --v2-scene-lift > packed stack height.
    */
   /* Sit lower into former bottom-nav space — soil fills the floor */
   --v3-chest-bottom: 4px;
-  /* Host height = painted crate; SVG fills with preserveAspectRatio none. */
-  --v3-chest-height: 56px;
+  /* Host = chest face + hourglass protrusion above the tuck. */
+  --v3-chest-face-height: 56px;
+  --v3-chest-height: calc(
+    var(--v3-hourglass-height) + var(--v3-chest-face-height) -
+      var(--v3-hourglass-tuck)
+  );
   --v3-chest-top: 60px;
   --v3-chest-gap: var(--v3-stack-gap);
   --v3-root-anchor-tuck: -64px;
   /*
-   * Packed stack from floor ≈ 4+56+6+46+6+83+6+46+8 = 261
-   * Extra lift above that raises only the grass line (more soil above the stack).
+   * Packed stack from floor ≈ chest-host + gap + roots + actions…
+   * Hourglass is inside chest-host (no separate timer slot).
    */
-  --v2-scene-lift: 288px;
+  --v2-scene-lift: 300px;
   --v3-timer-bottom: 66px;
   padding-bottom: 4px;
 }
@@ -6313,6 +6446,26 @@ canvas {
 
 .game-area--v3-roots .game-tree-wrap {
   z-index: 5;
+  /* Trunk base on the visible soil lip (not the zone top) */
+  bottom: var(--v3-trunk-join);
+}
+
+.game-area--v3-roots .game-tree-wrap .tree-wrapper,
+.game-area--v3-roots .game-tree-wrap .tree-wrapper--hit {
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  overflow: visible;
+}
+
+.game-area--v3-roots .game-tree-wrap .tree-wrapper svg {
+  overflow: visible;
+}
+
+/* Badge is a sibling in the wrap — restore type after stump font-size:0 */
+.game-area--v3-roots .game-tree-wrap .tree-growth-badge-host {
+  font-size: 1rem;
+  line-height: normal;
 }
 
 /*
@@ -6337,20 +6490,56 @@ canvas {
 }
 
 /*
- * Decorative wrap roots — fan from the trunk base (grass line) down
- * through the stack. Top reaches --v2-scene-lift so roots join the tree.
+ * Eye toggle wipe layers — Framer Motion animates opacity + clip-path (2s).
+ * Wrap-root fan uses a separate full-height host so the short flex column
+ * clip box cannot crop crowns at the trunk / activity row.
  */
-.game-area--v3-roots .v3-underground-wrap-roots {
+.game-area--v3-roots .v3-underground-wipe-layer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--v3-stack-gap);
+  width: max-content;
+  max-width: 100%;
+  z-index: 1;
+  /* Income float sits left of chest — must not be clipped by the wipe box. */
+  overflow: visible;
+}
+
+.game-area--v3-roots .session-actions-wipe-layer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/*
+ * Full underground depth, centered on the trunk.
+ * Y: var(--v3-wrap-roots-nudge-y) — approved join from below (calibrated above).
+ */
+.game-area--v3-roots .v3-underground-wrap-wipe {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
   bottom: 0;
   top: auto;
   width: min(340px, 98vw);
-  /* Stack bottom → grass/trunk line (+ slight tuck under the stump) */
-  height: calc(
-    var(--v2-scene-lift) - var(--v3-chest-bottom) + var(--v3-root-crown-bury, 8px)
-  );
+  translate: -50% var(--v3-wrap-roots-nudge-y, 1px);
+  height: calc(var(--v3-trunk-join) - var(--v3-chest-bottom));
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/*
+ * Decorative wrap roots — fill the wrap-wipe host (fan to trunk stump).
+ */
+.game-area--v3-roots .v3-underground-wrap-roots {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   z-index: 0;
   pointer-events: none;
   overflow: visible;
@@ -6361,11 +6550,10 @@ canvas {
   top: auto;
   left: 50%;
   right: auto;
-  /* Above stack: floor + chest + gaps + timer + roots + actions↔roots gap */
+  /* Above stack: floor + chest-host (incl. hourglass) + gap + roots + actions gap */
   bottom: calc(
     var(--v3-chest-bottom) + var(--v3-chest-height) + var(--v3-stack-gap) +
-      var(--v3-timer-size) + var(--v3-stack-gap) + var(--v3-roots-depth) +
-      var(--v3-actions-roots-gap)
+      var(--v3-roots-depth) + var(--v3-actions-roots-gap)
   );
   transform: translateX(-50%);
   justify-content: center;
@@ -6386,9 +6574,7 @@ canvas {
   justify-content: center;
 }
 
-.game-area--v3-roots .action-buttons-row--converging {
-  gap: 0;
-}
+/* v3 converge slide axis is Framer x (see careTrioConvergeAnimate). */
 
 .v2-underground-zone {
   position: absolute;
@@ -6546,23 +6732,114 @@ canvas {
   font-weight: 500;
 }
 
-/* HTML capital caption on v3 chest — same pill/type as apple & growth */
+/*
+ * Capital face = bottom half of the lower bulb (base), not neck half.
+ * Same painted width as the glass; not a wide oval pill / dome.
+ */
 .v3-capital-badge {
   position: absolute;
   left: 50%;
-  top: 54%;
+  top: calc(54% + 3px);
   transform: translate(-50%, -50%);
-  z-index: 2;
-  pointer-events: none;
+  z-index: 6;
+  pointer-events: auto;
   color: #c9920a;
   user-select: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.v3-capital-badge--in-bulb {
+  display: block;
+  box-sizing: border-box;
+  /* Match rendered hourglass width (viewBox 80×140 under meet). */
+  width: var(--v3-hourglass-paint-width);
+  /* Lower-bulb base half (≈33/140 of full glass height). */
+  height: calc(var(--v3-hourglass-height) * 33 / 140);
+  max-width: none;
+  border-radius: 0;
+  overflow: visible;
+  line-height: 1.1;
+}
+.v3-capital-badge__bulb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  overflow: visible;
+}
+.v3-capital-badge__shell {
+  fill: var(--field-caption-bg);
+}
+.v3-capital-badge__rim {
+  stroke: #166534;
+  stroke-width: var(--v3-hourglass-rim-width, 2.4px);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.v3-capital-badge__fill-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Same vertical progress as the hourglass fill (bottom → top). */
+.v3-capital-badge__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: var(--v3-hg-fill, 0%);
+  max-height: 100%;
+  background: rgba(134, 239, 172, 0.5);
+  pointer-events: none;
+  transition: height 1s linear;
+}
+.v3-capital-badge__label {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+button.v3-capital-badge:focus-visible {
+  outline: 2px solid rgba(22, 101, 52, 0.55);
+  outline-offset: 2px;
 }
 .v3-capital-badge--bump {
   animation: v2-chest-value-bump 420ms ease-out;
 }
 .v3-capital-badge .field-caption-value,
 .v3-capital-badge .field-caption-unit {
+  position: relative;
+  z-index: 1;
   font-variant-numeric: tabular-nums;
+  /* Same caption type as original capital button (.field-caption-*). */
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.v3-capital-badge .field-caption-unit {
+  opacity: 0.9;
 }
 
 /* Soft reaction when capital value changes — brief, not looping. */
@@ -6819,23 +7096,6 @@ canvas {
   flex-shrink: 0;
 }
 
-.game-area--v3-roots .v3-underground-stack .v3-root-wait-timer-host {
-  position: relative;
-  left: auto;
-  bottom: auto;
-  transform: none;
-  z-index: 6;
-  pointer-events: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: var(--v3-timer-size);
-  height: var(--v3-timer-size);
-  min-width: var(--v3-timer-size);
-  min-height: var(--v3-timer-size);
-  flex-shrink: 0;
-}
-
 .game-area--v3-roots .v3-underground-stack .v3-capital-chest-host {
   position: relative;
   left: auto;
@@ -6846,93 +7106,162 @@ canvas {
   height: var(--v3-chest-height);
   z-index: 4;
   flex-shrink: 0;
-  /* visible: income float sits to the left of the chest */
+  /* visible: income float + hourglass protrusion */
   overflow: visible;
 }
+
 .game-area--v3-roots .v3-underground-stack .v3-capital-chest-host .v3-capital-chest-layer {
-  /* keep SVG layers from stretching the flex gap */
-  overflow: hidden;
+  overflow: visible;
 }
 
-.game-area--v3-roots .v3-underground-stack .v3-capital-chest-layer {
-  top: 0;
+/*
+ * Layers through the chest:
+ *   1 chest body → 2 hourglass+lid-foot (one SVG) → 3 capital button.
+ */
+.game-area--v3-roots .v3-underground-stack .v3-capital-chest-layer--body {
+  top: auto;
+  bottom: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: var(--v3-chest-face-height);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.game-area--v3-roots .v3-underground-stack .v3-capital-chest-overlay {
+  top: auto;
+  bottom: 0;
+  height: var(--v3-chest-face-height);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/*
+ * Hourglass behind the lid — lower bulb tucks under via overlap.
+ * Width ≈ capital button; not clickable (capital badge owns clicks).
+ */
+.game-area--v3-roots .v3-capital-hourglass-slot {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--v3-chest-face-height) - var(--v3-hourglass-tuck));
+  /* Nudge down so the lid line sits flush on the chest (half rim ≈ 1.2px). */
+  --v3-hourglass-seat-nudge: 1.2px;
+  transform: translate(-50%, var(--v3-hourglass-seat-nudge));
+  /* Tight paint box — same as lid-cut, no 72% letterbox shift. */
+  width: var(--v3-hourglass-paint-width);
+  height: var(--v3-hourglass-height);
+  /*
+   * Above the chest lid so the integrated lid-cut foot stays visible.
+   * Foot peek = viewBox foot band (3.8 + 0.4) of the 140-tall paint box.
+   */
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  /* Hide glass under the lid; peek = half rim stroke below the cut + pad. */
+  --v3-hourglass-lid-foot: calc(var(--v3-hourglass-rim-width, 2.4px) + 1px);
+  clip-path: inset(
+    0 0 calc(var(--v3-hourglass-tuck) - var(--v3-hourglass-lid-foot)) 0
+  );
 }
 
 .game-area--v3-roots .v3-root-wait-timer {
   position: relative;
   display: flex;
   justify-content: center;
-  width: var(--v3-timer-size);
-  height: var(--v3-timer-size);
+  width: 100%;
+  height: 100%;
   opacity: 1;
   visibility: visible;
   pointer-events: none;
 }
 
-/* Round timer = same size as activity buttons; fill rises bottom → top. */
+/*
+ * Tall capital-hourglass. Palette: cream shell, #166534 rim, mint wash.
+ * Capital base is the only pointer-events target.
+ */
 .game-area--v3-roots .v3-root-wait-timer-capsule {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+  display: block;
   position: relative;
-  overflow: hidden;
-  width: var(--v3-timer-size);
-  height: var(--v3-timer-size);
-  min-width: var(--v3-timer-size);
-  min-height: var(--v3-timer-size);
+  overflow: visible;
+  width: 100%;
+  height: 100%;
   box-sizing: border-box;
-  background: var(--field-caption-bg);
-  border: 2px solid #166534;
-  border-radius: 50%;
-  padding: 4px 3px;
-  backdrop-filter: blur(4px);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  backdrop-filter: none;
   box-shadow: none;
   white-space: nowrap;
 }
 
-.game-area--v3-roots .v3-root-wait-timer-capsule__fill {
+.game-area--v3-roots .v3-root-wait-timer-hourglass {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   width: 100%;
-  height: 0%;
-  background: rgba(134, 239, 172, 0.5);
-  border-radius: 0;
-  transition: height 1s linear;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.game-area--v3-roots .v3-root-wait-timer-hourglass__shell {
+  fill: var(--field-caption-bg);
+}
+
+/* Single outer outline — no neck / lid divider strokes. */
+.game-area--v3-roots .v3-root-wait-timer-hourglass__rim {
+  stroke: #166534;
+  stroke-width: var(--v3-hourglass-rim-width, 2.4px);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Lid-cut line — identical weight to the flask rim. */
+.game-area--v3-roots .v3-root-wait-timer-hourglass__lid-foot {
+  fill: none;
+  stroke: #166534;
+  stroke-width: var(--v3-hourglass-rim-width, 2.4px);
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Unified mint wash — bulb + capital base, bottom → top. */
+.game-area--v3-roots .v3-root-wait-timer-capsule__fill {
+  fill: rgba(134, 239, 172, 0.5);
+  transition: y 1s linear, height 1s linear;
+  pointer-events: none;
+}
+
+/* Zap + time — center of upper bulb (viewBox 0…70 of 140). */
+.game-area--v3-roots .v3-root-wait-timer-upper {
+  position: absolute;
+  left: 50%;
+  top: 25%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   pointer-events: none;
 }
 
 .game-area--v3-roots .v3-root-wait-timer-icon {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--v3-timer-energy-icon, 16px);
-  height: var(--v3-timer-energy-icon, 16px);
   color: #166534;
   line-height: 0;
-}
-
-.game-area--v3-roots .v3-root-wait-timer-icon svg {
-  display: block;
-  width: var(--v3-timer-energy-icon, 16px);
-  height: var(--v3-timer-energy-icon, 16px);
-  fill: none;
-  stroke: currentColor;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
 .game-area--v3-roots .v3-root-wait-timer-capsule__time {
   position: relative;
   z-index: 1;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #166534;
   letter-spacing: 0;
@@ -6940,10 +7269,32 @@ canvas {
   line-height: 1;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
   font-family: "Segoe UI", system-ui, sans-serif;
+  pointer-events: none;
 }
 
 .game-area--v3-roots .v3-root-wait-timer--pulse .v3-root-wait-timer-capsule__fill {
   animation: v2-root-timer-capsule-pulse 1.4s ease-in-out infinite;
+}
+
+/* Metelka cleaning: whole hourglass+capital grey + frozen. */
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-capsule {
+  filter: grayscale(1);
+  opacity: 0.78;
+}
+
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__rim {
+  stroke: #8a847c;
+}
+
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-icon,
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-capsule__time {
+  color: #6b6560;
+}
+
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-capsule__fill {
+  fill: rgba(138, 132, 124, 0.45);
+  animation: none !important;
+  transition: none !important;
 }
 
 /* --v3-timer-bottom follows scene tokens; no separate fragile overrides. */
@@ -6980,8 +7331,8 @@ canvas {
   overflow: visible;
 }
 
-/* Transparent hit target over the capital sum — opens accrual history. */
-.v3-capital-chest-hit {
+/* Legacy transparent hit — capital is now the badge button itself. */
+.v3-capital-chest-hit:not(.v3-capital-badge) {
   position: absolute;
   left: 50%;
   top: 54%;
@@ -6996,12 +7347,6 @@ canvas {
   z-index: 3;
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
-}
-
-.v3-capital-chest-hit:focus-visible {
-  outline: 2px solid rgba(201, 146, 10, 0.75);
-  outline-offset: 2px;
-  border-radius: 8px;
 }
 
 .v3-capital-chest-host .v3-capital-chest-layer--label {
@@ -7120,16 +7465,25 @@ canvas {
 .v3-root-system--metelka-locked .v3-root-segment--empty,
 .v3-root--metelka-locked .v3-root-segment--empty {
   background: var(--v3-shell-empty, #cdc7bf);
-  box-shadow: inset 0 0 0 1px rgba(90, 86, 80, 0.22);
+  border-color: rgba(90, 86, 80, 0.28);
+  color: rgba(90, 86, 80, 0.28);
 }
 
 .v3-root-system--metelka-locked .v3-root-segment--partial::after,
 .v3-root-system--metelka-locked .v3-root-segment--full::after,
 .v3-root--metelka-locked .v3-root-segment--partial::after,
 .v3-root--metelka-locked .v3-root-segment--full::after {
-  background: #8a847c;
+  background: rgba(138, 132, 124, 0.45);
   box-shadow: none;
   filter: none;
+}
+
+.v3-root-system--metelka-locked .v3-root-segment--partial,
+.v3-root-system--metelka-locked .v3-root-segment--full,
+.v3-root--metelka-locked .v3-root-segment--partial,
+.v3-root--metelka-locked .v3-root-segment--full {
+  border-color: #8a847c;
+  color: #8a847c;
 }
 
 .v3-root-system--metelka-locked .v3-root-transfer-energy,
@@ -7167,16 +7521,41 @@ canvas {
   overflow: visible;
 }
 
+/* Root glyph — matches cell rim (empty brown / active --ac). */
+.v3-root-segment .v3-root-glyph {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: inherit;
+}
+
+.v3-root-glyph-svg {
+  display: block;
+  overflow: visible;
+}
+
+.v3-root--metelka-locked .v3-root-glyph,
+.v3-root-system--metelka-locked .v3-root-glyph {
+  color: inherit;
+}
+
 .v3-root-segment {
   position: relative;
   flex: 0 0 auto;
   height: 15px;
   width: 22px;
+  box-sizing: border-box;
   border-radius: 6px;
-  /* Shell only — never the activity fill color (that belongs on ::after). */
+  /* Same cream shell as activity buttons; thinner 1px edge on small cells. */
   background: var(--v3-shell, var(--field-caption-bg));
+  border: 1px solid rgba(70, 55, 40, 0.22);
+  color: rgba(70, 55, 40, 0.22);
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.18);
+  box-shadow: none;
   /* States must not resize segments (no layout shift). */
 }
 
@@ -7195,9 +7574,12 @@ canvas {
 @media (max-width: 430px) {
   .game-area--v3-roots {
     --v3-chest-bottom: 4px;
-    --v3-chest-height: 52px;
+    --v3-chest-face-height: 52px;
+    --v3-hourglass-width: 70%;
+    --v3-hourglass-height: 104px;
+    --v3-hourglass-tuck: 42px;
     --v3-chest-top: 56px;
-    --v2-scene-lift: 280px;
+    --v2-scene-lift: 292px;
     --v3-timer-bottom: 62px;
   }
 
@@ -7218,9 +7600,12 @@ canvas {
     --care-control-size: 42px;
     --v3-root-anchor-tuck: -60px; /* -(12+42+6) */
     --v3-chest-bottom: 2px;
-    --v3-chest-height: 50px;
+    --v3-chest-face-height: 50px;
+    --v3-hourglass-width: 68%;
+    --v3-hourglass-height: 96px;
+    --v3-hourglass-tuck: 40px;
     --v3-chest-top: 52px;
-    --v2-scene-lift: 270px;
+    --v2-scene-lift: 280px;
     --v3-timer-bottom: 58px;
   }
 
@@ -7248,16 +7633,22 @@ canvas {
 
 .v3-root-segment--empty {
   background: var(--v3-shell-empty, var(--v3-shell, var(--field-caption-bg)));
-  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.12);
+  border-color: rgba(70, 55, 40, 0.18);
+  color: rgba(70, 55, 40, 0.18);
 }
 
 .v3-root-segment--partial,
 .v3-root-segment--full {
-  /* Keep shell tone — empty top of a partial segment must stay visible. */
+  /* Timer / activity model: cream shell + opaque --ac rim; glyph = rim. */
   background: var(--v3-shell, var(--field-caption-bg));
+  border-color: var(--v3-seg-color, rgba(70, 55, 40, 0.18));
+  color: var(--v3-seg-color, rgba(70, 55, 40, 0.18));
 }
 
-/* Energy fill: anchored to segment floor; height = --v3-seg-fill (e.g. 76.19%). */
+/*
+ * Energy fill: floor-anchored; height = --v3-seg-fill.
+ * Light wash (not rim RGB) — same contrast as activity buttons / wait timer.
+ */
 .v3-root-segment--partial::after,
 .v3-root-segment--full::after {
   content: "";
@@ -7266,18 +7657,16 @@ canvas {
   right: 0;
   bottom: 0;
   top: auto;
+  z-index: 0;
   width: 100%;
   height: var(--v3-seg-fill, 100%);
   max-height: 100%;
-  background: var(--v3-seg-color, #7a5a3a);
-  border-radius: inherit;
+  background: var(--v3-seg-wash, rgba(134, 239, 172, 0.5));
+  border-radius: 0;
   transform: none;
   transform-origin: bottom center;
   pointer-events: none;
-}
-
-.v3-root-segment--full::after {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: none;
 }
 
 /* empty — muted idle shell, no motion */
@@ -7296,6 +7685,14 @@ canvas {
   animation: v3-root-ready-breathe 2.6s ease-in-out infinite;
 }
 
+/* Collect recommend blink wins over ready-breathe (tutorial + live). */
+.v3-root--tutorial-pulse.v3-root--ready .v3-root-segments,
+.v3-root--tutorial-pulse.v3-root--full .v3-root-segments,
+.v3-root--tutorial-pulse.v3-root--accumulating .v3-root-segments,
+.v3-root--tutorial-pulse.v3-root--waiting .v3-root-segments {
+  animation: tut-activity-pulse 1s ease-in-out infinite !important;
+}
+
 @keyframes v3-root-ready-breathe {
   0%,
   100% {
@@ -7309,9 +7706,7 @@ canvas {
 .v3-root--ready.v3-root--clickable .v3-root-segment--full::after,
 .v3-root--ready.v3-root--clickable .v3-root-segment--partial::after,
 .v3-root--full.v3-root--clickable .v3-root-segment--full::after {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 /* transferred — rare non-empty edge; calm idle, not pressed/active */
@@ -7489,105 +7884,6 @@ canvas {
   word-break: break-word;
 }
 
-/* Economy v3 activity-card continuous reserve fill (bottom → top) */
-.action-btn-bank--v3-reserve {
-  width: 58px;
-  min-height: 72px;
-  padding: 4px 3px 5px;
-}
-
-.action-btn-bank--v3-reserve .action-btn-content {
-  gap: 0;
-  width: 100%;
-  position: relative;
-  z-index: 1;
-}
-
-.v3-activity-reserve-fill {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 0;
-  background: var(--v3-act-reserve-color, rgba(122, 143, 92, 0.4));
-  pointer-events: none;
-  z-index: 0;
-  border-radius: 0;
-}
-
-.v3-activity-reserve-fill--animate {
-  transition: height 450ms ease-out;
-}
-
-.v3-activity-reserve-fill--muted {
-  opacity: 0.45;
-  filter: saturate(0.75);
-}
-
-.action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-fill {
-  opacity: 0.55;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .v3-activity-reserve-fill--animate {
-    transition: none !important;
-  }
-}
-
-/* Legacy five-segment meter kept for tests / rollback previews — not mounted in production UI. */
-.v3-activity-reserve {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
-  pointer-events: none;
-}
-
-.v3-activity-reserve-segments {
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
-  width: 100%;
-  justify-content: center;
-}
-
-.v3-activity-reserve-segment {
-  position: relative;
-  flex: 1 1 0;
-  max-width: 8px;
-  height: 10px;
-  border-radius: 2px;
-  background: #c9b8a0;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(70, 55, 40, 0.18);
-}
-
-.v3-activity-reserve-segment--partial::after,
-.v3-activity-reserve-segment--full::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: var(--v3-act-seg-fill, 100%);
-  background: var(--v3-act-seg-color, #7a5a3a);
-}
-
-.v3-activity-reserve-seconds {
-  font-size: 0.52rem;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #5c4a38;
-  opacity: 0.85;
-}
-
-.action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-segment {
-  opacity: 0.55;
-}
-
 .v3-activity-preview-status {
   margin-top: 6px;
   max-width: 220px;
@@ -7698,10 +7994,17 @@ canvas {
 }
 
 .action-btn-bank--v3-reserve .action-btn-content {
-  gap: 0;
+  gap: 1px;
   width: 100%;
   position: relative;
   z-index: 1;
+  justify-content: center;
+  /* Same readability trick as .v3-root-wait-timer-capsule__time */
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.action-btn-bank--v3-reserve .action-btn-content svg {
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
 .v3-activity-reserve-fill {
@@ -7710,7 +8013,8 @@ canvas {
   bottom: 0;
   width: 100%;
   height: 0;
-  background: var(--v3-act-reserve-color, rgba(122, 143, 92, 0.4));
+  /* Light wash under opaque --ac rim (timer: mint 0.5 under #166534). */
+  background: var(--v3-act-reserve-color, rgba(134, 239, 172, 0.5));
   pointer-events: none;
   z-index: 0;
   border-radius: 0;
@@ -7776,13 +8080,23 @@ canvas {
 }
 
 .v3-activity-reserve-seconds {
-  font-size: 0.52rem;
+  font-size: 0.55rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
   text-transform: none;
-  color: #5c4a38;
-  opacity: 0.85;
+  /* Same tone as the activity icon (inherits button `color` / --ac). */
+  color: currentColor;
+  opacity: 1;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.action-btn-bank--v3-reserve .v3-activity-reserve-seconds {
+  color: currentColor;
+  opacity: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .action-btn-bank[data-v3-activity-state="completed"] .v3-activity-reserve-segment {

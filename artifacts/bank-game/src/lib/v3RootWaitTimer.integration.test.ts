@@ -158,7 +158,8 @@ describe("v3 wait timer full chain", () => {
     expect(pageSrc).toContain("v3Roots={game.v3Roots}");
     expect(pageSrc).toContain("nowMs={now}");
     expect(pageSrc).toContain("tutorialDone={tutorialDone}");
-    expect(pageSrc).toContain("data-v3-root-wait-timer-host");
+    expect(pageSrc).toContain("v3-capital-chest-host--with-hourglass");
+    expect(pageSrc).toContain("onCapitalClick={() => setShowDepositInfo(true)}");
   });
 
   it("4–5. accumulating → countdown MM:SS; not null", () => {
@@ -275,7 +276,8 @@ describe("v3 wait timer full chain", () => {
     expect(snap).not.toBeNull();
     const display = resolveV3RootWaitTimerDisplay({ snapshot: snap, nowMs: now });
     expect(display).toMatchObject({ kind: "countdown", timeLabel: "12:00" });
-    expect(compSrc).toContain("data-testid=\"v3-root-wait-timer-capsule\"");
+    expect(compSrc).toContain("V3WaitTimerHourglass");
+    expect(compSrc).toContain('testId="v3-root-wait-timer-capsule"');
   });
 
   it("6–7. frozen keeps cycle timer; thaw keeps continuous countdown", () => {
@@ -654,10 +656,11 @@ describe("v3 wait timer full chain", () => {
     expect(afterF5?.deadlineAtMs).toBe(deadline);
   });
 
-  it("11–13. CSS host between roots/chest; responsive tokens; tutorial SQL cast", () => {
+  it("11–13. CSS capital-hourglass in chest; responsive tokens; tutorial SQL cast", () => {
     expect(cssSrc).toContain("--v3-stack-gap");
+    expect(cssSrc).toContain("v3-capital-hourglass-slot");
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots \.v3-underground-stack \.v3-root-wait-timer-host\s*\{[\s\S]*?z-index:\s*6/,
+      /\.game-area--v3-roots \.v3-capital-hourglass-slot\s*\{[\s\S]*?z-index:\s*3/,
     );
     expect(cssSrc).toMatch(
       /\.game-area--v3-roots\s*\{[\s\S]*?--v3-roots-depth:\s*83px/,

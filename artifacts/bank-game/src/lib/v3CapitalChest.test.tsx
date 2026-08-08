@@ -11,8 +11,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import CapitalChestUnderRoots from "@/components/v2/CapitalChestUnderRoots";
 import { formatV2ChestCapital } from "@/components/v2/V2CapitalChest";
+import V3WaitTimerHourglass from "@/components/v2/V3WaitTimerHourglass";
 import { createIncomeChestFeedback } from "@/lib/incomeChestFeedback";
-
 const here = dirname(fileURLToPath(import.meta.url));
 const pageSrc = readFileSync(join(here, "../pages/GamePage.tsx"), "utf8");
 const cssSrc = readFileSync(join(here, "../bank.css"), "utf8");
@@ -34,9 +34,10 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(stackIdx).toBeGreaterThan(-1);
     expect(rootsPrimaryIdx).toBeGreaterThan(-1);
     expect(hostIdx).toBeGreaterThan(-1);
-    // Flex stack owns placement; roots then timer then chest.
+    // Flex stack owns placement; roots then capital-hourglass chest host.
     expect(stackIdx).toBeLessThan(rootsPrimaryIdx);
     expect(rootsPrimaryIdx).toBeLessThan(hostIdx);
+    expect(pageSrc).toContain("v3-capital-chest-host--with-hourglass");
 
     const rootAnchorBlock = pageSrc.slice(rootsPrimaryIdx, hostIdx);
     expect(rootAnchorBlock).toContain("EconomyV3RootSystem");
@@ -66,15 +67,31 @@ describe("Capital chest under Economy v3 roots", () => {
   });
 
   it("v3 mount → exactly one data-capital-chest; label + capital value", () => {
-    const html = renderToStaticMarkup(
-      createElement(CapitalChestUnderRoots, { capital: 100_012 }),
-    );
-    expect(html.match(/data-capital-chest="true"/g)?.length).toBe(1);
-    expect(html).toContain('data-capital-label="true"');
-    expect(html).toContain("field-caption-badge");
-    expect(html).toContain("field-caption-value");
     const formatted = formatV2ChestCapital(100_012);
     const value = formatted.replace(/\s*₽$/u, "").trim();
+    const html = renderToStaticMarkup(
+      createElement(
+        CapitalChestUnderRoots,
+        { capital: 100_012, onCapitalClick: () => {} },
+        createElement(V3WaitTimerHourglass, {
+          barProgress: 0.2,
+          timeLabel: "10:00",
+          ariaLabel: "До следующего накопления",
+        }),
+      ),
+    );
+    expect(html.match(/data-capital-chest="true"/g)?.length).toBe(1);
+    expect(html).toContain('data-v3-capital-hourglass-slot="true"');
+    // Lid-cut foot is part of the hourglass SVG (one figure).
+    expect(html).toContain('data-v3-hourglass-lid-cut="true"');
+    expect(html).toContain('data-hourglass-lid-cut="true"');
+    expect(html).not.toContain("v3-hourglass-lid-cut-slot");
+    expect(html).toContain('data-capital-label="true"');
+    expect(html).toContain("v3-capital-badge--in-bulb");
+    expect(html).toContain("v3-capital-badge__bulb");
+    expect(html).toContain("v3-capital-badge__fill");
+    expect(html).toContain("M8 103 C2 118");
+    expect(html).toContain("field-caption-value");
     expect(html).toContain(value);
     expect(html).toContain("₽");
   });
@@ -87,7 +104,8 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(pageSrc).not.toContain("progress-row-deposit");
     expect(pageSrc).not.toContain("<Wallet");
     expect(underRootsSrc).toContain("data-capital-chest-hit");
-    expect(cssSrc).toContain(".v3-capital-chest-hit");
+    expect(underRootsSrc).toContain("v3-capital-badge--in-bulb");
+    expect(cssSrc).toContain("v3-capital-badge--in-bulb");
     const html = renderToStaticMarkup(
       createElement(CapitalChestUnderRoots, {
         capital: 100_012,
@@ -96,6 +114,7 @@ describe("Capital chest under Economy v3 roots", () => {
     );
     expect(html).toContain('data-capital-chest-hit="true"');
     expect(html).toContain("История начислений");
+    expect(html).toMatch(/<button[^>]*data-capital-chest-hit="true"/);
   });
 
   it("IncomeChestFloat stays inside chest-overlay", () => {
@@ -152,11 +171,12 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(pageSrc).toContain("game-area--v3-roots");
     expect(pageSrc).not.toContain("v3-earth-veil");
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots\s*\{[\s\S]*?--v2-scene-lift:\s*288px/,
+      /\.game-area--v3-roots\s*\{[\s\S]*?--v2-scene-lift:\s*300px/,
     );
     expect(cssSrc).toMatch(
       /\.game-area--v3-roots\s*\{[\s\S]*?--v3-root-crown-bury:\s*8px/,
     );
+    expect(cssSrc).toContain("--v3-hourglass-height");
   });
 
   it("chest SVG viewBox is cropped flush to lid; fills host (no letterbox gap)", () => {

@@ -7,6 +7,8 @@
  *
  * Does NOT change: Economy v2 balance/XP/tree (except excess when normalizing real overflow).
  * Does NOT start Care or auto-transfer.
+ * fillToCapacity clears transferred-root + Care-cycle markers so debug «fill →
+ * click roots → Care» works again after a prior transfer/cycle.
  */
 
 import { pool } from "@workspace/db";
@@ -622,28 +624,111 @@ export async function debugMutateEconomyV3Roots(
           : {}),
       };
 
-      await client.query(
-        `UPDATE game_state
-         SET v3_root_water_seconds = $2,
-             v3_root_sun_seconds = $3,
-             v3_root_fertilizer_seconds = $4,
-             v3_reserve_water_seconds = $5,
-             v3_reserve_sun_seconds = $6,
-             v3_reserve_fertilizer_seconds = $7,
-             v2_excess_seconds = $8,
-             updated_at = NOW()
-         WHERE user_id = $1`,
-        [
-          String(userId),
-          roots.water,
-          roots.sun,
-          roots.fertilizer,
-          reserves.water,
-          reserves.sun,
-          reserves.fertilizer,
-          excessSeconds,
-        ],
-      );
+      const secondsParams = [
+        String(userId),
+        roots.water,
+        roots.sun,
+        roots.fertilizer,
+        reserves.water,
+        reserves.sun,
+        reserves.fertilizer,
+        excessSeconds,
+      ] as const;
+
+      if (body.action === "fillToCapacity") {
+        // Clear transfer + Care journal so filled roots are clickable again and
+        // activities can light after reserve transfer (stale transferredRoots /
+        // completed flags previously made fill→click a no-op).
+        await client.query(
+          `UPDATE game_state
+           SET v3_root_water_seconds = $2,
+               v3_root_sun_seconds = $3,
+               v3_root_fertilizer_seconds = $4,
+               v3_reserve_water_seconds = $5,
+               v3_reserve_sun_seconds = $6,
+               v3_reserve_fertilizer_seconds = $7,
+               v2_excess_seconds = $8,
+               v3_first_transferred_root = NULL,
+               v3_transferred_roots = '{}'::text[],
+               v3_generation_frozen_at = NULL,
+               v3_insurance_deadline_at = NULL,
+               v3_care_cycle_water_completed = FALSE,
+               v3_care_cycle_water_preset_seconds = NULL,
+               v3_care_cycle_water_skill = NULL,
+               v3_care_cycle_sun_completed = FALSE,
+               v3_care_cycle_sun_preset_seconds = NULL,
+               v3_care_cycle_sun_skill = NULL,
+               v3_care_cycle_fertilizer_completed = FALSE,
+               v3_care_cycle_fertilizer_preset_seconds = NULL,
+               v3_care_cycle_fertilizer_skill = NULL,
+               v3_care_cycle_started_at = NULL,
+               v3_care_cycle_completed_at = NULL,
+               v3_care_cycle_finished_at = NULL,
+               v3_care_cycle_status = NULL,
+               v3_care_cycle_total_preset_seconds = NULL,
+               v3_care_cycle_average_skill = NULL,
+               v3_care_cycle_claimed_at = NULL,
+               v3_care_cycle_claimed_xp = NULL,
+               v3_care_cycle_claimed_tree_growth = NULL,
+               v3_care_cycle_claimed_base_income = NULL,
+               v3_care_cycle_claimed_bonus_income = NULL,
+               v3_care_cycle_claimed_total_income = NULL,
+               v3_care_activity_kind = NULL,
+               v3_care_activity_preset_seconds = NULL,
+               v3_care_activity_started_at = NULL,
+               v3_care_activity_finished_at = NULL,
+               v3_care_activity_status = NULL,
+               v3_care_activity_skill = NULL,
+               updated_at = NOW()
+           WHERE user_id = $1`,
+          [...secondsParams],
+        );
+        locked.v3_first_transferred_root = null;
+        locked.v3_transferred_roots = [];
+        locked.v3_generation_frozen_at = null;
+        locked.v3_insurance_deadline_at = null;
+        locked.v3_care_cycle_water_completed = false;
+        locked.v3_care_cycle_water_preset_seconds = null;
+        locked.v3_care_cycle_water_skill = null;
+        locked.v3_care_cycle_sun_completed = false;
+        locked.v3_care_cycle_sun_preset_seconds = null;
+        locked.v3_care_cycle_sun_skill = null;
+        locked.v3_care_cycle_fertilizer_completed = false;
+        locked.v3_care_cycle_fertilizer_preset_seconds = null;
+        locked.v3_care_cycle_fertilizer_skill = null;
+        locked.v3_care_cycle_started_at = null;
+        locked.v3_care_cycle_completed_at = null;
+        locked.v3_care_cycle_finished_at = null;
+        locked.v3_care_cycle_status = null;
+        locked.v3_care_cycle_total_preset_seconds = null;
+        locked.v3_care_cycle_average_skill = null;
+        locked.v3_care_cycle_claimed_at = null;
+        locked.v3_care_cycle_claimed_xp = null;
+        locked.v3_care_cycle_claimed_tree_growth = null;
+        locked.v3_care_cycle_claimed_base_income = null;
+        locked.v3_care_cycle_claimed_bonus_income = null;
+        locked.v3_care_cycle_claimed_total_income = null;
+        locked.v3_care_activity_kind = null;
+        locked.v3_care_activity_preset_seconds = null;
+        locked.v3_care_activity_started_at = null;
+        locked.v3_care_activity_finished_at = null;
+        locked.v3_care_activity_status = null;
+        locked.v3_care_activity_skill = null;
+      } else {
+        await client.query(
+          `UPDATE game_state
+           SET v3_root_water_seconds = $2,
+               v3_root_sun_seconds = $3,
+               v3_root_fertilizer_seconds = $4,
+               v3_reserve_water_seconds = $5,
+               v3_reserve_sun_seconds = $6,
+               v3_reserve_fertilizer_seconds = $7,
+               v2_excess_seconds = $8,
+               updated_at = NOW()
+           WHERE user_id = $1`,
+          [...secondsParams],
+        );
+      }
 
       locked.v3_root_water_seconds = roots.water;
       locked.v3_root_sun_seconds = roots.sun;

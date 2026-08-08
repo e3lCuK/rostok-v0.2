@@ -62,7 +62,7 @@ export default function V3ActivityReserveMeter({
           className="v3-activity-reserve-seconds"
           data-v3-activity-seconds-label="true"
         >
-          {card.reserveSeconds}с
+          {card.reserveSeconds} с
         </span>
       ) : null}
     </div>

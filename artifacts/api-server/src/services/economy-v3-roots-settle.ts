@@ -183,6 +183,13 @@ export async function settleEconomyV3RootsInTransaction(
   lockedRow: EconomyV3SettleRow,
   nowMs: number = Date.now(),
   capital?: number,
+  options?: {
+    /**
+     * Tutorial 12:00 wait expired — run main generation once without
+     * completing the tutorial (fills root cells like live play).
+     */
+    forceGenerate?: boolean;
+  },
 ): Promise<PersistedEconomyV3Roots> {
   const resolvedCapital =
     capital !== undefined
@@ -190,7 +197,10 @@ export async function settleEconomyV3RootsInTransaction(
       : await loadCapitalForUser(client, userId);
 
   const now = Number.isFinite(nowMs) ? Math.trunc(nowMs) : Date.now();
-  const tutorialActive = isEconomyV2TutorialActive(lockedRow.tutorial_done);
+  const rowTutorialActive = isEconomyV2TutorialActive(lockedRow.tutorial_done);
+  // forceGenerate: run main settle math during tutorial wait expiry, but never
+  // auto-transfer (player still collects roots manually in the tutorial).
+  const tutorialActive = options?.forceGenerate ? false : rowTutorialActive;
   const basePresetSeconds = normalizeDailyCap(lockedRow.v3_daily_cap_seconds);
   const streakDays = lockedRow.streak_days;
   const effectivePresetSeconds = computeV3EffectivePresetSeconds({
@@ -284,7 +294,7 @@ export async function settleEconomyV3RootsInTransaction(
     firstRaw != null && validateRootKind(firstRaw) ? firstRaw : null;
 
   // Tutorial: player must transfer remaining roots manually (production 60s unchanged).
-  const auto = tutorialActive
+  const auto = rowTutorialActive
     ? null
     : autoTransferEconomyV3RemainingPure({
         nowMs: now,
@@ -531,6 +541,97 @@ export async function settleEconomyV3RootsInTransaction(
       excess,
     },
   };
+}
+
+/**
+ * Tutorial 12:00 elapsed — force main-game generation once (roots fill),
+ * keep tutorial_done=false. Idempotent across polls via generation anchor.
+ */
+export async function syncTutorialV3WaitEnergyInTransaction(
+  userId: string | number,
+  startedAtMs: number | null | undefined,
+  nowMs: number = Date.now(),
+): Promise<{
+  synced: true;
+  wholeSeconds: number;
+  v3Roots: EconomyV3RootsPublicState;
+}> {
+  const now = Number.isFinite(nowMs) ? Math.trunc(nowMs) : Date.now();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const gameRow = await client.query(
+      `SELECT ${V3_SETTLE_SELECT}
+       FROM game_state
+       WHERE user_id = $1
+       FOR UPDATE`,
+      [String(userId)],
+    );
+    if (gameRow.rows.length === 0) {
+      const err = new Error("Game state not found") as Error & { code: string };
+      err.code = "not_found";
+      throw err;
+    }
+    const locked = gameRow.rows[0] as EconomyV3SettleRow;
+    if (!isEconomyV2TutorialActive(locked.tutorial_done)) {
+      const err = new Error("Tutorial already completed") as Error & {
+        code: string;
+      };
+      err.code = "tutorial_done";
+      throw err;
+    }
+
+    const clientStart = Number(startedAtMs);
+    const existingMs = parseNullableTimestampMs(locked.v3_generation_anchor_at);
+    if (existingMs == null) {
+      if (!Number.isFinite(clientStart) || clientStart <= 0) {
+        const err = new Error("Tutorial wait start required") as Error & {
+          code: string;
+        };
+        err.code = "invalid_started_at";
+        throw err;
+      }
+      const started = Math.trunc(clientStart);
+      locked.v3_generation_anchor_at = new Date(started);
+      locked.v3_generation_progress = 0;
+      await client.query(
+        `UPDATE game_state
+         SET v3_generation_anchor_at = $2,
+             v3_generation_progress = 0,
+             updated_at = NOW()
+         WHERE user_id = $1`,
+        [String(userId), locked.v3_generation_anchor_at],
+      );
+    }
+
+    const capital = await loadCapitalForUser(
+      client as EconomyV3DbClient,
+      userId,
+    );
+    const persisted = await settleEconomyV3RootsInTransaction(
+      client as EconomyV3DbClient,
+      userId,
+      locked,
+      now,
+      capital,
+      { forceGenerate: true },
+    );
+    await client.query("COMMIT");
+    return {
+      synced: true,
+      wholeSeconds: persisted.wholeSeconds,
+      v3Roots: persisted.snapshot,
+    };
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**

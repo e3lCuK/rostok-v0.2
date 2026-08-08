@@ -2052,10 +2052,19 @@ export function settleEconomyV3Roots(
     generatingExcess: false,
   };
 
-  // Tutorial: advance anchor only — no generation / excess / backfill.
-  // Freeze does not pause the generation clock (transfer/insurance only).
+  // Tutorial (before 12:00 wait is armed): no generation / excess / backfill.
+  // Preserve anchor + progress so an armed wait start is not wiped by polls.
   if (input.tutorialActive) {
-    return base;
+    const preserveAnchor =
+      input.generationAnchorAt != null &&
+      Number.isFinite(Number(input.generationAnchorAt))
+        ? Math.trunc(Number(input.generationAnchorAt))
+        : nowMs;
+    return {
+      ...base,
+      generationAnchorAt: preserveAnchor,
+      generationProgress: progress,
+    };
   }
 
   const anchorRaw = input.generationAnchorAt;

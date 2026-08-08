@@ -10,15 +10,25 @@ import { describe, expect, it } from "vitest";
 import type { EconomyV3RootsState } from "./api";
 import { normalizeEconomyV3RootsSnapshot } from "./v3Roots";
 import {
+  areV3TutorialRootsEnergyReady,
+  clearV3CareUiAfterTutorial,
   isV3TutorialLiveCareStep,
+  isV3TutorialRootEnergyReady,
   isV3TutorialRootStep,
+  mergeStagedTutorialPrepare,
+  nextV3TutorialFillKind,
   nextV3TutorialStepFromCompletedActivities,
   nextV3TutorialStepAfterRootTransfer,
   nextV3TutorialRootStep,
   resolveV3TutorialStepFromServer,
+  shouldClearStaleV3CareUiAfterTutorial,
   tutorialHighlightRoot,
+  TUTORIAL_V3_FILL_SECONDS,
+  TUTORIAL_V3_ROOT_POP_MS,
   TUTORIAL_V3_ROOT_SECONDS,
+  TUTORIAL_V3_WAIT_SECONDS,
   v3TutorialOverlayConfig,
+  withTutorialRootSeconds,
 } from "./tutorialFlow";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -137,6 +147,124 @@ function sampleV3(
 }
 
 describe("Economy v3 Tutorial flow (8E)", () => {
+  it("staged fill: 2s cadence water → sun → fertilizer before collect", () => {
+    expect(TUTORIAL_V3_FILL_SECONDS).toBe(5);
+    expect(pageSrc).toContain("V3TutorialFillTimer");
+    expect(pageSrc).toContain("tutorialFillDeadlineMs");
+    expect(pageSrc).toContain("prepareTutorialV3({ kind })");
+    expect(pageSrc).toContain("nextV3TutorialFillKind");
+    expect(pageSrc).toContain("withTutorialRootSeconds");
+    expect(pageSrc).toContain("mergeStagedTutorialPrepare");
+    expect(pageSrc).toContain("popRootFill");
+    expect(pageSrc).toContain("TUTORIAL_V3_ROOT_POP_MS");
+    // Timer wait first, then quick pop — not fill during the 2s countdown.
+    expect(pageSrc).toMatch(/await sleepUntil\(deadline\)[\s\S]*?await popRootFill\(kind\)/);
+    expect(apiSrc).toContain("prepareTutorialV3:");
+    expect(apiSrc).toContain('{ kind:');
+    expect(flowSrc).toContain("nextV3TutorialFillKind");
+    expect(flowSrc).toContain("withTutorialRootSeconds");
+    expect(TUTORIAL_V3_ROOT_POP_MS).toBe(350);
+    expect(TUTORIAL_V3_ROOT_POP_MS).toBeLessThan(TUTORIAL_V3_FILL_SECONDS * 1000);
+    // After third fill: keep capsule and start 12:00 wait (do not remove timer).
+    expect(TUTORIAL_V3_WAIT_SECONDS).toBe(720);
+    expect(flowSrc).toContain("TUTORIAL_V3_WAIT_SECONDS");
+    expect(pageSrc).toContain("TUTORIAL_V3_WAIT_MS");
+    expect(pageSrc).toContain("startTutorialWaitCountdown");
+    expect(pageSrc).toContain("tutorialWaitStartedRef");
+    expect(pageSrc).toContain("tutorialWaitStartedAtRef");
+    expect(pageSrc).toContain("resolveTutorialGenerationAnchorAt");
+    expect(pageSrc).toContain("handoffDeadlineAtMs");
+    expect(pageSrc).toContain('setTutorialTimerKind("wait")');
+    expect(pageSrc).toContain('tutorialTimerKind === "wait"');
+    // 12:00 must arm even if intro effect is cancelled by step advance.
+    expect(pageSrc).toContain("areV3TutorialRootsEnergyReady(game.v3Roots)");
+    // After 12:00 elapses — settle root energy like main (without ending tutorial).
+    expect(apiSrc).toContain("armTutorialV3Wait");
+    expect(apiSrc).toContain("syncTutorialV3WaitEnergy");
+    expect(pageSrc).toContain("armTutorialV3Wait");
+    expect(pageSrc).toContain("syncTutorialV3WaitEnergy");
+
+    const empty = sampleV3({
+      roots: {
+        water: {
+          seconds: 0,
+          fullSegments: 0,
+          partialSegmentSeconds: 0,
+          capacitySeconds: 25,
+          fillFraction: 0,
+          playableFromRoot: false,
+          transferred: false,
+          frozen: false,
+        },
+        sun: {
+          seconds: 0,
+          fullSegments: 0,
+          partialSegmentSeconds: 0,
+          capacitySeconds: 25,
+          fillFraction: 0,
+          playableFromRoot: false,
+          transferred: false,
+          frozen: false,
+        },
+        fertilizer: {
+          seconds: 0,
+          fullSegments: 0,
+          partialSegmentSeconds: 0,
+          capacitySeconds: 25,
+          fillFraction: 0,
+          playableFromRoot: false,
+          transferred: false,
+          frozen: false,
+        },
+      },
+    });
+    expect(nextV3TutorialFillKind(empty)).toBe("water");
+    expect(areV3TutorialRootsEnergyReady(empty)).toBe(false);
+
+    const onlyWater = withTutorialRootSeconds(empty, "water", 5);
+    expect(onlyWater.roots.water.seconds).toBe(5);
+    expect(onlyWater.roots.sun.seconds).toBe(0);
+    expect(onlyWater.roots.fertilizer.seconds).toBe(0);
+    const merged = mergeStagedTutorialPrepare(
+      onlyWater,
+      "water",
+      withTutorialRootSeconds(
+        withTutorialRootSeconds(
+          withTutorialRootSeconds(empty, "water", 5),
+          "sun",
+          5,
+        ),
+        "fertilizer",
+        5,
+      ),
+    );
+    // Even if server returns all three, staged merge keeps sun/fert local.
+    expect(merged.roots.water.seconds).toBe(5);
+    expect(merged.roots.sun.seconds).toBe(0);
+    expect(merged.roots.fertilizer.seconds).toBe(0);
+
+    const waterOnly = sampleV3({
+      roots: {
+        ...empty.roots,
+        water: {
+          ...empty.roots.water,
+          seconds: 5,
+          fullSegments: 1,
+          fillFraction: 0.2,
+          playableFromRoot: true,
+        },
+      },
+    });
+    expect(isV3TutorialRootEnergyReady(waterOnly, "water")).toBe(true);
+    expect(nextV3TutorialFillKind(waterOnly)).toBe("sun");
+    expect(
+      resolveV3TutorialStepFromServer({
+        tutorialDone: false,
+        v3Roots: waterOnly,
+      }),
+    ).toBe("intro");
+  });
+
   it("root order Water → Sun → Fertilizer → activities; activities free order", () => {
     expect(TUTORIAL_V3_ROOT_SECONDS).toBe(5);
     expect(nextV3TutorialStepAfterRootTransfer("water")).toBe("v3-root-sun");
@@ -300,8 +428,12 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(step).toBe("v3-activities-intro");
   });
 
-  it("root steps have no overlay card — pulse-only teaching", () => {
-    expect(v3TutorialOverlayConfig("intro")).toBeNull();
+  it("intro wait card; root collect steps stay pulse-only", () => {
+    expect(v3TutorialOverlayConfig("intro")).toEqual({
+      icon: "wait",
+      text: "Дождитесь формирования энергии",
+      hint: "Смотрите на таймер у корней.",
+    });
     expect(v3TutorialOverlayConfig("v3-root-water")).toBeNull();
     expect(v3TutorialOverlayConfig("v3-root-sun")).toBeNull();
     expect(v3TutorialOverlayConfig("v3-root-fertilizer")).toBeNull();
@@ -323,6 +455,9 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(flowSrc).not.toContain("Нажмите на синий корень");
     expect(flowSrc).not.toContain("корня Воды");
     expect(flowSrc).not.toContain("Соберите энергию");
+    expect(pageSrc).toContain('cfg.icon === "wait"');
+    expect(pageSrc).toContain("<Clock");
+    expect(pageSrc).toContain('color="#166534"');
   });
 
   it("GamePage: v3 tutorial uses prepare + v3 care; no session endpoints", () => {
@@ -348,5 +483,51 @@ describe("Economy v3 Tutorial flow (8E)", () => {
       /tutorialStep === \"complete\" &&\s*useV3[\s\S]*?handleV3CareShovelClick/,
     );
     expect(pageSrc).toContain("acknowledgeV3CareCycleOnce");
+  });
+
+  it("clears stale post-tutorial Care checkmarks so activity seconds return", () => {
+    const stale = sampleV3({
+      reserves: {
+        water: { seconds: 0, capacitySeconds: 20, playable: false },
+        sun: { seconds: 0, capacitySeconds: 20, playable: false },
+        fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
+      },
+      careCycle: {
+        ...sampleV3().careCycle,
+        status: "ready",
+        readyToFinish: true,
+        allCompleted: true,
+        activities: {
+          water: { completed: true, presetSeconds: 5, skill: 1 },
+          sun: { completed: true, presetSeconds: 5, skill: 1 },
+          fertilizer: { completed: true, presetSeconds: 5, skill: 1 },
+        },
+      },
+    });
+    expect(shouldClearStaleV3CareUiAfterTutorial(stale)).toBe(true);
+    const cleared = clearV3CareUiAfterTutorial(stale);
+    expect(cleared?.careCycle.activities.water.completed).toBe(false);
+    expect(cleared?.careCycle.readyToFinish).toBe(false);
+    expect(cleared?.careCycle.status).toBeNull();
+    expect(shouldClearStaleV3CareUiAfterTutorial(cleared)).toBe(false);
+
+    const midCare = sampleV3({
+      reserves: {
+        water: { seconds: 0, capacitySeconds: 20, playable: false },
+        sun: { seconds: 8, capacitySeconds: 20, playable: true },
+        fertilizer: { seconds: 5, capacitySeconds: 20, playable: true },
+      },
+      careCycle: {
+        ...sampleV3().careCycle,
+        status: "in_progress",
+        activities: {
+          water: { completed: true, presetSeconds: 5, skill: 1 },
+          sun: { completed: false, presetSeconds: null, skill: null },
+          fertilizer: { completed: false, presetSeconds: null, skill: null },
+        },
+      },
+    });
+    // Still has reserves — do not wipe a live Care cycle.
+    expect(shouldClearStaleV3CareUiAfterTutorial(midCare)).toBe(false);
   });
 });

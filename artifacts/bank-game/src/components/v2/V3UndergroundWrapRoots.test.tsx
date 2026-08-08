@@ -9,7 +9,9 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getTreeTrunkColor } from "@/components/TreeSVG";
+import { taperWidthFactor } from "@/components/v2/rootTaperGeometry";
 import V3UndergroundWrapRoots, {
+  buildTrunkShoulderCollarPath,
   buildV3WrapRoots,
   V3_WRAP_ROOTS_VIEW,
 } from "@/components/v2/V3UndergroundWrapRoots";
@@ -28,12 +30,39 @@ describe("V3UndergroundWrapRoots", () => {
     }
   });
 
+  it("continuation segments start at the lead tip width (no shoulder step)", () => {
+    const majorLead = 11;
+    const majorCont = majorLead * taperWidthFactor(1, "trunk-wide");
+    expect(majorCont).toBeCloseTo(5.5, 5);
+    expect(majorCont * taperWidthFactor(0, "continue")).toBeCloseTo(
+      majorCont,
+      5,
+    );
+  });
+
   it("renders decorative svg with pointer-free data attr", () => {
     const html = renderToStaticMarkup(createElement(V3UndergroundWrapRoots));
     expect(html).toContain('data-v3-underground-wrap-roots="true"');
     expect(html).toContain(`viewBox="0 0 ${V3_WRAP_ROOTS_VIEW.width} ${V3_WRAP_ROOTS_VIEW.height}"`);
     expect(html).toContain("data-wrap-root=");
-    expect(html).not.toContain("data-wrap-root-collar");
+    expect(html).toContain('data-wrap-root-collar="true"');
+    expect(html).toContain('data-v3-wrap-root-system="true"');
+    expect(html).not.toContain("data-wrap-root-mini-shoulder");
+  });
+
+  it("builds the approved single-arc soft collar", () => {
+    const d = buildTrunkShoulderCollarPath();
+    expect(d.startsWith("M ")).toBe(true);
+    expect(d.endsWith("Z")).toBe(true);
+    expect(d.startsWith("M 146.8 -12")).toBe(true);
+    expect(d).toContain("C 141.8 -7");
+  });
+
+  it("keeps collar + fan in one unclipped wrap-root system group", () => {
+    const html = renderToStaticMarkup(createElement(V3UndergroundWrapRoots));
+    expect(html).toContain('data-v3-wrap-root-system="true"');
+    expect(html).toContain('data-wrap-root-collar="true"');
+    expect(html).not.toContain("v3-wrap-roots-below-grass");
   });
 
   it("matches the tree trunk color for the given stage", () => {
@@ -49,6 +78,9 @@ describe("V3UndergroundWrapRoots", () => {
   it("is mounted in the v3 underground stack and reaches the grass/trunk line", () => {
     expect(pageSrc).toContain("V3UndergroundWrapRoots");
     expect(pageSrc).toContain("<V3UndergroundWrapRoots treeStage={currentStage}");
+    expect(pageSrc).toContain("undergroundWrapRootsWipeAnimate");
+    expect(pageSrc).not.toContain("TreeTrunkNeckFillets");
+    expect(cssSrc).not.toMatch(/\.tree-trunk-neck-fillets\s*\{/);
     expect(cssSrc).toMatch(
       /\.v3-underground-wrap-roots\s*\{[\s\S]*?pointer-events:\s*none/,
     );
@@ -56,7 +88,8 @@ describe("V3UndergroundWrapRoots", () => {
       /\.v3-underground-wrap-roots\s*\{[\s\S]*?z-index:\s*0/,
     );
     expect(cssSrc).toMatch(
-      /\.v3-underground-wrap-roots\s*\{[\s\S]*?--v2-scene-lift/,
+      /\.v3-underground-wrap-wipe\s*\{[\s\S]*?--v3-trunk-join/,
     );
+    expect(cssSrc).toMatch(/--v3-trunk-join:\s*calc\(var\(--v2-scene-lift\)/);
   });
 });

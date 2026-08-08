@@ -277,7 +277,7 @@ describe("Economy v3 primary roots UI (8C)", () => {
     expect(pageSrc).toContain("game-area--v3-roots");
     expect(pageSrc).not.toContain("v3-earth-veil");
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots\s*\{[\s\S]*?--v2-scene-lift:\s*286px/,
+      /\.game-area--v3-roots\s*\{[\s\S]*?--v2-scene-lift:\s*300px/,
     );
     expect(cssSrc).not.toMatch(/\.v3-root--\w+ \.v3-root-trajectory\s*\{[^}]*transform:/);
     expect(cssSrc).not.toMatch(/--v3-fan-spread/);
@@ -341,7 +341,14 @@ describe("Economy v3 primary roots UI (8C)", () => {
     );
     expect(pageSrc).not.toContain("hideEnergyTimer={false}");
     expect(pageSrc).toContain("<V3RootWaitTimer");
-    expect(pageSrc).toContain("hideTimer={excessCleaning}");
+    expect(pageSrc).toContain("frozen={excessCleaning}");
+    expect(pageSrc).toContain(
+      "useUndergroundRootsScene && tutorialDone && !excessCleaning",
+    );
+    expect(pageSrc).toContain("field-visibility-btn");
+    expect(pageSrc).toContain(
+      "if (excessCleaning) setUndergroundRootsMasked(false)",
+    );
   });
 
   it("DEV readout remains; preview env not required for v3 UI", () => {

@@ -9,12 +9,18 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { api, type EconomyV3RootKind, type EconomyV3RootState, type EconomyV3RootsState } from "@/lib/api";
 import {
   normalizeEconomyV3RootsSnapshot,
+  recommendedV3RootToCollect,
+  V3_ROOT_COLLECT_PULSE_MIN_SECONDS,
   V3_ROOT_KINDS,
 } from "@/lib/v3Roots";
-import { V3_ACTIVITY_ENERGY_COLORS } from "@/lib/v3ActivityColors";
+import {
+  V3_ACTIVITY_ENERGY_COLORS,
+  V3_ACTIVITY_FILL_WASH_COLORS,
+} from "@/lib/v3ActivityColors";
 import { pulseV3ActivityReceive } from "@/lib/v3TransferFlight";
 import { commitV3TransferPendingOnce } from "@/lib/v3TransferCommit";
 import V3TransferFlight from "@/components/v2/V3TransferFlight";
+import RootCellGlyph from "@/components/v2/RootCellGlyph";
 
 export const V3_SEGMENT_COUNT = 5;
 /** One visual segment = 5 game-seconds on the fixed 0–25 scale. */
@@ -146,12 +152,15 @@ export const V3_ROOT_LABELS: Record<EconomyV3RootKind, string> = {
 };
 
 /**
- * Soft energy fills by activity (filled seconds only).
- * Derived from V3_ACTIVITY_ACCENT_COLORS (button/icon palette).
- * Shell / empty cells use --field-caption-bg (same cream as apple/growth/capital).
+ * Opaque rim / glyph / transfer flight (timer-style --ac).
+ * Interior wash is {@link V3_ROOT_WASH_COLORS}.
  */
 export const V3_ROOT_FILL_COLORS: Record<EconomyV3RootKind, string> =
   V3_ACTIVITY_ENERGY_COLORS;
+
+/** Light interior wash — same as activity-button reserve fills. */
+export const V3_ROOT_WASH_COLORS: Record<EconomyV3RootKind, string> =
+  V3_ACTIVITY_FILL_WASH_COLORS;
 
 export type V3RootVisualState =
   | "empty"
@@ -431,6 +440,9 @@ function EconomyV3RootColumn({
   const fillColor = metelkaLocked
     ? V3_ROOT_METELKA_LOCKED_FILL
     : V3_ROOT_FILL_COLORS[kind];
+  const washColor = metelkaLocked
+    ? "rgba(138, 132, 124, 0.45)"
+    : V3_ROOT_WASH_COLORS[kind];
   const className = [
     "v3-root",
     `v3-root--${kind}`,
@@ -463,6 +475,7 @@ function EconomyV3RootColumn({
       aria-label={v3RootAriaLabel(kind, root.seconds)}
       aria-disabled={!clickable}
       disabled={!clickable}
+      style={{ ["--ac" as string]: fillColor } as CSSProperties}
       onClick={() => {
         if (!clickable || metelkaLocked) return;
         onTransfer(kind);
@@ -493,10 +506,13 @@ function EconomyV3RootColumn({
                     ? ({
                         ["--v3-seg-fill" as string]: `${fillPct}%`,
                         ["--v3-seg-color" as string]: fillColor,
+                        ["--v3-seg-wash" as string]: washColor,
                       } as CSSProperties)
                     : undefined
                 }
-              />
+              >
+                <RootCellGlyph kind={kind} segment={i} size={11} />
+              </div>
             );
           })}
           {transferring ? (
@@ -712,8 +728,21 @@ export default function EconomyV3RootSystem({
             !uiLocked &&
             canTransferV3Root(serverRoot, false, transferLocked) &&
             !isTransferring;
+          // Tutorial step / live recommend — blink only (same as activity buttons).
+          const collectPulseKind =
+            tutorialHighlightRoot ??
+            recommendedV3RootToCollect(displaySnapshot);
+          const rootSeconds = Math.max(
+            0,
+            Math.floor(Number(serverRoot.seconds) || 0),
+          );
           const tutorialPulse =
-            tutorialHighlightRoot === kind && clickable;
+            !metelkaLocked &&
+            transferEnabled &&
+            collectPulseKind === kind &&
+            serverRoot.transferred !== true &&
+            rootSeconds >= V3_ROOT_COLLECT_PULSE_MIN_SECONDS &&
+            !isTransferring;
           return (
             <EconomyV3RootColumn
               key={kind}

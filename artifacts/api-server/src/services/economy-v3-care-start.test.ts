@@ -140,6 +140,72 @@ describe("startEconomyV3CareActivity", () => {
     expect(state.v3_care_activity_status).toBe("active");
   });
 
+  it("roots_collection_incomplete: mid transfer-trio rejects without debit", async () => {
+    process.env.ENABLE_ECONOMY_V3_ROOTS = "true";
+
+    const state = {
+      tutorial_done: true,
+      streak_days: 1,
+      v3_root_water_seconds: 0,
+      v3_root_sun_seconds: 5,
+      v3_root_fertilizer_seconds: 5,
+      v3_reserve_water_seconds: 5,
+      v3_reserve_sun_seconds: 0,
+      v3_reserve_fertilizer_seconds: 0,
+      v3_daily_cap_seconds: 20,
+      v3_day_key: "2026-07-23",
+      v3_generation_anchor_at: new Date(NOW),
+      v3_generation_frozen_at: new Date(NOW) as Date | null,
+      v3_insurance_deadline_at: new Date(NOW + 60_000) as Date | null,
+      v3_generation_progress: 0,
+      v3_generation_rr_cursor: 0,
+      v3_first_transferred_root: "water" as string | null,
+      v3_transferred_roots: ["water"] as string[],
+      v3_metelka_required: false,
+      v3_metelka_completed_for_cycle: false,
+      v3_care_activity_kind: null as string | null,
+      v3_care_activity_preset_seconds: null as number | null,
+      v3_care_activity_started_at: null as Date | null,
+      v3_care_activity_status: null as string | null,
+      v3_care_cycle_water_completed: false,
+      v3_care_cycle_sun_completed: false,
+      v3_care_cycle_fertilizer_completed: false,
+      v3_care_cycle_started_at: null as Date | null,
+      v3_care_cycle_completed_at: null as Date | null,
+      v3_care_cycle_status: null as string | null,
+      v2_excess_seconds: 0,
+      v2_excess_elapsed_ms: 0,
+      v2_excess_base_income: 0,
+      v2_excess_session_active: false,
+    };
+
+    clientQueryMock.mockImplementation(async (text: string) => {
+      if (text === "BEGIN" || text === "COMMIT" || text === "ROLLBACK") {
+        return { rows: [] };
+      }
+      if (String(text).includes("SELECT active_balance")) {
+        return { rows: [{ active_balance: "100000" }] };
+      }
+      if (String(text).includes("FOR UPDATE")) {
+        return { rows: [{ ...state }] };
+      }
+      if (String(text).includes("UPDATE game_state")) {
+        return { rows: [] };
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      startEconomyV3CareActivity("42", "water", 5, NOW),
+    ).rejects.toMatchObject({
+      code: "roots_collection_incomplete",
+      status: 409,
+    });
+
+    expect(state.v3_reserve_water_seconds).toBe(5);
+    expect(state.v3_care_activity_status).toBeNull();
+  });
+
   it("metelka_required_before_care: excess available rejects without debit", async () => {
     process.env.ENABLE_ECONOMY_V3_ROOTS = "true";
 

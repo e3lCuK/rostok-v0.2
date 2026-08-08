@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   activityResultFillPercent,
   allActivityFillsPresent,
+  careShovelFillPercent,
   hasActivityResultFill,
   isCareActivityCubeDone,
   mergeActivityFillPercent,
@@ -87,6 +88,13 @@ describe("careActivityResultFill — итоговое заполнение ку�
     const main = activityResultFillPercent(83);
     expect(tutorial).toBe(main);
     expect(tutorial).toBe(83);
+  });
+
+  it("9b. «Уход» shovel fill = mean of three activity results (live + tutorial)", () => {
+    expect(careShovelFillPercent(30, 60, 90)).toBe(60);
+    expect(careShovelFillPercent(100, 100, 100)).toBe(100);
+    expect(careShovelFillPercent(null, null, null)).toBe(0);
+    expect(careShovelFillPercent(50, null, 50)).toBe(33);
   });
 
   it("10. no ghost remount in phase machine (unidirectional only)", () => {

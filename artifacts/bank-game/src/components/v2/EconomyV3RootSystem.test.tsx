@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import type { EconomyV3RootsState } from "@/lib/api";
 import EconomyV3RootSystem, {
   V3_ROOT_FILL_COLORS,
+  V3_ROOT_WASH_COLORS,
   V3_ROOT_METELKA_LOCKED_FILL,
   V3_SEGMENT_COUNT,
   V3_TRANSFER_ANIM_MS,
@@ -438,8 +439,14 @@ describe("EconomyV3RootSystem", () => {
     expect(html).toContain('data-v3-root="sun"');
     expect(html).toContain('data-v3-root="fertilizer"');
     expect(html).toContain("v3-root--water");
+    expect(html).toContain('data-v3-root-glyph="water"');
+    expect(html).toContain('data-v3-root-glyph="sun"');
+    expect(html).toContain('data-v3-root-glyph="fertilizer"');
+    // One glyph per segment cell (3 roots × 5 segments).
+    expect(html.match(/data-v3-root-glyph=/g)?.length).toBe(15);
     expect(html.match(/data-v3-segment=/g)?.length).toBe(15);
     expect(html).toContain(V3_ROOT_FILL_COLORS.water);
+    expect(html).toContain(V3_ROOT_WASH_COLORS.water);
     expect(html).toContain(v3RootAriaLabel("water", 7));
     expect(html).toContain('data-v3-root-clickable="true"');
     expect(html).not.toContain("roots--metelka-locked");
@@ -588,6 +595,64 @@ describe("EconomyV3RootSystem", () => {
     );
     expect(html).toContain("v3-root--accumulating");
     expect(html).toContain('data-v3-cycle-frozen="true"');
+  });
+
+  it("collect pulse: only leftmost ≥5s root blinks (live recommend)", () => {
+    const html = renderToStaticMarkup(
+      <EconomyV3RootSystem
+        transferEnabled
+        v3Roots={sampleV3({
+          roots: {
+            water: rootFromSeconds(6),
+            sun: rootFromSeconds(12),
+            fertilizer: rootFromSeconds(9),
+          },
+        })}
+      />,
+    );
+    expect(html).toMatch(
+      /data-v3-root="water"[^>]*data-v3-root-tutorial-pulse="true"/,
+    );
+    expect(html).toContain("v3-root--tutorial-pulse");
+    expect(html).toMatch(
+      /data-v3-root="sun"[^>]*data-v3-root-tutorial-pulse="false"/,
+    );
+    expect(html).toMatch(
+      /data-v3-root="fertilizer"[^>]*data-v3-root-tutorial-pulse="false"/,
+    );
+
+    const afterWater = renderToStaticMarkup(
+      <EconomyV3RootSystem
+        transferEnabled
+        v3Roots={sampleV3({
+          roots: {
+            water: {
+              ...rootFromSeconds(0),
+              transferred: true,
+              playableFromRoot: false,
+            },
+            sun: rootFromSeconds(12),
+            fertilizer: rootFromSeconds(9),
+          },
+          generation: {
+            anchorAt: null,
+            progress: 0,
+            frozenAt: null,
+            insuranceDeadlineAt: null,
+            firstTransferredRoot: "water",
+            transferredRoots: ["water"],
+            secondsUntilNextWholeSecond: null,
+            accumulating: false,
+          },
+        })}
+      />,
+    );
+    expect(afterWater).toMatch(
+      /data-v3-root="sun"[^>]*data-v3-root-tutorial-pulse="true"/,
+    );
+    expect(afterWater).toMatch(
+      /data-v3-root="water"[^>]*data-v3-root-tutorial-pulse="false"/,
+    );
   });
 
   it("covers empty / accumulating / ready / full / transferred / frozen / waiting states", () => {
@@ -808,9 +873,12 @@ describe("EconomyV3RootSystem", () => {
     expect(html).toMatch(
       /data-segment-index="4"[^>]*data-v3-segment-state="empty"/,
     );
-    // Fill layer pinned to segment floor
+    // Fill flush to inner border — no thick cream ring on tiny cells.
     expect(cssSrc).toMatch(
       /\.v3-root-segment--partial::after[\s\S]*?bottom:\s*0/,
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-root-segment--partial::after[\s\S]*?left:\s*0/,
     );
     expect(cssSrc).toMatch(
       /\.v3-root-segment--partial::after[\s\S]*?top:\s*auto/,
@@ -818,15 +886,32 @@ describe("EconomyV3RootSystem", () => {
     expect(cssSrc).toMatch(
       /\.v3-root-segment--partial::after[\s\S]*?height:\s*var\(--v3-seg-fill/,
     );
-    // Shell keeps inactive tone — not the activity fill color on the container
+    expect(cssSrc).toMatch(
+      /\.v3-root-segment--partial::after[\s\S]*?box-shadow:\s*none/,
+    );
+    // No glossy white inset / outer ring on ready cells.
+    expect(cssSrc).not.toMatch(
+      /v3-root--ready[\s\S]{0,200}inset 0 1px 0 rgba\(255/,
+    );
+    // Same contrast pair as activity buttons: cream shell + opaque --ac rim.
     const shellBlock = cssSrc.match(
       /\.v3-root-segment--partial,\s*\r?\n\.v3-root-segment--full\s*\{[^}]+\}/,
     );
     expect(shellBlock?.[0]).toMatch(/background:\s*var\(--v3-shell/);
-    expect(shellBlock?.[0]).not.toMatch(/--v3-seg-color/);
+    expect(shellBlock?.[0]).toMatch(
+      /border-color:\s*var\(--v3-seg-color/,
+    );
+    expect(shellBlock?.[0]).toMatch(/color:\s*var\(--v3-seg-color/);
+    // Light wash interior (timer / activity contrast) — not rim RGB.
+    expect(cssSrc).toMatch(
+      /\.v3-root-segment--partial::after[\s\S]*?background:\s*var\(--v3-seg-wash/,
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-root-segment \.v3-root-glyph\s*\{[\s\S]*?color:\s*inherit/,
+    );
     // Ground lip must not cover crown empty (bury ≤ |tuck|)
     expect(cssSrc).toMatch(/--v3-root-crown-bury:\s*8px/);
-    expect(cssSrc).toMatch(/--v3-root-anchor-tuck:\s*-12px/);
+    expect(cssSrc).toMatch(/--v3-root-anchor-tuck:\s*-64px/);
   });
 
   it("21/21 fifth segment is 20% filled (not 100%)", () => {
@@ -1746,6 +1831,8 @@ describe("manual transfer animation (7E)", () => {
     expect(cssSrc).toContain("v3-root-transfer-energy");
     expect(cssSrc).toContain("v3-root-transfer-rise");
     expect(compSrc).toContain("V3_ROOT_FILL_COLORS");
+    expect(compSrc).toContain("V3_ROOT_WASH_COLORS");
+    expect(compSrc).toContain("--v3-seg-wash");
     expect(compSrc).toContain("v3-root-transfer-energy");
     expect(V3_ROOT_FILL_COLORS.water).toMatch(/#2b7fff/i);
     expect(V3_ROOT_FILL_COLORS.sun).toMatch(/#ffc107/i);

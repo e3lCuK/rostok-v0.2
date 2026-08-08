@@ -303,8 +303,11 @@ describe("tutorial does not persist real economy awards", () => {
     expect(xpUpdates).toBe(0);
   });
 
-  it("tutorial/complete SQL clears leaked pending rewards", () => {
+  it("tutorial/complete SQL clears pending rewards but keeps +1 мм / +1 apple", () => {
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/pending_base_reward\s*=\s*0/);
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/pending_bonus_reward\s*=\s*0/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/tree_growth_mm\s*=\s*1/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/total_apples\s*=\s*1/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/player_xp\s*=\s*0/);
   });
 });

@@ -1,15 +1,22 @@
 /**
  * Shared capital chest under the root system (v3 primary UI).
- * Reuses V2CapitalChest body art; capital sum is an HTML field caption
- * (same chrome as apple / growth badges).
+ *
+ * Layer order (back → front):
+ *   1. continuous hourglass (+ lid-cut foot in the same SVG figure)
+ *   2. chest body + lid
+ *   3. capital face — lower-bulb base half (shared vertical fill)
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   V2CapitalChest,
   V2_CHEST_PAINT,
   formatV2ChestCapital,
 } from "./V2CapitalChest";
+import {
+  V3_HOURGLASS_CAPITAL_BULB_PATH,
+  V3_HOURGLASS_CAPITAL_BULB_VIEW,
+} from "./V3WaitTimerHourglass";
 import { ROOT_ART_VIEW } from "./rootArtCatalog";
 import IncomeChestFloat from "./IncomeChestFloat";
 import type { IncomeChestFeedback } from "@/lib/incomeChestFeedback";
@@ -18,8 +25,10 @@ type Props = {
   capital: number;
   incomeChestFeedback?: IncomeChestFeedback | null;
   onIncomeChestFeedbackComplete?: (id: string) => void;
-  /** Opens accrual history (activities / excess), same as former capital «?». */
+  /** Opens accrual history — capital label is the hit target. */
   onCapitalClick?: () => void;
+  /** Tall hourglass (timer / tutorial) — lid-cut foot is inside that SVG. */
+  children?: ReactNode;
 };
 
 /**
@@ -45,6 +54,7 @@ export default function CapitalChestUnderRoots({
   incomeChestFeedback = null,
   onIncomeChestFeedbackComplete,
   onCapitalClick,
+  children,
 }: Props) {
   const viewBox = `${CHEST_VIEW.x} ${CHEST_VIEW.y} ${CHEST_VIEW.width} ${CHEST_VIEW.height}`;
   const label = formatV2ChestCapital(capital);
@@ -52,6 +62,8 @@ export default function CapitalChestUnderRoots({
 
   const prevLabelRef = useRef<string | null>(null);
   const [bump, setBump] = useState(false);
+  const rawId = useId();
+  const fillClipId = `v3-capital-bulb-fill-${rawId.replace(/:/g, "")}`;
 
   useEffect(() => {
     const prev = prevLabelRef.current;
@@ -62,8 +74,74 @@ export default function CapitalChestUnderRoots({
     return () => window.clearTimeout(t);
   }, [label]);
 
+  const badgeClass = [
+    "field-caption-badge",
+    "field-caption-badge--capital",
+    "v3-capital-badge",
+    "v3-capital-badge--in-bulb",
+  ].join(" ");
+
+  const vw = V3_HOURGLASS_CAPITAL_BULB_VIEW.width;
+  const vh = V3_HOURGLASS_CAPITAL_BULB_VIEW.height;
+  const foY = V3_HOURGLASS_CAPITAL_BULB_VIEW.y;
+
+  const badgeInner = (
+    <>
+      <svg
+        className="v3-capital-badge__bulb"
+        viewBox={`${V3_HOURGLASS_CAPITAL_BULB_VIEW.x} ${V3_HOURGLASS_CAPITAL_BULB_VIEW.y} ${vw} ${vh}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <clipPath id={fillClipId}>
+            <path d={V3_HOURGLASS_CAPITAL_BULB_PATH} />
+          </clipPath>
+        </defs>
+        <path
+          className="v3-capital-badge__shell"
+          d={V3_HOURGLASS_CAPITAL_BULB_PATH}
+        />
+        <foreignObject
+          x={0}
+          y={foY}
+          width={vw}
+          height={vh}
+          clipPath={`url(#${fillClipId})`}
+        >
+          <div className="v3-capital-badge__fill-host">
+            <div
+              className="v3-capital-badge__fill"
+              data-capital-badge-fill="true"
+            />
+          </div>
+        </foreignObject>
+        <path
+          className="v3-capital-badge__rim"
+          d={V3_HOURGLASS_CAPITAL_BULB_PATH}
+          fill="none"
+        />
+      </svg>
+      <span className="v3-capital-badge__label">
+        <span className="field-caption-value">{value}</span>
+        {unit ? <span className="field-caption-unit">{unit}</span> : null}
+      </span>
+    </>
+  );
+
   return (
     <>
+      <div
+        className="v3-capital-hourglass-slot"
+        data-v3-root-wait-timer-host="true"
+        data-v3-capital-hourglass-slot="true"
+      >
+        {children}
+      </div>
+
       <svg
         className="v3-capital-chest-layer v3-capital-chest-layer--body"
         data-v3-capital-chest-layer="body"
@@ -81,32 +159,36 @@ export default function CapitalChestUnderRoots({
         className="v3-capital-chest-overlay"
         data-v3-capital-chest-overlay="true"
       >
-        <span
-          className={`field-caption-badge v3-capital-badge${
-            bump ? " v3-capital-badge--bump" : ""
-          }`}
-          data-capital-label="true"
-          data-chest-part="capital-label"
-          data-value-bump={bump ? "true" : "false"}
-          aria-hidden="true"
-        >
-          <span className="field-caption-value">{value}</span>
-          {unit ? <span className="field-caption-unit">{unit}</span> : null}
-        </span>
+        {onCapitalClick ? (
+          <button
+            type="button"
+            className={badgeClass}
+            data-capital-label="true"
+            data-chest-part="capital-label"
+            data-capital-chest-hit="true"
+            data-value-bump={bump ? "true" : "false"}
+            aria-label={`Капитал ${label}. История начислений`}
+            onClick={onCapitalClick}
+          >
+            {badgeInner}
+          </button>
+        ) : (
+          <span
+            className={badgeClass}
+            data-capital-label="true"
+            data-chest-part="capital-label"
+            aria-hidden="true"
+          >
+            {badgeInner}
+          </span>
+        )}
         <IncomeChestFloat
           feedback={incomeChestFeedback}
           onComplete={(id) => onIncomeChestFeedbackComplete?.(id)}
         />
-        {onCapitalClick ? (
-          <button
-            type="button"
-            className="v3-capital-chest-hit"
-            data-capital-chest-hit="true"
-            aria-label={`Капитал ${label}. История начислений`}
-            onClick={onCapitalClick}
-          />
-        ) : null}
       </div>
     </>
   );
 }
+
+export { V2_CHEST_PAINT, formatV2ChestCapital };

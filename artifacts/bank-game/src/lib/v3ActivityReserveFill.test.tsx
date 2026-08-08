@@ -25,10 +25,24 @@ describe("V3ActivityReserveFill component", () => {
     expect(html.match(/data-v3-activity-reserve-fill=/g)?.length).toBe(1);
   });
 
-  it("uses distinct bright colors per activity", () => {
-    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.water).toContain("43, 127, 255");
-    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.sun).toContain("255, 193, 7");
-    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.fertilizer).toContain("240, 160, 32");
+  it("does not render dashed minimum mark", () => {
+    const html = renderToStaticMarkup(
+      createElement(V3ActivityReserveFill, {
+        kind: "sun",
+        fillPercent: 0,
+      }),
+    );
+    expect(html).not.toContain("data-v3-activity-min-mark");
+    expect(html).not.toContain("v3-activity-reserve-min-mark");
+  });
+
+  it("uses lighter timer-style washes (not rim RGB) per activity", () => {
+    // Opaque rim stays --ac; fill is a lighter 50% wash like the wait timer.
+    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.water).toContain("125, 211, 252");
+    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.sun).toContain("253, 224, 71");
+    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.fertilizer).toContain("251, 191, 36");
+    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.water).toContain("0.5)");
+    expect(V3_ACTIVITY_RESERVE_FILL_COLORS.water).not.toContain("43, 127, 255");
     const sun = renderToStaticMarkup(
       createElement(V3ActivityReserveFill, {
         kind: "sun",

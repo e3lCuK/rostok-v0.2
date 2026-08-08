@@ -7,51 +7,56 @@ import { CARE_TO_SHOVEL_MS } from "./careActionsPhase";
 const here = dirname(fileURLToPath(import.meta.url));
 const css = readFileSync(join(here, "../bank.css"), "utf8");
 const page = readFileSync(join(here, "../pages/GamePage.tsx"), "utf8");
+const motionSrc = readFileSync(join(here, "careConvergeMotion.ts"), "utf8");
 
-describe("Care converge animation — no bounce / spring", () => {
-  it("1. care_transition CSS has no scale keyframe that returns to 1", () => {
-    const convergingBlock = css.match(
-      /\.action-buttons-row--converging\s+\.action-btn-bank\s*\{[^}]+\}/,
+describe("Care converge animation — Framer Motion merge into «Уход»", () => {
+  it("1. GamePage drives trio/shovel via careConvergeMotion helpers", () => {
+    expect(page).toContain("careTrioConvergeAnimate");
+    expect(page).toContain("careShovelConvergeAnimate");
+    expect(page).toContain("careShovelFillPercent");
+    // Tutorial «Уход» uses the same quality fill as live — not forced empty.
+    expect(page).not.toContain(
+      '!tutorialDone && tutorialStep === "complete" ? null',
     );
-    expect(convergingBlock?.[0]).toBeTruthy();
-    expect(convergingBlock?.[0]).toMatch(/scale\(0\.8[2-8]\)|scale\(0\.85\)/);
-    // Must not animate via 1 → 0.8 → 1 style keyframes on converging cubes
+    // Timer contrast on «Уход»: wash under rim + shovel = rim color.
+    expect(css).toMatch(
+      /\.care-btn \.action-btn-fill\s*\{[\s\S]*?background:\s*var\(--ac-wash/,
+    );
+    expect(css).toMatch(
+      /\.care-btn > svg\s*\{[\s\S]*?color:\s*inherit/,
+    );
+    expect(css).toMatch(
+      /\.care-btn > svg\s*\{[\s\S]*?drop-shadow\(0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.55\)/,
+    );
+    expect(page).toContain("careTrioConvergeTransition");
+    expect(page).toContain('data-care-shovel-converge={merging ? "true"');
+    expect(page).toContain("MotionConfig reducedMotion=\"never\"");
+  });
+
+  it("2. continuous tween — no mid keyframe times (avoids stall→jerk)", () => {
+    expect(motionSrc).not.toContain("times:");
+    expect(motionSrc).toContain("SLIDE_PX");
+    expect(motionSrc).toContain("careTrioConvergeTransition");
+    expect(CARE_TO_SHOVEL_MS).toBeGreaterThanOrEqual(600);
+  });
+
+  it("3. shovel stays in flow with spacers; trio overlays during merge", () => {
+    expect(page).toContain("showCareShovelUi || merging");
+    expect(page).toContain("!showCareShovelUi || merging");
+    expect(page).toContain("Spacers always on");
+    expect(css).toMatch(
+      /\.session-actions--converging\s+\.action-buttons-row--converging\s*\{[\s\S]*?position:\s*absolute/,
+    );
+  });
+
+  it("4. CSS must not force opacity:0 on converging cubes (kills merge)", () => {
+    // Exact 0 only — do not match fill opacity: 0.55
     expect(css).not.toMatch(
-      /@keyframes\s+care-converge[\s\S]*scale\(1\)[\s\S]*scale\(0\.\d+\)[\s\S]*scale\(1\)/,
+      /\.action-buttons-row--converging\s+\.action-btn-bank[^{]*\{[^}]*opacity:\s*0\s*[;!]/,
     );
-  });
-
-  it("2. cubes only move to a reduced end scale (monotonic)", () => {
-    expect(css).toMatch(
-      /\.action-buttons-row--converging\s+\.action-btn-bank\s*\{[^}]*transform:\s*scale\(0\.85\)/,
+    expect(css).not.toMatch(
+      /prefers-reduced-motion: reduce[\s\S]{0,200}action-buttons-row--converging[\s\S]{0,120}opacity:\s*0\s*!important/,
     );
-    expect(css).toMatch(
-      /transition:\s*[\s\S]*transform\s+var\(--care-converge-duration/,
-    );
-    expect(CARE_TO_SHOVEL_MS).toBeGreaterThanOrEqual(300);
-    expect(CARE_TO_SHOVEL_MS).toBeLessThanOrEqual(400);
-  });
-
-  it("3. «Уход» enter is opacity (+ tiny scale), not spring/bounce", () => {
-    expect(css).toMatch(/@keyframes\s+care-btn-appear/);
-    expect(css).toMatch(
-      /care-btn-appear[\s\S]*from\s*\{[^}]*opacity:\s*0[^}]*scale\(0\.97\)/,
-    );
-    expect(css).toMatch(
-      /care-btn-appear[\s\S]*to\s*\{[^}]*opacity:\s*1[^}]*scale\(1\)/,
-    );
-    expect(page).not.toMatch(
-      /care-btn[\s\S]{0,200}type:\s*[\"']spring[\"']/,
-    );
-    expect(page).toContain("care-btn--from-converge");
-  });
-
-  it("4. after converge starts, cubes fade out — no snap back to scale 1", () => {
-    const block = css.match(
-      /\.action-buttons-row--converging\s+\.action-btn-bank\s*\{[^}]+\}/,
-    )?.[0];
-    expect(block).toMatch(/opacity:\s*0/);
-    expect(block).not.toMatch(/scale\(1\)/);
   });
 
   it("5. transition runs once via care_transition phase / converging class", () => {
@@ -60,17 +65,35 @@ describe("Care converge animation — no bounce / spring", () => {
     expect(page).toContain("carePhaseIsConverging");
   });
 
-  it("6. fill stays on cubes during converge (fill rule under converging)", () => {
-    expect(css).toMatch(
-      /\.action-buttons-row--converging\s+\.action-btn-bank\s+\.action-btn-fill/,
-    );
-  });
-
-  it("7. Tutorial and main game share the same converge / shovel classes", () => {
-    expect(page).toContain("action-buttons-row--converging");
-    expect(page).toContain("action-buttons-row--care-shovel");
-    expect(page).toContain("care-btn--from-converge");
-    // Single session-actions branch — no separate tutorial converge animation
+  it("6. Tutorial and main game share the same converge path", () => {
+    expect(page).toContain("beginV3CareTrioConverge");
+    expect(page).toContain("v3LiveConvergeRef");
     expect(page).not.toMatch(/tutorial-.*converging|converging-tutorial/);
   });
+
+  it("8. «Уход» → trio uses beginCareShovelDiverge (not instant ghost)", () => {
+    expect(page).toContain("function beginCareShovelDiverge");
+    expect(page).toContain("beginCareShovelDiverge()");
+    expect(page).toContain("careTrioDivergeInitial");
+    expect(page).toContain("session-actions--diverging");
+    expect(page).toContain("CARE_DIVERGE_MS");
+    // Live Care + tutorial both call diverge instead of bare setShowActivityGhost(true)
+    expect(page).toMatch(
+      /setTimeout\(\(\) => beginCareShovelDiverge\(\),\s*800\)/,
+    );
+    expect(page).toContain("TUTORIAL_CARE_GHOST_DELAY_MS");
+  });
+
+  it("9. diverge cubes are already inactive (used) — muted ghost shell", () => {
+    expect(page).toContain(
+      "action-buttons-row--diverging activities-disabled",
+    );
+    expect(page).toContain(
+      "Diverge = already-used cubes (same muted ghost shell)",
+    );
+    expect(page).toContain("!careDiverging && (careDone || fillTarget != null)");
+  });
 });
+
+
+

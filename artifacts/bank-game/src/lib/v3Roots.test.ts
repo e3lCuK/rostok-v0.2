@@ -9,6 +9,8 @@ import {
   clampV3RootSeconds,
   economyV3DebugReadout,
   normalizeEconomyV3RootsSnapshot,
+  recommendedV3RootToCollect,
+  V3_ROOT_COLLECT_PULSE_MIN_SECONDS,
 } from "./v3Roots";
 
 function sampleServerV3(overrides: Record<string, unknown> = {}): unknown {
@@ -278,6 +280,98 @@ describe("applyEconomyV3* / commitState path", () => {
       // no v3Roots key — partial update
     } as { v2Excess?: unknown });
     expect(same.game.v3Roots?.roots.water.seconds).toBe(7);
+  });
+});
+
+describe("recommendedV3RootToCollect — collect pulse L→R", () => {
+  it("pulses leftmost root with ≥5s; skips <5s and transferred", () => {
+    expect(V3_ROOT_COLLECT_PULSE_MIN_SECONDS).toBe(5);
+    const bothReady = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        roots: {
+          water: {
+            seconds: 5,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+          sun: {
+            seconds: 12,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+          fertilizer: {
+            seconds: 8,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+        },
+      }),
+    );
+    expect(recommendedV3RootToCollect(bothReady)).toBe("water");
+
+    const waterTaken = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        roots: {
+          water: {
+            seconds: 0,
+            capacitySeconds: 25,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: false,
+          },
+          sun: {
+            seconds: 12,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+          fertilizer: {
+            seconds: 8,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+        },
+      }),
+    );
+    expect(recommendedV3RootToCollect(waterTaken)).toBe("sun");
+
+    const onlyUnderMin = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        roots: {
+          water: {
+            seconds: 4,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+          sun: {
+            seconds: 3,
+            capacitySeconds: 25,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: false,
+          },
+          fertilizer: {
+            seconds: 0,
+            capacitySeconds: 25,
+            playableFromRoot: false,
+            transferred: false,
+            frozen: false,
+          },
+        },
+      }),
+    );
+    expect(recommendedV3RootToCollect(onlyUnderMin)).toBeNull();
   });
 });
 

@@ -75,8 +75,8 @@ export const V2_CHEST_PAINT = {
 const WOOD = "#8b623e";
 const WOOD_FACE = "#a67845";
 const WOOD_BAND = "#6b4423";
-const WOOD_DARK = "#5c3a20";
-
+/** Cavity between lid seam and concave body top */
+const WOOD_INTERIOR = "#A67845";
 function ChestBodyGeometry() {
   const x0 = BODY_X;
   const y0 = BODY_Y;
@@ -87,8 +87,35 @@ function ChestBodyGeometry() {
   /** Body top / lid seam */
   const lidSeamY = y0 + 1;
 
+  /**
+   * Side ears — outer edges of the lid silhouette.
+   * No wood past the ears (overhang tips used to stick out into soil).
+   */
+  const earW = 6.5;
+  /** Flush with seam strip bottom — no stub below the lid bar. */
+  const earBot = lidSeamY + 2;
+  const earLX = lidX0 + 8.9;
+  const earRX = lidX1 - 15.4;
+  const earLInner = earLX + earW;
+  const earROuter = earRX + earW;
+
   return (
     <g className="v2-chest-body-geo" data-chest-part="geometry">
+      {/*
+        Interior cavity + seam — only between the ears; outside the ears
+        the real soil shows (no painted wedges, no lid overhang).
+      */}
+      <path
+        data-chest-part="interior"
+        d={[
+          `M ${earLInner} ${lidSeamY - 2}`,
+          `L ${earRX} ${lidSeamY - 2}`,
+          `L ${earRX} ${lidSeamY}`,
+          `Q ${mid} ${y0 + 5} ${earLInner} ${lidSeamY}`,
+          `Z`,
+        ].join(" ")}
+        fill={WOOD_INTERIOR}
+      />
       {/* Body — smooth rounded crate */}
       <path
         data-chest-part="body"
@@ -124,21 +151,44 @@ function ChestBodyGeometry() {
         <path d={`M ${x0 + 12} ${y0 + 29} Q ${mid} ${y0 + 33} ${x1 - 12} ${y0 + 29}`} />
       </g>
 
-      {/* Thin lid crown only — does not fill the clasp zone */}
+      {/* Seam strip between ears only */}
+      <rect
+        data-chest-part="seam"
+        x={earLInner}
+        y={lidSeamY - 1.5}
+        width={earRX - earLInner}
+        height={3.5}
+        fill={WOOD_INTERIOR}
+      />
+
+      {/*
+        Lid + ears as one wood path. Bottom corners sit on ear outers —
+        no protruding lid tips left/right of the ears.
+      */}
       <path
         data-chest-part="lid"
         data-lid-state="closed"
         d={[
-          `M ${lidX0 + 2} ${lidSeamY}`,
+          `M ${earLX} ${lidSeamY}`,
           `L ${lidX0 + 7} ${LID_PEAK + 3}`,
           `Q ${mid} ${LID_PEAK} ${lidX1 - 7} ${LID_PEAK + 3}`,
-          `L ${lidX1 - 2} ${lidSeamY}`,
-          `Q ${mid} ${lidSeamY - 1} ${lidX0 + 2} ${lidSeamY}Z`,
+          `L ${earROuter} ${lidSeamY}`,
+          `L ${earROuter} ${earBot - 0.8}`,
+          `Q ${earROuter} ${earBot} ${earROuter - 0.8} ${earBot}`,
+          `L ${earRX + 0.8} ${earBot}`,
+          `Q ${earRX} ${earBot} ${earRX} ${earBot - 0.8}`,
+          `L ${earRX} ${lidSeamY}`,
+          `Q ${mid} ${lidSeamY + 0.5} ${earLInner} ${lidSeamY}`,
+          `L ${earLInner} ${earBot - 0.8}`,
+          `Q ${earLInner} ${earBot} ${earLInner - 0.8} ${earBot}`,
+          `L ${earLX + 0.8} ${earBot}`,
+          `Q ${earLX} ${earBot} ${earLX} ${earBot - 0.8}`,
+          `Z`,
         ].join(" ")}
         fill={WOOD}
       />
 
-      {/* Clasp on the seam — face around it stays open (body wood shows through) */}
+      {/* Clasp on the seam — plate + vertical key slit (lid wood color) */}
       <rect
         data-chest-part="clasp"
         x={mid - 5.5}
@@ -147,19 +197,15 @@ function ChestBodyGeometry() {
         height="10"
         rx="2.2"
         fill={WOOD_FACE}
-        stroke={WOOD_DARK}
-        strokeWidth="0.9"
       />
-      <line
+      <rect
         data-chest-part="clasp-slot"
-        x1={mid}
-        y1={lidSeamY - 1.6}
-        x2={mid}
-        y2={lidSeamY + 3.4}
-        stroke={WOOD_DARK}
-        strokeWidth="0.85"
-        strokeLinecap="round"
-        opacity="0.75"
+        x={mid - 0.75}
+        y={lidSeamY - 1.8}
+        width="1.5"
+        height="5.2"
+        rx="0.6"
+        fill={WOOD}
       />
     </g>
   );

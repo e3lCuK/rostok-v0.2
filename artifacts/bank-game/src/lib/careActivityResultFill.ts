@@ -64,6 +64,20 @@ export function allActivityFillsPresent(fills: CareActivityFillMap): boolean {
 }
 
 /**
+ * «Уход» shovel fill — mean of the three activity result fills (same live + tutorial).
+ * Missing results count as 0 so early shovel chrome stays empty.
+ */
+export function careShovelFillPercent(
+  waterPct: number | null | undefined,
+  sunPct: number | null | undefined,
+  fertilizerPct: number | null | undefined,
+): number {
+  const avg =
+    ((waterPct ?? 0) + (sunPct ?? 0) + (fertilizerPct ?? 0)) / 3;
+  return Math.min(100, Math.max(0, Math.round(avg)));
+}
+
+/**
  * CSS height transition only runs when an existing node changes height.
  * Mounting already at target% → no animation. Schedule: paint 0%, then target%.
  */

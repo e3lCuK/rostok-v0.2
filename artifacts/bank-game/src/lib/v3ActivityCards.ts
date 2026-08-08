@@ -13,6 +13,7 @@ import {
   v3SegmentFillFraction,
 } from "@/components/v2/EconomyV3RootSystem";
 import { isV3CareSessionBlocking } from "@/lib/v3CareClient";
+import { V3_DAILY_CAP_MAX } from "@/lib/v3Roots";
 
 /** Minimum reserve seconds to look playable (matches server careAvailability). */
 export const V3_ACTIVITY_PLAYABLE_MIN_SECONDS = 5;
@@ -26,7 +27,10 @@ export type V3ActivityCardUiState =
 export type V3ActivityCardView = {
   kind: EconomyV3RootKind;
   reserveSeconds: number;
-  /** Server dailyCapSeconds — visual fill denominator only. */
+  /**
+   * Visual fill denominator — reserve capacity / effective preset (not bare
+   * base dailyCap). 21s on a 25s capacity → ~84%, not a full wash.
+   */
   dailyCapSeconds: number;
   playable: boolean;
   completed: boolean;
@@ -50,16 +54,35 @@ export function shouldUseV3ActivityCardUi(
 
 /**
  * Visual-only height for the continuous reserve fill (0–100).
- * Uses server reserveSeconds / dailyCapSeconds — no local economy math.
+ * `capSeconds` = reserve capacity / effective preset (same as tutorial 5/25).
  */
 export function v3ActivityReserveFillPercent(
   reserveSeconds: unknown,
-  dailyCapSeconds: unknown,
+  capSeconds: unknown,
 ): number {
   const reserve = Math.max(0, Math.floor(Number(reserveSeconds) || 0));
-  const cap = Math.max(0, Math.floor(Number(dailyCapSeconds) || 0));
+  const cap = Math.max(0, Math.floor(Number(capSeconds) || 0));
   if (cap <= 0) return 0;
   return Math.min(100, Math.max(0, (reserve / cap) * 100));
+}
+
+/**
+ * Fill denominator — same visual scale as tutorial (5s ≈ 20% of 25).
+ * Always at least {@link V3_DAILY_CAP_MAX} (25) so 21s never paints a full button
+ * when today's effective cap happens to equal the reserve (21/21).
+ */
+export function resolveV3ActivityFillCapSeconds(
+  v3Roots: EconomyV3RootsState,
+  kind: EconomyV3RootKind,
+): number {
+  const fromReserve = Math.floor(
+    Number(v3Roots.reserves?.[kind]?.capacitySeconds) || 0,
+  );
+  const fromEffective = Math.floor(
+    Number(v3Roots.effectivePresetSeconds) || 0,
+  );
+  const fromDaily = Math.floor(Number(v3Roots.dailyCapSeconds) || 0);
+  return Math.max(V3_DAILY_CAP_MAX, fromReserve, fromEffective, fromDaily);
 }
 
 /** Split whole reserve seconds into 5×5s segments (partial supported). Legacy helpers / tests. */
@@ -108,10 +131,7 @@ export function resolveV3ActivityCard(
     0,
     Math.floor(Number(reserve?.seconds) || 0),
   );
-  const dailyCapSeconds = Math.max(
-    0,
-    Math.floor(Number(v3Roots.dailyCapSeconds) || 0),
-  );
+  const dailyCapSeconds = resolveV3ActivityFillCapSeconds(v3Roots, kind);
   const playable =
     typeof availability?.playable === "boolean"
       ? availability.playable

@@ -352,6 +352,19 @@ describe("GamePage wiring (7G reserves + 7H start)", () => {
     expect(pageSrc).toContain("V3ActivityReserveFill");
     expect(pageSrc).toContain("v3ActivityReserveFillPercent");
     expect(pageSrc).not.toContain("V3ActivityReserveMeter");
+    expect(pageSrc).toContain("data-v3-activity-seconds-label");
+    expect(pageSrc).toContain("reserveSeconds} с");
+    // Completed cards: checkmark only — seconds return after «Уход» diverge.
+    expect(pageSrc).toContain(
+      "Completed = checkmark only; seconds return after «Уход» diverge",
+    );
+    expect(pageSrc).toContain("shouldClearStaleV3CareUiAfterTutorial");
+    // Diverge / spent-ghost rows keep the seconds label after «Уход».
+    expect(pageSrc).toContain("divergeReserveSeconds");
+    expect(pageSrc).toContain("ghostSeconds");
+    // Live recommends + pulses like tutorial after roots are collected.
+    expect(pageSrc).toContain("tutorialDone || isV3TutorialLiveCareStep");
+    expect(cssSrc).toContain("tut-activity-pulse");
     expect(pageSrc).toContain("data-v3-activity-card");
     expect(pageSrc).toContain("data-v3-activity-legacy-start");
     expect(pageSrc).toContain("handleStartV3CareActivity");
@@ -435,6 +448,36 @@ describe("v3ActivityReserveFillPercent — continuous visual height", () => {
     expect(water.reserveSeconds).not.toBe(sun.reserveSeconds);
   });
 
+  it("fill scale is ≥25 — 21s is never a full button (even if cap==reserve)", () => {
+    const snap = normalizeEconomyV3RootsSnapshot({
+      ...baseV3(),
+      dailyCapSeconds: 20,
+      effectivePresetSeconds: 21,
+      reserves: {
+        water: { seconds: 21, capacitySeconds: 21, playable: true },
+        sun: { seconds: 21, capacitySeconds: 21, playable: true },
+        fertilizer: { seconds: 21, capacitySeconds: 21, playable: true },
+      },
+      careAvailability: {
+        water: { reserveSeconds: 21, playable: true, maxPresetSeconds: 21 },
+        sun: { reserveSeconds: 21, playable: true, maxPresetSeconds: 21 },
+        fertilizer: {
+          reserveSeconds: 21,
+          playable: true,
+          maxPresetSeconds: 21,
+        },
+      },
+    });
+    if (!snap) throw new Error("expected snap");
+    const water = resolveV3ActivityCard("water", snap);
+    // Tutorial parity: visual denominator ≥ 25 (not today's 21).
+    expect(water.dailyCapSeconds).toBe(25);
+    expect(
+      v3ActivityReserveFillPercent(water.reserveSeconds, water.dailyCapSeconds),
+    ).toBe(84);
+    expect(v3ActivityReserveFillPercent(5, water.dailyCapSeconds)).toBe(20);
+  });
+
   it("activity buttons stay compact squares (v3-reserve must not stretch)", () => {
     expect(cssSrc).toContain("--care-control-size: 46px");
     expect(cssSrc).toMatch(
@@ -458,6 +501,10 @@ describe("v3ActivityReserveFillPercent — continuous visual height", () => {
     expect(cssSrc).toContain(".v3-activity-reserve-fill");
     expect(cssSrc).toMatch(
       /\.v3-activity-reserve-fill\s*\{[\s\S]*?pointer-events:\s*none/,
+    );
+    // Timer-capsule contrast: label stays sharp over the light wash.
+    expect(cssSrc).toMatch(
+      /\.action-btn-bank--v3-reserve \.v3-activity-reserve-seconds\s*\{[\s\S]*?text-shadow:\s*0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.55\)/,
     );
     expect(cssSrc).toMatch(
       /\.v3-activity-reserve-fill\s*\{[\s\S]*?z-index:\s*0/,
@@ -493,9 +540,10 @@ describe("v3ActivityReserveFillPercent — continuous visual height", () => {
     expect(pageSrc).not.toMatch(
       /v3VisuallyLocked\s*=\s*useV3\s*\?\s*metelkaBlocksCare\s*\|\|/,
     );
-    // Server-ready Care cycle forces shovel instead of white completed cards.
+    // Server-ready keeps activity cards off; shovel waits for care_button / converge.
     expect(pageSrc).toContain("v3ServerWantsCareShovel");
-    expect(pageSrc).toContain("showCareShovelUi");
+    expect(pageSrc).toContain("showCareShovelUi = showCareButton");
+    expect(pageSrc).toContain("!v3ServerWantsCareShovel");
     // Result fill / action-btn-done only while pending ack/finish or completed.
     expect(pageSrc).toContain("v3ShowResultFill");
     expect(pageSrc).toContain("v3PendingAck === btn.key");

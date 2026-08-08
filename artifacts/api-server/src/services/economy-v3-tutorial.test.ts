@@ -17,6 +17,40 @@ const tutorialRouteSrc = readFileSync(
 );
 
 describe("Economy v3 tutorial grant (8E)", () => {
+  it("staged kind grants only that root", () => {
+    const water = grantTutorialV3RootsPure({
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      reserveWaterSeconds: 0,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      transferredRoots: [],
+      effectivePresetSeconds: 21,
+      kinds: ["water"],
+    });
+    expect(water.changed).toBe(true);
+    expect(water.rootWaterSeconds).toBe(V3_TUTORIAL_ROOT_SECONDS);
+    expect(water.rootSunSeconds).toBe(0);
+    expect(water.rootFertilizerSeconds).toBe(0);
+    expect(water.alreadyPrepared).toBe(true);
+
+    const sun = grantTutorialV3RootsPure({
+      rootWaterSeconds: water.rootWaterSeconds,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      reserveWaterSeconds: 0,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      transferredRoots: [],
+      effectivePresetSeconds: 21,
+      kinds: ["sun"],
+    });
+    expect(sun.rootWaterSeconds).toBe(V3_TUTORIAL_ROOT_SECONDS);
+    expect(sun.rootSunSeconds).toBe(V3_TUTORIAL_ROOT_SECONDS);
+    expect(sun.rootFertilizerSeconds).toBe(0);
+  });
+
   it("grants 5s once per empty root; idempotent; skips transferred/reserved", () => {
     const first = grantTutorialV3RootsPure({
       rootWaterSeconds: 0,
@@ -90,15 +124,26 @@ describe("Economy v3 tutorial grant (8E)", () => {
   it("exposes prepare route and clears v3 on tutorial complete", () => {
     expect(tutorialRouteSrc).toContain("/game/tutorial/v3/prepare");
     expect(tutorialRouteSrc).toContain("grantTutorialV3Roots");
+    expect(tutorialRouteSrc).toContain("parsePrepareKinds");
+    expect(tutorialRouteSrc).toContain("kind_required");
+    expect(tutorialRouteSrc).toContain("all: true");
+    expect(tutorialRouteSrc).toContain("kinds");
     expect(gameSrc).toContain("V3_TUTORIAL_COMPLETE_CLEAR_SQL");
     expect(gameSrc).toContain("isEconomyV3RootsEnabled()");
     const tutorialSvc = readFileSync(join(here, "economy-v3-tutorial.ts"), "utf8");
     expect(tutorialSvc).toContain("v3_generation_anchor_at = $3");
-    expect(gameSrc).toContain("new Date(now)");
+    expect(tutorialSvc).toContain("kinds: options?.kinds");
+    expect(gameSrc).toContain("generationAnchorAt");
+    expect(gameSrc).toContain("new Date(generationAnchorAt)");
     const completeBlock = gameSrc.slice(
       gameSrc.indexOf("POST /game/tutorial/complete"),
       gameSrc.indexOf("POST /api/game/accrue"),
     );
     expect(completeBlock).not.toContain("v2_energy_seconds");
+    // Live cycle continues from tutorial 12:00 wait start (not reset to "now").
+    expect(completeBlock).toContain("req.body?.generationAnchorAt");
+    // Second complete / F5 heal must not wipe progress back to a fresh 12:00.
+    expect(completeBlock).toContain("alreadyComplete");
+    expect(completeBlock).toContain("tutorial_done === true");
   });
 });

@@ -270,17 +270,88 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
   }
 });
 
-// POST /game/tutorial/complete — mark tutorial as done and start Economy clocks
+// POST /game/tutorial/complete — mark tutorial done, keep +1₽/+1мм/+1яблоко,
+// continue v3 generation from the tutorial 12:00 wait start when provided.
 router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
   const userId = req.userId;
   const now = Date.now();
   try {
-    // Start ordinary root generation from this moment (no tutorial backfill).
-    // Clear any ready sections / fractional progress that may have accrued before
-    // the tutorial gate existed; collected Care bank is left untouched.
-    // When Economy v3 is on, also clear tutorial roots/reserves/care and start
-    // the v3 generation anchor (no backfill).
+    // Idempotent: a second complete (heal / F5) must not wipe the live cycle
+    // back to a fresh 12:00 (progress=0 + anchor=now).
     if (isEconomyV3RootsEnabled()) {
+      const existing = await pool.query(
+        `SELECT tutorial_done, v3_generation_anchor_at
+         FROM game_state WHERE user_id = $1`,
+        [userId],
+      );
+      const row = existing.rows[0] as
+        | { tutorial_done?: boolean; v3_generation_anchor_at?: Date | string | null }
+        | undefined;
+      if (row?.tutorial_done === true) {
+        const existingAnchor = row.v3_generation_anchor_at
+          ? new Date(row.v3_generation_anchor_at).getTime()
+          : null;
+        return res.json({
+          success: true,
+          alreadyComplete: true,
+          energyAnchorAt: now,
+          generationAnchorAt: Number.isFinite(existingAnchor)
+            ? existingAnchor
+            : now,
+        });
+      }
+    }
+
+    // Starting capital + tutorial +1₽ (demo collectible that sticks into live play).
+    // NULLIF: legacy rows may have starting_capital=0 (column default).
+    await pool.query(
+      `UPDATE accounts
+       SET active_balance = COALESCE(NULLIF(starting_capital, 0), 100000) + 1,
+           active_earned = 1,
+           standard_earned = 0
+       WHERE user_id = $1`,
+      [userId],
+    );
+    // Replace any mid-tutorial income rows with the single tutorial +1₽ entry.
+    await pool.query(`DELETE FROM income_history WHERE user_id = $1`, [userId]);
+    await pool.query(
+      `INSERT INTO income_history(user_id, amount, type, earned_date)
+       VALUES ($1, 1, 'base', CURRENT_DATE)`,
+      [userId],
+    );
+
+    // Keep tutorial collectibles (1 мм / 1 apple); wipe XP / activity / care residue.
+    // v3 generation clock continues from the tutorial wait start (not "now"),
+    // so a 9:54 leftover on the tutorial capsule becomes the live wait timer.
+    if (isEconomyV3RootsEnabled()) {
+      const rawAnchor = req.body?.generationAnchorAt;
+      const parsedAnchor = Number(rawAnchor);
+      const maxAgeMs = 30 * 60 * 1000;
+      const bodyAnchorOk =
+        Number.isFinite(parsedAnchor) &&
+        parsedAnchor <= now &&
+        parsedAnchor >= now - maxAgeMs;
+      // Prefer client wait-start; else keep any existing DB anchor; never invent "now"
+      // when a prior anchor exists (that is the classic F5 → 12:00 reset).
+      let generationAnchorAt: number;
+      if (bodyAnchorOk) {
+        generationAnchorAt = Math.trunc(parsedAnchor);
+      } else {
+        const existing = await pool.query(
+          `SELECT v3_generation_anchor_at FROM game_state WHERE user_id = $1`,
+          [userId],
+        );
+        const rawExisting = existing.rows[0]?.v3_generation_anchor_at;
+        const existingMs = rawExisting
+          ? new Date(rawExisting).getTime()
+          : NaN;
+        generationAnchorAt =
+          Number.isFinite(existingMs) &&
+          existingMs <= now &&
+          existingMs >= now - maxAgeMs
+            ? Math.trunc(existingMs)
+            : now;
+      }
       await pool.query(
         `UPDATE game_state
          SET tutorial_done = TRUE,
@@ -291,8 +362,13 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
              updated_at = NOW()
          WHERE user_id = $1`,
         // $2 = v2 bigint epoch-ms; $3 = v3 TIMESTAMP (separate types — avoid 42P08)
-        [userId, now, new Date(now)],
+        [userId, now, new Date(generationAnchorAt)],
       );
+      return res.json({
+        success: true,
+        energyAnchorAt: now,
+        generationAnchorAt,
+      });
     } else {
       await pool.query(
         `UPDATE game_state
@@ -300,6 +376,20 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
              v2_energy_anchor_at = $2,
              v2_root_generation_progress = 0,
              v2_root_ready_mask = '0',
+             tree_growth_mm = 1,
+             tree_growth_remainder = 0,
+             total_apples = 1,
+             player_xp = 0,
+             player_level = 1,
+             xp_history = '[]'::jsonb,
+             total_sessions = 0,
+             total_water_drops = 0,
+             total_sun_catches = 0,
+             total_leaf_picks = 0,
+             streak_days = 0,
+             last_streak_date = NULL,
+             pending_base_reward = 0,
+             pending_bonus_reward = 0,
              updated_at = NOW()
          WHERE user_id = $1`,
         [userId, now],
@@ -694,7 +784,7 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
     const result = await pool.query(`
       SELECT gs.user_id,
              u.nickname,
-             gs.player_xp, gs.player_level, gs.streak_days,
+             gs.player_xp, gs.player_level, gs.total_login_days,
              gs.tree_growth_mm, gs.xp_history
       FROM game_state gs
       INNER JOIN users u ON u.id::text = gs.user_id
@@ -710,7 +800,7 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
         nickname: r.nickname,
         xp: r.player_xp ?? 0,
         level: r.player_level ?? 1,
-        streakDays: r.streak_days ?? 0,
+        loginDays: parseInt(String(r.total_login_days ?? 0), 10) || 0,
         treeGrowthMM: r.tree_growth_mm ?? 0,
         lastSessionXp: lastSession?.xp ?? 0,
         isMe: r.user_id === me,

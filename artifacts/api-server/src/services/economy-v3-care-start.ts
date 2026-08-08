@@ -17,6 +17,7 @@ import {
   buildEconomyV3RootsPublicState,
   clampReserveSeconds,
   normalizeDailyCap,
+  normalizeTransferredRoots,
   isCareCycleActivityCompleted,
   parseNullableTimestampMs,
   parseV3CareActivityStatus,
@@ -88,6 +89,7 @@ function httpStatusForStartCode(code: string): number {
     case "activity_in_progress":
     case "activity_already_completed":
     case "metelka_required_before_care":
+    case "roots_collection_incomplete":
       return 409;
     default:
       return 400;
@@ -168,6 +170,26 @@ export async function startEconomyV3CareActivity(
         409,
         "metelka_required_before_care",
         "Clear excess with Metelka before starting Care",
+      );
+    }
+
+    // Same gate as client/tutorial: finish the transfer trio before Care.
+    // Post-trio server clears freeze + list; length 3 must not keep Care locked.
+    const transferredRoots = normalizeTransferredRoots(
+      locked.v3_transferred_roots,
+    );
+    const collectionFrozen =
+      parseNullableTimestampMs(locked.v3_generation_frozen_at) != null;
+    const midTransferTrio =
+      collectionFrozen ||
+      transferredRoots.length === 1 ||
+      transferredRoots.length === 2;
+    if (midTransferTrio) {
+      await client.query("COMMIT");
+      throw new EconomyV3CareStartError(
+        409,
+        "roots_collection_incomplete",
+        "Collect energy from all roots before starting Care",
       );
     }
 

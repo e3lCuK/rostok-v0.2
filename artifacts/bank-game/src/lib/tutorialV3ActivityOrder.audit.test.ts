@@ -113,10 +113,11 @@ function sampleV3(
     generation: {
       anchorAt: null,
       progress: 0,
-      frozenAt: "t",
-      insuranceDeadlineAt: "t2",
-      firstTransferredRoot: "water",
-      transferredRoots: ["water", "sun", "fertilizer"],
+      // Post-trio: freeze markers cleared after the 3rd transfer.
+      frozenAt: null,
+      insuranceDeadlineAt: null,
+      firstTransferredRoot: null,
+      transferredRoots: [],
       secondsUntilNextWholeSecond: null,
       accumulating: false,
     },

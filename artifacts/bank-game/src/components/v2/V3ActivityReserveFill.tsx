@@ -5,19 +5,10 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import type { EconomyV3RootKind } from "@/lib/api";
+import { V3_ACTIVITY_FILL_WASH_COLORS } from "@/lib/v3ActivityColors";
 
-/**
- * Reserve fills — same RGB as root/button accents at 50% opacity
- * (#2b7fff / #ffc107 / #f0a020).
- */
-export const V3_ACTIVITY_RESERVE_FILL_COLORS: Record<
-  EconomyV3RootKind,
-  string
-> = {
-  water: "rgba(43, 127, 255, 0.5)",
-  sun: "rgba(255, 193, 7, 0.5)",
-  fertilizer: "rgba(240, 160, 32, 0.5)",
-};
+/** @deprecated alias — use {@link V3_ACTIVITY_FILL_WASH_COLORS}. */
+export const V3_ACTIVITY_RESERVE_FILL_COLORS = V3_ACTIVITY_FILL_WASH_COLORS;
 
 type Props = {
   kind: EconomyV3RootKind;

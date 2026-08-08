@@ -10,9 +10,11 @@ import {
   careBlockedByMetelka,
   formatV3CareError,
   isV3CareSessionBlocking,
+  isV3RootCollectionIncomplete,
   minigameScoreToV3Skill,
   resolveV3CareRecovery,
   resolveV3CareStartPresetSeconds,
+  ROOTS_COLLECTION_INCOMPLETE_HINT,
 } from "./v3CareClient";
 import { mayStartLegacyCareFromActivityCard } from "./v3ActivityCards";
 
@@ -137,6 +139,17 @@ describe("minigameScoreToV3Skill", () => {
 });
 
 describe("resolveV3CareStartPresetSeconds / canStart", () => {
+  it("GamePage locks live Care until root transfer trio completes", () => {
+    expect(pageSrc).toContain("isV3RootCollectionIncomplete");
+    expect(pageSrc).toContain("rootsCollectionLocked");
+    expect(pageSrc).toContain("activitiesInteractionLocked");
+    expect(pageSrc).toContain("ROOTS_COLLECTION_INCOMPLETE_HINT");
+    // Accent theming follows tutorial lock only — not rootsCollectionLocked.
+    expect(pageSrc).toMatch(
+      /isV3ActivityButtonVisuallyLocked\(\s*v3Card,\s*tutorialActivitiesLocked/,
+    );
+  });
+
   it("uses server maxPresetSeconds — not a local invention", () => {
     const snap = baseV3();
     expect(resolveV3CareStartPresetSeconds("water", snap)).toBe(12);
@@ -144,7 +157,7 @@ describe("resolveV3CareStartPresetSeconds / canStart", () => {
     expect(resolveV3CareStartPresetSeconds("fertilizer", snap)).toBe(15);
   });
 
-  it("4s not startable; 5s+ playable is startable", () => {
+  it("4s not startable; 5s+ playable is startable after root trio", () => {
     const low = baseV3({
       reserves: {
         water: { seconds: 4, capacitySeconds: 20, playable: false },
@@ -173,12 +186,61 @@ describe("resolveV3CareStartPresetSeconds / canStart", () => {
         fertilizer: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
       },
     });
+    expect(isV3RootCollectionIncomplete(ok)).toBe(false);
     expect(
       canStartV3CareActivity({ activity: "water", v3Roots: ok, busy: false }),
     ).toBe(true);
     expect(
       canStartV3CareActivity({ activity: "water", v3Roots: ok, busy: true }),
     ).toBe(false);
+  });
+
+  it("mid transfer-trio blocks Care even with playable reserve", () => {
+    const mid = baseV3({
+      reserves: {
+        water: { seconds: 5, capacitySeconds: 20, playable: true },
+        sun: { seconds: 0, capacitySeconds: 20, playable: false },
+        fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
+      },
+      careAvailability: {
+        water: { reserveSeconds: 5, playable: true, maxPresetSeconds: 5 },
+        sun: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
+        fertilizer: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
+      },
+      generation: {
+        ...baseV3().generation,
+        frozenAt: "2026-07-23T12:00:00.000Z",
+        insuranceDeadlineAt: "2026-07-23T12:01:00.000Z",
+        firstTransferredRoot: "water",
+        transferredRoots: ["water"],
+      },
+    });
+    expect(isV3RootCollectionIncomplete(mid)).toBe(true);
+    expect(
+      canStartV3CareActivity({ activity: "water", v3Roots: mid, busy: false }),
+    ).toBe(false);
+    expect(formatV3CareError({
+      status: 409,
+      code: "roots_collection_incomplete",
+      message: "Collect energy from all roots before starting Care",
+    })).toBe(ROOTS_COLLECTION_INCOMPLETE_HINT);
+
+    // Stale full transfer list without freeze must not keep Care grey.
+    const staleFull = baseV3({
+      generation: {
+        ...baseV3().generation,
+        frozenAt: null,
+        transferredRoots: ["water", "sun", "fertilizer"],
+      },
+    });
+    expect(isV3RootCollectionIncomplete(staleFull)).toBe(false);
+    expect(
+      canStartV3CareActivity({
+        activity: "water",
+        v3Roots: staleFull,
+        busy: false,
+      }),
+    ).toBe(true);
   });
 
   it("busy / active session / completed cycle activity blocks start", () => {

@@ -21,6 +21,146 @@ export const TUTORIAL_ACTIVITY_DURATION_SEC = 10;
 /** Matches server V3_TUTORIAL_ROOT_SECONDS / one segment. */
 export const TUTORIAL_V3_ROOT_SECONDS = 5;
 
+/**
+ * Staged root-energy reveal during intro:
+ * 5s timer (root still empty) → quick root pop to 5s → repeat for next root.
+ */
+export const TUTORIAL_V3_FILL_SECONDS = 5;
+export const TUTORIAL_V3_FILL_MS = TUTORIAL_V3_FILL_SECONDS * 1000;
+/** Visual pop after each wait — root fills quickly, not during the timer. */
+export const TUTORIAL_V3_ROOT_POP_MS = 350;
+
+/** After all three roots are filled, keep the wait capsule and start a live ~12:00 cycle. */
+export const TUTORIAL_V3_WAIT_SECONDS = 12 * 60;
+export const TUTORIAL_V3_WAIT_MS = TUTORIAL_V3_WAIT_SECONDS * 1000;
+
+/**
+ * Epoch ms when the tutorial 12:00 wait started — for tutorial/complete handoff.
+ * Prefer the stored start; else derive from the wait capsule deadline.
+ */
+export function resolveTutorialGenerationAnchorAt(input: {
+  startedAtMs: number | null | undefined;
+  waitDeadlineMs: number | null | undefined;
+  waitMs?: number;
+}): number | null {
+  const started = Number(input.startedAtMs);
+  if (Number.isFinite(started) && started > 0) return Math.trunc(started);
+  const deadline = Number(input.waitDeadlineMs);
+  const waitMs =
+    input.waitMs != null && Number.isFinite(input.waitMs) && input.waitMs > 0
+      ? input.waitMs
+      : TUTORIAL_V3_WAIT_MS;
+  if (Number.isFinite(deadline) && deadline > 0) {
+    return Math.trunc(deadline - waitMs);
+  }
+  return null;
+}
+
+/**
+ * After tutorial dismiss: drop Care checkmarks/session so activity cards show
+ * reserve seconds again ("0 с") instead of completed ticks.
+ */
+export function clearV3CareUiAfterTutorial(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): EconomyV3RootsState | null {
+  if (!v3Roots || v3Roots.enabled !== true) return v3Roots ?? null;
+  const emptyAct = {
+    completed: false,
+    presetSeconds: null as number | null,
+    skill: null as number | null,
+  };
+  return {
+    ...v3Roots,
+    careSession: {
+      ...v3Roots.careSession,
+      activity: null,
+      presetSeconds: null,
+      startedAt: null,
+      status: null,
+      skill: null,
+      finishedAt: null,
+      active: false,
+    },
+    careCycle: {
+      ...v3Roots.careCycle,
+      startedAt: null,
+      completedAt: null,
+      finishedAt: null,
+      status: null,
+      allCompleted: false,
+      readyToFinish: false,
+      totalPresetSeconds: null,
+      averageSkill: null,
+      activities: {
+        water: { ...emptyAct },
+        sun: { ...emptyAct },
+        fertilizer: { ...emptyAct },
+      },
+      rewardPreview: {
+        available: false,
+        xp: 0,
+        apples: 0,
+        treeGrowth: 0,
+        income: { base: 0, bonus: 0, total: 0 },
+      },
+      claim: {
+        claimed: false,
+        claimedAt: null,
+        xp: 0,
+        treeGrowth: 0,
+        income: { base: 0, bonus: 0, total: 0 },
+      },
+    },
+  };
+}
+
+/**
+ * Stale post-tutorial Care chrome: empty reserves + leftover completed/shovel
+ * flags (server poll can re-apply them and hide "0 с" behind checkmarks).
+ */
+export function shouldClearStaleV3CareUiAfterTutorial(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): boolean {
+  if (!v3Roots || v3Roots.enabled !== true) return false;
+  const kinds = ["water", "sun", "fertilizer"] as const;
+  const reservesEmpty = kinds.every(
+    (k) => Math.max(0, Math.floor(Number(v3Roots.reserves?.[k]?.seconds) || 0)) === 0,
+  );
+  if (!reservesEmpty) return false;
+  if (v3Roots.careSession?.active === true) return false;
+  if (
+    v3Roots.careSession?.status === "active" ||
+    v3Roots.careSession?.status === "completed"
+  ) {
+    return true;
+  }
+  if (
+    v3Roots.careCycle?.readyToFinish === true ||
+    v3Roots.careCycle?.status === "ready" ||
+    v3Roots.careCycle?.status === "finished" ||
+    v3Roots.careCycle?.allCompleted === true
+  ) {
+    return true;
+  }
+  return kinds.some(
+    (k) => v3Roots.careCycle?.activities?.[k]?.completed === true,
+  );
+}
+
+/**
+ * After tutorial «Уход»: short pause, then inactive activity cubes return
+ * (same ghost row as live Care rewards).
+ */
+export const TUTORIAL_CARE_GHOST_DELAY_MS = 750;
+
+/**
+ * After apple + coin collected: hold before chrome reset + congrats card.
+ * Must cover coin→chest float; slightly longer so the scene settles.
+ */
+export const TUTORIAL_REWARD_TO_FINISH_MS = 1800;
+
+export type TutorialV3TimerKind = "fill" | "wait";
+
 export type TutorialStep =
   | "welcome"
   | "intro"
@@ -224,6 +364,91 @@ export function areV3TutorialAllReservesReady(
   });
 }
 
+/** Root already has tutorial energy (on root, in reserve, or transferred). */
+export function isV3TutorialRootEnergyReady(
+  v3Roots: EconomyV3RootsState | null | undefined,
+  kind: EconomyV3RootKind,
+): boolean {
+  if (!v3Roots || v3Roots.enabled !== true) return false;
+  if (isTransferred(v3Roots, kind)) return true;
+  if (reserveSeconds(v3Roots, kind) > 0) return true;
+  return rootSeconds(v3Roots, kind) >= TUTORIAL_V3_ROOT_SECONDS;
+}
+
+/** All three roots have been staged-filled (ready to teach collection). */
+export function areV3TutorialRootsEnergyReady(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): boolean {
+  if (!v3Roots || v3Roots.enabled !== true) return false;
+  return V3_TUTORIAL_ROOT_ORDER.every((kind) =>
+    isV3TutorialRootEnergyReady(v3Roots, kind),
+  );
+}
+
+/** Next root to grant during intro fill, or null when all three are ready. */
+export function nextV3TutorialFillKind(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): EconomyV3RootKind | null {
+  for (const kind of V3_TUTORIAL_ROOT_ORDER) {
+    if (!isV3TutorialRootEnergyReady(v3Roots, kind)) return kind;
+  }
+  return null;
+}
+
+const TUTORIAL_SEGMENT_SECONDS = TUTORIAL_V3_ROOT_SECONDS; // 5
+
+/** Patch one root's energy locally (staged intro fill — UI source of truth). */
+export function withTutorialRootSeconds(
+  snap: EconomyV3RootsState,
+  kind: EconomyV3RootKind,
+  seconds: number,
+): EconomyV3RootsState {
+  const capacity = Math.max(
+    1,
+    Math.floor(Number(snap.roots[kind]?.capacitySeconds) || 25),
+  );
+  const sec = Math.max(0, Math.min(capacity, Number(seconds) || 0));
+  const fullSegments = Math.floor(sec / TUTORIAL_SEGMENT_SECONDS);
+  const partialSegmentSeconds = sec % TUTORIAL_SEGMENT_SECONDS;
+  return {
+    ...snap,
+    roots: {
+      ...snap.roots,
+      [kind]: {
+        ...snap.roots[kind],
+        seconds: sec,
+        fullSegments,
+        partialSegmentSeconds,
+        fillFraction: sec / capacity,
+        playableFromRoot: sec >= TUTORIAL_V3_ROOT_SECONDS,
+      },
+    },
+  };
+}
+
+/**
+ * After a staged prepare: take server fields, but keep other roots at local
+ * values so a buggy all-three grant cannot skip the sequence visually.
+ */
+export function mergeStagedTutorialPrepare(
+  local: EconomyV3RootsState,
+  kind: EconomyV3RootKind,
+  server: EconomyV3RootsState,
+): EconomyV3RootsState {
+  return {
+    ...server,
+    roots: {
+      water:
+        kind === "water" ? server.roots.water : local.roots.water,
+      sun: kind === "sun" ? server.roots.sun : local.roots.sun,
+      fertilizer:
+        kind === "fertilizer"
+          ? server.roots.fertilizer
+          : local.roots.fertilizer,
+    },
+  };
+}
+
 /**
  * Derive durable tutorial step from server v3 snapshot (F5 recovery).
  * Critical progress must not live only in React state.
@@ -275,7 +500,11 @@ export function resolveV3TutorialStepFromServer(input: {
   if (waterDone && sunDone && !fertDone) return "v3-root-fertilizer";
   if (waterDone && !sunDone) return "v3-root-sun";
   if (!waterDone) {
-    if (rootSeconds(snap, "water") >= 1) return "v3-root-water";
+    // Staged fill incomplete → resume intro timers; only teach collect when all filled.
+    if (areV3TutorialRootsEnergyReady(snap)) return "v3-root-water";
+    if (V3_TUTORIAL_ROOT_ORDER.some((k) => rootSeconds(snap, k) >= 1)) {
+      return "intro";
+    }
     return "welcome";
   }
 
@@ -287,13 +516,20 @@ export function tutorialStepAfterWelcome(useV3: boolean): TutorialStep {
   return useV3 ? "intro" : "intro";
 }
 
-/** Icon key for activity intro card (rendered in GamePage). */
-export type V3TutorialOverlayIcon = "water" | "sun" | "fertilizer";
+/** Icon key for tutorial overlay card (rendered in GamePage). */
+export type V3TutorialOverlayIcon = "water" | "sun" | "fertilizer" | "wait";
 
 export type V3TutorialOverlayConfig = {
   icon: V3TutorialOverlayIcon;
   text: string;
   hint: string;
+};
+
+/** Intro fill timers — wait for root energy before collect teaching. */
+export const V3_TUTORIAL_WAIT_ENERGY_OVERLAY: V3TutorialOverlayConfig = {
+  icon: "wait",
+  text: "Дождитесь формирования энергии",
+  hint: "Смотрите на таймер у корней.",
 };
 
 /** Per-activity intro copy — matches the recommended/pulsed Care button. */
@@ -322,8 +558,8 @@ export function v3TutorialActivityOverlayForKind(
 }
 
 /**
- * Overlay cards for Care activity intros only.
- * Root-collection steps use root pulse alone — no white card / icon / copy.
+ * Overlay cards: energy-wait intro + Care activity intros.
+ * Root-collection steps use root pulse alone — no white card.
  * For `v3-activities-intro`, pass `recommendedActivity` (same as button pulse).
  */
 export function v3TutorialOverlayConfig(
@@ -332,6 +568,7 @@ export function v3TutorialOverlayConfig(
 ): V3TutorialOverlayConfig | null {
   switch (step) {
     case "intro":
+      return V3_TUTORIAL_WAIT_ENERGY_OVERLAY;
     case "v3-root-water":
     case "v3-root-sun":
     case "v3-root-fertilizer":

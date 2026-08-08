@@ -36,14 +36,20 @@ describe("V2CapitalChest SVG", () => {
     expect(html).toContain("v2-capital-chest--svg");
     expect(html).toContain('data-chest-part="body"');
     expect(html).toContain('data-chest-part="lid"');
+    expect(html).toContain('data-chest-part="interior"');
+    expect(html).toContain('data-chest-part="seam"');
     expect(html).toContain('data-chest-part="panels"');
     expect(html).toContain('data-chest-part="clasp"');
     expect(html).toContain('data-chest-part="capital-label"');
     expect(html).toContain('data-chest-part="label-zone"');
+    // Ears merged into lid; no separate frames / painted soil wedges
+    expect(html).not.toContain("data-soil-gap");
+    expect(html).not.toContain('data-chest-part="seam-frame-left"');
+    expect(html).not.toContain('data-chest-part="seam-frame-right"');
     // Same wood palette as AppleBasket + topbar deposit gold on the sum
     expect(html).toContain("#8b623e");
     expect(html).toContain("#a67845");
-    expect(html).toContain("#5c3a20");
+    expect(html).toContain("#A67845");
     expect(html).not.toContain("#dcc4a0");
     expect(html).toContain("#c9920a");
     expect(html).not.toContain("#5a9e1e");

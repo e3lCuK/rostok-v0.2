@@ -100,6 +100,6 @@ describe("third activity result must show before «Уход»", () => {
       }),
     ).toBe(false);
     expect(CARE_FILL_ANIMATION_MS).toBe(900);
-    expect(CARE_RESULT_HOLD_MS).toBe(300);
+    expect(CARE_RESULT_HOLD_MS).toBe(500);
   });
 });

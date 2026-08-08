@@ -36,17 +36,17 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
 
   const trees = [
     // Stage 0 — tiny sprout (viewBox bottom = trunk bottom 228)
-    <svg key={0} viewBox="55 153 90 75" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
-      <rect className="tree-trunk" x="97" y="188" width="6" height="40" rx="3" fill="#9B7A52" />
+    <svg key={0} viewBox="55 153 90 75" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
+      <rect className="tree-trunk" x="97" y="188" width="6" height="40" fill="#9B7A52" />
       <ellipse cx="100" cy="180" rx="18" ry="18" fill="#6dbf67" />
       <ellipse cx="90" cy="188" rx="11" ry="11" fill="#5aac54" />
       <ellipse cx="110" cy="185" rx="9" ry="9" fill="#7acc74" />
       <ellipse cx="100" cy="172" rx="10" ry="10" fill="#83c97d" />
     </svg>,
     // Stage 1 — small tree
-    <svg key={1} viewBox="52 115 96 116" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={1} viewBox="52 115 96 116" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
       <g transform="translate(25, 56) scale(0.75)">
-        <rect className="tree-trunk" x="95" y="165" width="10" height="68" rx="4" fill="#8B6340" />
+        <rect className="tree-trunk" x="95" y="165" width="10" height="68" fill="#8B6340" />
         <ellipse cx="100" cy="150" rx="34" ry="34" fill="#5aac54" />
         <ellipse cx="78" cy="162" rx="22" ry="22" fill="#4d9c47" />
         <ellipse cx="122" cy="158" rx="20" ry="20" fill="#62b95c" />
@@ -55,9 +55,9 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>,
     // Stage 2 — medium tree
-    <svg key={2} viewBox="28 65 144 168" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={2} viewBox="28 65 144 168" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
       <g transform="translate(25, 56) scale(0.75)">
-        <rect className="tree-trunk" x="92" y="130" width="16" height="106" rx="5" fill="#7a5330" />
+        <rect className="tree-trunk" x="92" y="130" width="16" height="106" fill="#7a5330" />
         <rect x="92" y="168" width="9" height="5" rx="2" fill="#9a6b40" transform="rotate(-22 92 168)" />
         <rect x="108" y="178" width="9" height="5" rx="2" fill="#9a6b40" transform="rotate(22 108 178)" />
         <ellipse cx="100" cy="112" rx="52" ry="44" fill="#4d9c47" />
@@ -70,9 +70,9 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>,
     // Stage 3 — tall tree
-    <svg key={3} viewBox="18 30 164 205" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={3} viewBox="18 30 164 205" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
       <g transform="translate(25, 56) scale(0.75)">
-        <rect className="tree-trunk" x="89" y="98" width="22" height="140" rx="6" fill="#6b4423" />
+        <rect className="tree-trunk" x="89" y="98" width="22" height="140" fill="#6b4423" />
         <rect x="89" y="140" width="11" height="7" rx="3" fill="#8a5a2e" transform="rotate(-26 89 140)" />
         <rect x="111" y="154" width="13" height="7" rx="3" fill="#8a5a2e" transform="rotate(26 111 154)" />
         <rect x="89" y="182" width="9" height="6" rx="3" fill="#8a5a2e" transform="rotate(-16 89 182)" />
@@ -89,12 +89,12 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
       </g>
     </svg>,
     // Stage 4 — mighty tree (surface strokes end at trunk base; viewBox flush)
-    <svg key={4} viewBox="8 13 184 217" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h}>
+    <svg key={4} viewBox="8 13 184 217" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
       <g transform="translate(25, 56) scale(0.75)">
         <path d="M90 226 Q76 230 56 232" stroke="#5a3a1a" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
         <path d="M110 226 Q124 230 144 232" stroke="#5a3a1a" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
         <path d="M95 228 Q88 230 80 232" stroke="#5a3a1a" strokeWidth="3" strokeLinecap="round" fill="none"/>
-        <rect className="tree-trunk" x="85" y="72" width="30" height="160" rx="8" fill="#5a3a1a" />
+        <rect className="tree-trunk" x="85" y="72" width="30" height="160" fill="#5a3a1a" />
         <rect x="85" y="96" width="14" height="9" rx="3" fill="#7a5330" transform="rotate(-28 85 96)" />
         <rect x="115" y="112" width="16" height="9" rx="3" fill="#7a5330" transform="rotate(28 115 112)" />
         <rect x="85" y="144" width="13" height="7" rx="3" fill="#7a5330" transform="rotate(-18 85 144)" />
@@ -115,7 +115,7 @@ export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
   ];
 
   return (
-    <div style={{ width: w, height: h }}>
+    <div style={{ width: w, height: h, overflow: "visible" }}>
       {trees[stage]}
     </div>
   );

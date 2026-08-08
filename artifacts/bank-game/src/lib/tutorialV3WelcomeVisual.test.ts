@@ -50,7 +50,8 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
   });
 
   it("3–4. copy uses «активности»; welcome text centered; activity rows aligned", () => {
-    expect(pageSrc).toContain("затем пройдите активности ухода");
+    expect(pageSrc).toContain("Дождитесь энергии в корнях");
+    expect(pageSrc).toContain("пройдите активности");
     expect(pageSrc).not.toContain("три активности ухода");
     expect(pageSrc).not.toContain("мини-активности");
     expect(pageSrc).toContain("Три вида активности");
@@ -77,9 +78,11 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     );
   });
 
-  it("5–7. root steps have no overlay card / icons / rectangular outline", () => {
+  it("5–7. intro has wait card; root collect stays pulse-only (no outline)", () => {
+    expect(v3TutorialOverlayConfig("intro")?.text).toBe(
+      "Дождитесь формирования энергии",
+    );
     for (const step of [
-      "intro",
       "v3-root-water",
       "v3-root-sun",
       "v3-root-fertilizer",
@@ -109,10 +112,11 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     expect(nextV3TutorialStepAfterRootTransfer("fertilizer")).toBe(
       "v3-activities-intro",
     );
-    expect(rootSrc).toContain("tutorialHighlightRoot === kind && clickable");
+    expect(rootSrc).toContain("collectPulseKind");
     expect(rootSrc).toContain("v3-root--tutorial-pulse");
+    // Same blink keyframes as activity recommend buttons (not soft brightness glow).
     expect(cssSrc).toMatch(
-      /\.v3-root--tutorial-pulse \.v3-root-segments\s*\{[\s\S]*?v3-root-tut-seg-glow/,
+      /\.v3-root--tutorial-pulse \.v3-root-segments\s*\{[\s\S]*?tut-activity-pulse/,
     );
   });
 
@@ -137,8 +141,17 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     );
   });
 
-  it("13. non-tutorial root chrome unchanged (no forced pulse class)", () => {
-    expect(rootSrc).toContain('tutorialPulse ? "v3-root--tutorial-pulse" : ""');
+  it("13. tutorial + live use blink pulse (recommend); step only gates clicks", () => {
+    expect(rootSrc).toContain(
+      'tutorialPulse && !metelkaLocked ? "v3-root--tutorial-pulse" : ""',
+    );
+    expect(rootSrc).toContain("recommendedV3RootToCollect");
+    expect(rootSrc).toContain("collectPulseKind");
+    expect(rootSrc).toContain("V3_ROOT_COLLECT_PULSE_MIN_SECONDS");
+    // Pulse is recommendation-only — not gated on clickable (same as activities).
+    expect(rootSrc).not.toContain(
+      "collectPulseKind === kind && clickable && !metelkaLocked",
+    );
     expect(pageSrc).toContain(
       "!tutorialDone ? tutorialHighlightRoot(tutorialStep) : null",
     );

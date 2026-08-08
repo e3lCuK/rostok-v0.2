@@ -59,6 +59,24 @@ export function careBlockedByMetelka(input: {
 }
 
 export const CARE_BLOCKED_BY_METELKA_HINT = "Сначала уберите избыток";
+export const ROOTS_COLLECTION_INCOMPLETE_HINT =
+  "Сначала соберите энергию корня";
+
+/**
+ * Mid root-transfer trio (1st…2nd collect): Care stays locked until all three
+ * roots are transferred — same gate as the tutorial root-teaching phase.
+ * After the 3rd transfer the server clears freeze + transferredRoots; a stale
+ * full list (length 3) must not keep Care grey.
+ */
+export function isV3RootCollectionIncomplete(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): boolean {
+  if (!v3Roots || v3Roots.enabled !== true) return false;
+  const gen = v3Roots.generation;
+  if (gen?.frozenAt != null) return true;
+  const n = gen?.transferredRoots?.length ?? 0;
+  return n === 1 || n === 2;
+}
 
 export function canStartV3CareActivity(input: {
   activity: EconomyV3RootKind;
@@ -76,6 +94,7 @@ export function canStartV3CareActivity(input: {
   ) {
     return false;
   }
+  if (isV3RootCollectionIncomplete(input.v3Roots)) return false;
   if (isV3CareSessionBlocking(input.v3Roots)) return false;
   const { activity, v3Roots } = input;
   if (v3Roots.careCycle?.activities?.[activity]?.completed === true) {
@@ -141,6 +160,9 @@ export function formatV3CareError(err: unknown): string {
   const msg = String(anyErr?.message ?? "");
   const hay = `${code} ${msg}`;
 
+  if (status === 409 && /roots_collection_incomplete/i.test(hay)) {
+    return ROOTS_COLLECTION_INCOMPLETE_HINT;
+  }
   if (status === 409 && /reserve|energy|insufficient/i.test(hay)) {
     return "Недостаточно энергии в запасе для ухода.";
   }
@@ -315,7 +337,17 @@ export function sessionScoresFromV3Claim(claim: {
   xp: number;
   treeGrowth: number;
   income?: { base: number; bonus: number; total: number };
+  pendingBaseReward?: number;
+  pendingBonusReward?: number;
 }): V3CareSessionScoreUi {
+  // Preview treeGrowth is currently always 0 — live mm comes with money (claimAll).
+  // Drive the growth-timer / +N мм beat from pending income when treeGrowth is empty.
+  const fromTree = Math.max(0, Math.floor(Number(claim.treeGrowth) || 0));
+  const pendingTotal =
+    Math.max(0, Number(claim.pendingBaseReward) || 0) +
+    Math.max(0, Number(claim.pendingBonusReward) || 0);
+  const incomeTotal = Math.max(0, Number(claim.income?.total) || 0);
+  const fromMoney = Math.max(0, Math.floor(pendingTotal || incomeTotal));
   return {
     water: 0,
     sun: 0,
@@ -323,7 +355,7 @@ export function sessionScoresFromV3Claim(claim: {
     xp: Math.max(0, Math.floor(Number(claim.xp) || 0)),
     base: Math.max(0, Number(claim.income?.base) || 0),
     bonus: Math.max(0, Number(claim.income?.bonus) || 0),
-    mm: Math.max(0, Math.floor(Number(claim.treeGrowth) || 0)),
+    mm: fromTree > 0 ? fromTree : fromMoney,
   };
 }
 

@@ -15,9 +15,11 @@ import {
 export const V3_TUTORIAL_ROOT_SECONDS = V3_SEGMENT_SECONDS; // 5
 
 /**
- * Pure grant: fill each root to tutorial seconds when still empty and not yet
+ * Pure grant: fill root(s) to tutorial seconds when still empty and not yet
  * transferred into its reserve. Never bumps reserves/excess/income.
  * All root/reserve values are clamped to effectivePresetSeconds.
+ *
+ * When `kinds` is set, only those roots are considered (staged tutorial fill).
  */
 export function grantTutorialV3RootsPure(input: {
   rootWaterSeconds: number;
@@ -30,6 +32,8 @@ export function grantTutorialV3RootsPure(input: {
   /** Absolute ordinary ledger capacity (base + visit bonus). */
   effectivePresetSeconds: number;
   tutorialRootSeconds?: number;
+  /** Staged grant — only these kinds (default: all three). */
+  kinds?: RootKind[];
 }): {
   rootWaterSeconds: number;
   rootSunSeconds: number;
@@ -68,11 +72,18 @@ export function grantTutorialV3RootsPure(input: {
     fertilizer: clampReserveSeconds(input.reserveFertilizerSeconds, capacity),
   };
 
+  const scope: RootKind[] =
+    input.kinds && input.kinds.length > 0
+      ? input.kinds.filter((k): k is RootKind =>
+          (V3_ROOT_KINDS as readonly string[]).includes(k),
+        )
+      : [...V3_ROOT_KINDS];
+
   let changed =
     roots.water !== rawRoots.water ||
     roots.sun !== rawRoots.sun ||
     roots.fertilizer !== rawRoots.fertilizer;
-  for (const kind of V3_ROOT_KINDS) {
+  for (const kind of scope) {
     if (transferred.has(kind)) continue;
     if (reserves[kind] > 0) continue;
     if (roots[kind] >= target) continue;
@@ -80,7 +91,7 @@ export function grantTutorialV3RootsPure(input: {
     changed = true;
   }
 
-  const alreadyPrepared = V3_ROOT_KINDS.every(
+  const alreadyPrepared = scope.every(
     (kind) =>
       transferred.has(kind) ||
       reserves[kind] > 0 ||

@@ -33,10 +33,10 @@ export type CarePhaseEvent =
 export const CARE_FILL_ANIMATION_MS = 900;
 
 /** Hold after third fill is presented, before converge. */
-export const CARE_RESULT_HOLD_MS = 300;
+export const CARE_RESULT_HOLD_MS = 500;
 
-/** CSS converge duration (ms) — match `--care-converge-duration`. */
-export const CARE_TO_SHOVEL_MS = 350;
+/** Converge duration (ms) — match Framer CARE_CONVERGE_TRANSITION. */
+export const CARE_TO_SHOVEL_MS = 900;
 
 const PHASE_RANK: Record<CareActionsPhase, number> = {
   activities: 0,

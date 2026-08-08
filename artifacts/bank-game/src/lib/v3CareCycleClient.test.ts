@@ -320,6 +320,15 @@ describe("v3 Care cycle — shovel / preview / claim helpers", () => {
       bonus: 1,
       mm: 4,
     });
+    expect(
+      sessionScoresFromV3Claim({
+        xp: 15,
+        treeGrowth: 0,
+        income: { base: 3, bonus: 1, total: 4 },
+        pendingBaseReward: 3,
+        pendingBonusReward: 1,
+      }),
+    ).toMatchObject({ mm: 4, xp: 15 });
   });
 
   it("v2 flow remains when v3 snapshot is absent", () => {
@@ -357,7 +366,7 @@ describe("v3 Care cycle — GamePage / api wiring (7I)", () => {
     expect(pageSrc).toContain("api.acknowledgeV3CareCycle()");
     expect(pageSrc).toContain("exitPostCareUiForNextCycle()");
     expect(pageSrc).toContain("skipUiExit");
-    expect(pageSrc).toContain("handleGoToRewards(scores)");
+    expect(pageSrc).toContain("handleGoToRewards(scoresForQueue)");
   });
 
   it("ready shovel uses handleV3CareShovelClick; rewardPreview from server", () => {
@@ -378,7 +387,7 @@ describe("v3 Care cycle — GamePage / api wiring (7I)", () => {
   });
 
   it("reuses existing handleGoToRewards animation queue after claim", () => {
-    expect(pageSrc).toContain("handleGoToRewards(scores)");
+    expect(pageSrc).toContain("handleGoToRewards(scoresForQueue)");
     expect(pageSrc).toContain("pendingXpRef.current = {");
     expect(pageSrc).toContain("setShowXpPopup(true)");
     expect(pageSrc).toContain("setShowGrowthAnim(true)");
@@ -440,9 +449,18 @@ describe("v3 Care cycle — GamePage / api wiring (7I)", () => {
     );
   });
 
-  it("after activity ack, ready cycle enters shovel UI", () => {
+  it("after activity ack, ready cycle converges trio into shovel UI", () => {
     expect(pageSrc).toContain("shouldShowV3CareShovel(ack.v3Roots)");
-    expect(pageSrc).toContain("enterV3CareShovelUi()");
+    expect(pageSrc).toContain("beginV3CareTrioConverge()");
+    expect(pageSrc).toContain("function beginV3CareTrioConverge");
+    expect(pageSrc).toContain("v3LiveConvergeRef");
+    // Recovery must not restore_shovel while live converge is armed
+    expect(pageSrc).toContain("v3LiveConvergeRef.current");
+    expect(pageSrc).toMatch(
+      /v3LiveConvergeRef\.current &&[\s\S]*?show-shovel/,
+    );
+    // F5 / recovery still skips converge when live flag is off
+    expect(pageSrc).toContain("function enterV3CareShovelUi");
   });
 
   it("v3 shovel path does not replace tutorial shovel handler", () => {

@@ -135,7 +135,7 @@ describe("v3 Care final reward animation queue", () => {
     expect(pageSrc).toContain(
       "acknowledgeV3CareCycleOnce({ skipUiExit: true })",
     );
-    expect(pageSrc).toContain("handleGoToRewards(scores)");
+    expect(pageSrc).toContain("handleGoToRewards(scoresForQueue)");
     expect(pageSrc).toContain("Existing project sequence:");
   });
 
@@ -143,20 +143,31 @@ describe("v3 Care final reward animation queue", () => {
     const claimFn = pageSrc.match(
       /async function claimV3CareCycleOnce\([\s\S]*?\n  async function handleV3CareShovelClick/,
     )?.[0] ?? "";
-    expect(claimFn).toContain("handleGoToRewards(scores)");
+    expect(claimFn).toContain("handleGoToRewards(scoresForQueue)");
     expect(claimFn).toContain("pendingXpRef.current = {");
-    // Tutorial branch must not call the spectacle queue.
+    // Tutorial branch uses dedicated demo beat — not the regular spectacle queue.
     expect(claimFn).toContain("if (!tutorialDone)");
     expect(claimFn).toContain("Tutorial Care claim");
+    expect(claimFn).toContain("handleTutorialCareRewards()");
     expect(claimFn).not.toMatch(/setShowXpPopup\(true\)[\s\S]*?await acknowledgeV3CareCycleOnce\(\)/);
 
     expect(pageSrc).toContain("setShowXpPopup(true)");
     expect(pageSrc).toContain("setShowGrowthAnim(true)");
     expect(pageSrc).toContain("setShowMmPopup(true)");
+    expect(pageSrc).toContain("setMmPopupAmount");
+    expect(pageSrc).toContain("growth-mm-accrual");
     expect(pageSrc).toContain("setShowApples(true)");
     expect(pageSrc).toContain("claimApplesAndIncome");
     expect(pageSrc).toContain("animateGrowth(");
     expect(pageSrc).toContain("if (!tutorialDone) return;");
+    // Live claim must not apply treeGrowthMM before the growth-timer spectacle.
+    const claimFnGrowth = pageSrc.match(
+      /async function claimV3CareCycleOnce\([\s\S]*?\n  async function handleV3CareShovelClick/,
+    )?.[0] ?? "";
+    expect(claimFnGrowth).toContain("Defer treeGrowthMM");
+    expect(claimFnGrowth).not.toMatch(
+      /pendingBaseReward: claimed\.pendingBonusReward,\s*treeGrowthMM:/,
+    );
   });
 
   it("7–8. claim maps scores once; careClicked freezes shovel", () => {
@@ -175,11 +186,23 @@ describe("v3 Care final reward animation queue", () => {
       bonus: 1,
       mm: 3,
     });
+    // v3 preview treeGrowth is 0 — mm must come from pending / income for the spectacle.
+    expect(
+      sessionScoresFromV3Claim({
+        xp: 45,
+        treeGrowth: 0,
+        income: { base: 2.4, bonus: 0.7, total: 3.1 },
+        pendingBaseReward: 2.4,
+        pendingBonusReward: 0.7,
+      }),
+    ).toMatchObject({ mm: 3, xp: 45, base: 2.4, bonus: 0.7 });
     expect(pageSrc).toContain("setCareClicked(true)");
     expect(pageSrc).toMatch(
       /if \(\(!tutorialDone && !liveTutorial\) \|\| careClicked\) return/,
     );
     expect(pageSrc).toContain("v3ClaimCycleInFlightRef");
+    expect(pageSrc).toContain("applyTreeGrowth(");
+    expect(pageSrc).toContain("scoresForQueue");
   });
 
   it("9–10. post-care exits only after rewards claimed (showRewards + pending 0)", () => {

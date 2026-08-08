@@ -524,21 +524,77 @@ export const api = {
       body: JSON.stringify({ startingCapital }),
     }),
 
-  tutorialComplete: () =>
-    request<{ success: boolean }>("/game/tutorial/complete", { method: "POST" }),
+  /**
+   * Finish tutorial. Pass `generationAnchorAt` (epoch ms) = start of the
+   * tutorial 12:00 wait so live root generation continues from that clock.
+   */
+  tutorialComplete: (input?: { generationAnchorAt?: number | null }) =>
+    request<{
+      success: boolean;
+      energyAnchorAt?: number;
+      generationAnchorAt?: number;
+    }>("/game/tutorial/complete", {
+      method: "POST",
+      body: JSON.stringify(
+        input?.generationAnchorAt != null &&
+          Number.isFinite(input.generationAnchorAt)
+          ? { generationAnchorAt: Math.trunc(input.generationAnchorAt) }
+          : {},
+      ),
+    }),
 
   /**
    * Economy v3 Tutorial — idempotent grant of 5s per root (no excess / income).
+   * Pass `kind` to stage one root (water → sun → fertilizer).
+   * Pass `{ all: true }` only for recovery (fills all three).
    * Requires ENABLE_ECONOMY_V3_ROOTS + tutorial_done=false.
    */
-  prepareTutorialV3: () =>
+  prepareTutorialV3: (
+    input: { kind: EconomyV3RootKind } | { all: true },
+  ) =>
     request<{
       granted: true;
       alreadyPrepared: boolean;
       changed: boolean;
       rootsSeconds: Record<EconomyV3RootKind, number>;
       v3Roots: EconomyV3RootsState;
-    }>("/game/tutorial/v3/prepare", { method: "POST" }),
+    }>("/game/tutorial/v3/prepare", {
+      method: "POST",
+      body: JSON.stringify(
+        "all" in input && input.all
+          ? { all: true }
+          : { kind: (input as { kind: EconomyV3RootKind }).kind },
+      ),
+    }),
+
+  /** Persist tutorial 12:00 wait start as v3 generation anchor. */
+  armTutorialV3Wait: (startedAtMs: number) =>
+    request<{
+      armed: true;
+      startedAtMs: number;
+      v3Roots: EconomyV3RootsState;
+    }>("/game/tutorial/v3/arm-wait", {
+      method: "POST",
+      body: JSON.stringify({ startedAtMs: Math.trunc(startedAtMs) }),
+    }),
+
+  /**
+   * After tutorial 12:00 elapses — settle root energy like main play
+   * without completing the tutorial.
+   */
+  syncTutorialV3WaitEnergy: (startedAtMs?: number | null) =>
+    request<{
+      synced: true;
+      wholeSeconds: number;
+      v3Roots: EconomyV3RootsState;
+    }>("/game/tutorial/v3/sync-wait-energy", {
+      method: "POST",
+      body: JSON.stringify(
+        startedAtMs != null && Number.isFinite(startedAtMs)
+          ? { startedAtMs: Math.trunc(startedAtMs) }
+          : {},
+      ),
+    }),
 
   accrue: () =>
     request<{ accrued: number; days: number }>("/game/accrue", { method: "POST" }),
@@ -1114,7 +1170,8 @@ export interface LeaderboardPlayer {
   nickname: string;
   xp: number;
   level: number;
-  streakDays: number;
+  /** Distinct calendar days the player opened the game. */
+  loginDays: number;
   treeGrowthMM: number;
   lastSessionXp: number;
   isMe: boolean;

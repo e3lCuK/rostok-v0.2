@@ -131,8 +131,13 @@ export function mergeV3RootWaitTimerSnapshot(input: {
   prev: V3RootWaitTimerSnapshot | null;
   next: V3RootWaitTimerSnapshot | null;
   nowMs: number;
+  /**
+   * After tutorial dismiss: keep the tutorial 12:00 deadline even if the
+   * server briefly republishes a fresh full cycle (legacy complete used "now").
+   */
+  protectTutorialHandoff?: boolean;
 }): V3RootWaitTimerSnapshot | null {
-  const { prev, next, nowMs } = input;
+  const { prev, next, nowMs, protectTutorialHandoff } = input;
   if (!next) return null;
   if (!prev || prev.source !== "cycle") return next;
 
@@ -141,7 +146,17 @@ export function mergeV3RootWaitTimerSnapshot(input: {
 
   // New longer cycle (unit completed → fresh ~12:00).
   // Threshold must exceed typical poll slide (~3–8s remaining jump).
-  if (nextRem > prevRem + 30) return next;
+  if (nextRem > prevRem + 30) {
+    // Tutorial handoff: ignore a full-cycle reset until the server catches up.
+    if (protectTutorialHandoff && nextRem >= 10 * 60 && prevRem < nextRem) {
+      return {
+        ...prev,
+        totalSeconds:
+          next.totalSeconds > 0 ? next.totalSeconds : prev.totalSeconds,
+      };
+    }
+    return next;
+  }
 
   // Server is ahead of us (deadline earlier) — catch up.
   if (next.deadlineAtMs < prev.deadlineAtMs - 3000) return next;

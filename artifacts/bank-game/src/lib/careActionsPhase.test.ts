@@ -61,10 +61,10 @@ describe("careActionsPhase — unidirectional Care → «Уход»", () => {
     expect(careCompletedToTransitionDelayMs()).toBe(
       CARE_FILL_ANIMATION_MS + CARE_RESULT_HOLD_MS,
     );
-    expect(CARE_RESULT_HOLD_MS).toBeGreaterThanOrEqual(250);
-    expect(CARE_RESULT_HOLD_MS).toBeLessThanOrEqual(350);
-    expect(CARE_TO_SHOVEL_MS).toBeGreaterThanOrEqual(300);
-    expect(CARE_TO_SHOVEL_MS).toBeLessThanOrEqual(450);
+    expect(CARE_RESULT_HOLD_MS).toBeGreaterThanOrEqual(400);
+    expect(CARE_RESULT_HOLD_MS).toBeLessThanOrEqual(600);
+    expect(CARE_TO_SHOVEL_MS).toBeGreaterThanOrEqual(700);
+    expect(CARE_TO_SHOVEL_MS).toBeLessThanOrEqual(1000);
   });
 
   it("5. cards cannot return to activities after transition begins", () => {

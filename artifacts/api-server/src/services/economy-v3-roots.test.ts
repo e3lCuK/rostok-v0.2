@@ -339,17 +339,34 @@ describe("settleEconomyV3Roots (round-robin distribution)", () => {
     expect(second.generationRrCursor).toBe(first.generationRrCursor);
   });
 
-  it("12. tutorial does not generate and does not backfill", () => {
+  it("12. tutorial does not generate and preserves wait anchor", () => {
+    const waitStart = NOW - 10 * T * 1000;
     const r = settleEconomyV3Roots({
       ...baseInput,
       tutorialActive: true,
-      generationAnchorAt: NOW - 10 * T * 1000,
+      generationAnchorAt: waitStart,
       nowMs: NOW,
     });
     expect(r.wholeSeconds).toBe(0);
     expect(r.rootWaterSeconds).toBe(0);
-    expect(r.generationAnchorAt).toBe(NOW);
+    expect(r.generationAnchorAt).toBe(waitStart);
     expect(r.generated).toBe(false);
+  });
+
+  it("12b. forceGenerate path: 12:00 elapsed fills one root second like main", () => {
+    const waitStart = NOW - T * 1000;
+    const r = settleEconomyV3Roots({
+      ...baseInput,
+      tutorialActive: false, // sync-wait-energy forces generate
+      generationAnchorAt: waitStart,
+      generationProgress: 0,
+      nowMs: NOW,
+    });
+    expect(r.wholeSeconds).toBe(1);
+    expect(
+      r.rootWaterSeconds + r.rootSunSeconds + r.rootFertilizerSeconds,
+    ).toBe(1);
+    expect(r.generated).toBe(true);
   });
 
   it("13. frozen state still generates (clock continuous)", () => {

@@ -42,6 +42,30 @@ function floorNonNeg(raw: unknown): number {
   return Math.floor(n);
 }
 
+/**
+ * Soft “please collect” pulse threshold — same 5s bar as Care playable min.
+ * (Server may allow transfer earlier; pulse is recommendation only.)
+ */
+export const V3_ROOT_COLLECT_PULSE_MIN_SECONDS = 5;
+
+/**
+ * Left→right recommend among roots ready to collect (≥5s, not transferred).
+ * Same pattern as activity-button recommend: only one pulses at a time.
+ */
+export function recommendedV3RootToCollect(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): EconomyV3RootKind | null {
+  if (!v3Roots || v3Roots.enabled !== true) return null;
+  if (v3Roots.metelkaCycle?.transferLocked === true) return null;
+  for (const kind of V3_ROOT_KINDS) {
+    const root = v3Roots.roots?.[kind];
+    if (!root || root.transferred === true) continue;
+    const seconds = floorNonNeg(root.seconds);
+    if (seconds >= V3_ROOT_COLLECT_PULSE_MIN_SECONDS) return kind;
+  }
+  return null;
+}
+
 /** Clamp root seconds to whole [0, capacity] (capacity default absolute max 30). */
 export function clampV3RootSeconds(
   raw: unknown,
