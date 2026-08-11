@@ -34,6 +34,10 @@ describe("Stage 1 — no top nav; floating gear only", () => {
     expect(page).toContain('data-field-settings="true"');
     expect(page).toContain("setShowSettings");
     expect(page).toContain("game-gear-btn");
+    // Cream shell, no rim (same language as the eye control).
+    expect(css).toMatch(/\.game-gear-btn\s*\{[\s\S]*?border:\s*none/);
+    expect(css).toMatch(/\.settings-action-btn\s*\{[\s\S]*?border:\s*none/);
+    expect(page).toContain("strokeWidth={2.25}");
   });
 
   it("5. Care v2 start/claim paths remain in GamePage", () => {
@@ -64,11 +68,11 @@ describe("Stage 1 — no top nav; floating gear only", () => {
 
   it("8. sun right; clouds clear of level-badge lane", () => {
     expect(bg).toContain('className="bg-sun"');
-    expect(bg).toContain('<circle cx="292" cy="22"');
+    expect(bg).toContain("<BgSun cx={292} cy={22}");
     expect(bg).toContain('className="bg-cloud-left"');
-    expect(bg).toContain('cx="130" cy="20"');
+    expect(bg).toContain("ox={130} oy={22}");
     expect(bg).toContain('className="bg-cloud-right"');
-    expect(bg).toContain('cx="220" cy="18"');
+    expect(bg).toContain("ox={220} oy={20}");
     expect(bg).toContain("bg-sky-wash");
     expect(bg).not.toContain('cy="65"');
     expect(bg).not.toContain('y2="-3"');

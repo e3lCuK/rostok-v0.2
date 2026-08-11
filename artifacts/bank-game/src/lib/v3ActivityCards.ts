@@ -54,7 +54,7 @@ export function shouldUseV3ActivityCardUi(
 
 /**
  * Visual-only height for the continuous reserve fill (0–100).
- * `capSeconds` = reserve capacity / effective preset (same as tutorial 5/25).
+ * `capSeconds` = reserve capacity / effective preset (tutorial 10/25 ≈ 40%).
  */
 export function v3ActivityReserveFillPercent(
   reserveSeconds: unknown,
@@ -67,7 +67,7 @@ export function v3ActivityReserveFillPercent(
 }
 
 /**
- * Fill denominator — same visual scale as tutorial (5s ≈ 20% of 25).
+ * Fill denominator — same visual scale as tutorial (10s ≈ 40% of 25).
  * Always at least {@link V3_DAILY_CAP_MAX} (25) so 21s never paints a full button
  * when today's effective cap happens to equal the reserve (21/21).
  */
@@ -211,12 +211,18 @@ export function shouldThemeV3ActivityButton(card: V3ActivityCardView | null | un
   return false;
 }
 
-/** Grey locked chrome: no reserve / blocked / forced tutorial lock. */
+/**
+ * Grey locked chrome when there is no playable reserve.
+ * `forcedTutorialLock` is retained for callers/tests but must not grey a
+ * playable card — tutorial root-collection matches live: bright --ac, no click.
+ */
 export function isV3ActivityButtonVisuallyLocked(
   card: V3ActivityCardView | null | undefined,
   forcedTutorialLock: boolean,
 ): boolean {
-  if (forcedTutorialLock) return true;
   if (!card) return true;
-  return !shouldThemeV3ActivityButton(card);
+  // Playable / in-progress / done keep activity color even while clicks are gated.
+  if (shouldThemeV3ActivityButton(card)) return false;
+  if (forcedTutorialLock) return true;
+  return true;
 }

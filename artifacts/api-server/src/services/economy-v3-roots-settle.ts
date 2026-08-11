@@ -50,9 +50,11 @@ import {
 import {
   advanceV3MetelkaCycleFlags,
   computeV3RootsFull,
+  isV3RootTransferLockedByMetelka,
   readV3MetelkaCompletedForCycle,
   readV3MetelkaRequired,
 } from "./economy-v3-metelka-cycle";
+import { topUpTutorialReservesPure } from "./economy-v3-tutorial-pure";
 
 export type EconomyV3DbClient = EconomyV2DbClient;
 
@@ -264,6 +266,24 @@ export async function settleEconomyV3RootsInTransaction(
     excessElapsedMs: normalizeExcessElapsedMs(lockedRow.v2_excess_elapsed_ms),
   });
 
+  // Tutorial Care buttons must show 10 с — upgrade stale 5 s reserves in place.
+  if (rowTutorialActive) {
+    const topped = topUpTutorialReservesPure({
+      reserveWaterSeconds: settled.reserveWaterSeconds,
+      reserveSunSeconds: settled.reserveSunSeconds,
+      reserveFertilizerSeconds: settled.reserveFertilizerSeconds,
+      effectivePresetSeconds,
+    });
+    if (topped.changed) {
+      settled.reserveWaterSeconds = topped.reserveWaterSeconds;
+      settled.reserveSunSeconds = topped.reserveSunSeconds;
+      settled.reserveFertilizerSeconds = topped.reserveFertilizerSeconds;
+      lockedRow.v3_reserve_water_seconds = topped.reserveWaterSeconds;
+      lockedRow.v3_reserve_sun_seconds = topped.reserveSunSeconds;
+      lockedRow.v3_reserve_fertilizer_seconds = topped.reserveFertilizerSeconds;
+    }
+  }
+
   const excessBaseIncrement = computeBaseIncomeForElapsedMs({
     capital: resolvedCapital,
     elapsedMs: settled.excessElapsedMsGenerated,
@@ -294,31 +314,43 @@ export async function settleEconomyV3RootsInTransaction(
     firstRaw != null && validateRootKind(firstRaw) ? firstRaw : null;
 
   // Tutorial: player must transfer remaining roots manually (production 60s unchanged).
-  const auto = rowTutorialActive
-    ? null
-    : autoTransferEconomyV3RemainingPure({
-        nowMs: now,
-        rootWaterSeconds: settled.rootWaterSeconds,
-        rootSunSeconds: settled.rootSunSeconds,
-        rootFertilizerSeconds: settled.rootFertilizerSeconds,
-        reserveWaterSeconds: settled.reserveWaterSeconds,
-        reserveSunSeconds: settled.reserveSunSeconds,
-        reserveFertilizerSeconds: settled.reserveFertilizerSeconds,
-        dailyCapSeconds: effectivePresetSeconds,
-        capacitySeconds: effectivePresetSeconds,
-        transferredRoots: normalizeTransferredRoots(
-          lockedRow.v3_transferred_roots,
-        ),
-        firstTransferredRoot,
-        generationFrozenAt: parseNullableTimestampMs(
-          lockedRow.v3_generation_frozen_at,
-        ),
-        insuranceDeadlineAt: parseNullableTimestampMs(
-          lockedRow.v3_insurance_deadline_at,
-        ),
-        generationProgress: settled.generationProgress,
-        generationAnchorAt: settled.generationAnchorAt,
-      });
+  // Also skip auto-transfer while Metelka-before-transfer lock is active — otherwise
+  // reserves fill before Metelka and both roots+activities look full after.
+  const metelkaSessionActive =
+    (lockedRow as { v2_excess_session_active?: unknown })
+      .v2_excess_session_active === true;
+  const transferLockedByMetelka = isV3RootTransferLockedByMetelka({
+    required: metelkaRequired,
+    completedForCycle: metelkaCompletedForCycle,
+    excessAvailable: isExcessAvailable(settled.excessSeconds),
+    metelkaSessionActive,
+  });
+  const auto =
+    rowTutorialActive || transferLockedByMetelka
+      ? null
+      : autoTransferEconomyV3RemainingPure({
+          nowMs: now,
+          rootWaterSeconds: settled.rootWaterSeconds,
+          rootSunSeconds: settled.rootSunSeconds,
+          rootFertilizerSeconds: settled.rootFertilizerSeconds,
+          reserveWaterSeconds: settled.reserveWaterSeconds,
+          reserveSunSeconds: settled.reserveSunSeconds,
+          reserveFertilizerSeconds: settled.reserveFertilizerSeconds,
+          dailyCapSeconds: effectivePresetSeconds,
+          capacitySeconds: effectivePresetSeconds,
+          transferredRoots: normalizeTransferredRoots(
+            lockedRow.v3_transferred_roots,
+          ),
+          firstTransferredRoot,
+          generationFrozenAt: parseNullableTimestampMs(
+            lockedRow.v3_generation_frozen_at,
+          ),
+          insuranceDeadlineAt: parseNullableTimestampMs(
+            lockedRow.v3_insurance_deadline_at,
+          ),
+          generationProgress: settled.generationProgress,
+          generationAnchorAt: settled.generationAnchorAt,
+        });
 
   if (auto?.applied) {
     // Overflow from auto-transfer ADDs to excess; never clears prior ledger.

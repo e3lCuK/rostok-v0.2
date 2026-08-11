@@ -32,6 +32,7 @@ export interface GameStateResponse {
   exists: boolean;
   balances?: {
     balance: number;
+    vaultBalance?: number;
     earned: number;
     totalDaysEarned: number;
     startDate: number;
@@ -64,6 +65,7 @@ export interface GameStateResponse {
     playerLevel: number;
     xpHistory?: import("@/lib/engine").XpHistoryEntry[];
     tutorialDone?: boolean;
+    sproutPlanted?: boolean;
     v2EnergySeconds?: number;
     v2EnergyAnchorAt?: number | null;
     /** Economy v2 Care cycle snapshot. */
@@ -567,6 +569,33 @@ export const api = {
       ),
     }),
 
+  /** Tutorial: tap plant pad → unlock tree + underground. */
+  plantTutorialSprout: () =>
+    request<{
+      planted: true;
+      alreadyPlanted: boolean;
+      sproutPlanted: true;
+      balances: {
+        balance: number;
+        vaultBalance: number;
+        earned: number;
+      };
+    }>("/game/tutorial/v3/plant-sprout", { method: "POST" }),
+
+  /** Tutorial: drag vault capital into the tree chest. */
+  transferTutorialCapitalVault: () =>
+    request<{
+      transferred: true;
+      alreadyTransferred: boolean;
+      amount: number;
+      sproutPlanted: boolean;
+      balances: {
+        balance: number;
+        vaultBalance: number;
+        earned: number;
+      };
+    }>("/game/tutorial/v3/capital-vault/transfer", { method: "POST" }),
+
   /** Persist tutorial 12:00 wait start as v3 generation anchor. */
   armTutorialV3Wait: (startedAtMs: number) =>
     request<{
@@ -689,6 +718,7 @@ export const api = {
         total_water_drops: number;
         total_sun_catches: number;
         total_leaf_picks: number; // legacy name — fertilizer catch count from API/DB
+        tutorial_done: number; // 0|1 — unlocks «Пройти обучение»
       };
       claimed: string[];
       totalApples: number;
@@ -1082,7 +1112,12 @@ export const api = {
     }),
 
   /** Economy v3 Care — finish active activity with skill in [0, 1]. */
-  finishV3CareActivity: (activity: EconomyV3RootKind, skill: number) =>
+  finishV3CareActivity: (
+    activity: EconomyV3RootKind,
+    skill: number,
+    /** Items caught — counted toward catch achievements (incl. tutorial). */
+    count: number = 0,
+  ) =>
     request<{
       finished: true;
       alreadyCompleted: boolean;
@@ -1102,7 +1137,7 @@ export const api = {
       v3Roots: EconomyV3RootsState;
     }>("/game/v3/care/finish-activity", {
       method: "POST",
-      body: JSON.stringify({ activity, skill }),
+      body: JSON.stringify({ activity, skill, count }),
     }),
 
   /** Economy v3 Care — clear completed transient session after result UI. */

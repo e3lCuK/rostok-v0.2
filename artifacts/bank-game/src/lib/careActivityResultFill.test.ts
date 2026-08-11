@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityFillPercentFromV3Skill,
   activityResultFillPercent,
   allActivityFillsPresent,
   careShovelFillPercent,
   hasActivityResultFill,
   isCareActivityCubeDone,
   mergeActivityFillPercent,
+  resolveCareShovelFillPercent,
 } from "./careActivityResultFill";
 import {
   CARE_FILL_ANIMATION_MS,
@@ -95,6 +97,30 @@ describe("careActivityResultFill — итоговое заполнение ку�
     expect(careShovelFillPercent(100, 100, 100)).toBe(100);
     expect(careShovelFillPercent(null, null, null)).toBe(0);
     expect(careShovelFillPercent(50, null, 50)).toBe(33);
+  });
+
+  it("9c. shovel fill hydrates from cycle skills / average when local fills missing", () => {
+    expect(activityFillPercentFromV3Skill(0.7)).toBe(70);
+    expect(
+      resolveCareShovelFillPercent({
+        waterPct: null,
+        sunPct: null,
+        fertilizerPct: null,
+        cycleActivities: {
+          water: { skill: 0.3 },
+          sun: { skill: 0.6 },
+          fertilizer: { skill: 0.9 },
+        },
+      }),
+    ).toBe(60);
+    expect(
+      resolveCareShovelFillPercent({
+        waterPct: null,
+        sunPct: null,
+        fertilizerPct: null,
+        averageSkill: 0.55,
+      }),
+    ).toBe(55);
   });
 
   it("10. no ghost remount in phase machine (unidirectional only)", () => {

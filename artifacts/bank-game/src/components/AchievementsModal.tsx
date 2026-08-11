@@ -4,18 +4,19 @@ import { X } from "lucide-react";
 import { api } from "@/lib/api";
 
 type Counts = {
-  total_sessions: number;
   total_login_days: number;
   total_water_drops: number;
   total_sun_catches: number;
   total_leaf_picks: number; // legacy DB/API field — counts fertilizer catches (not leaves)
+  /** 0|1 from server `tutorial_done` — unlocks «Пройти обучение». */
+  tutorial_done: number;
 };
 
 interface AchievementDef {
   id: string;
   label: string;
   icon: string;
-  family: "sessions" | "days" | "water" | "sun" | "leaf"; // "leaf" = legacy family id for fertilizer achievements
+  family: "tutorial" | "days" | "water" | "sun" | "leaf"; // "leaf" = legacy fertilizer family
   tier: 1 | 2 | 3;
   threshold: number;
   reward: number;
@@ -25,23 +26,22 @@ interface AchievementDef {
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   // Tier 1 — 1 яблоко
-  { id: "sessions_1",  label: "Завершил 3 сессии",    icon: "⚡", family: "sessions", tier: 1, threshold: 3,     reward: 1,   countKey: "total_sessions",    prevId: null },
+  { id: "tutorial_1",  label: "Пройти обучение",      icon: "🌳", family: "tutorial", tier: 1, threshold: 1,     reward: 1,   countKey: "tutorial_done",     prevId: null },
   { id: "days_1",      label: "Зашёл в игру 3 дня",   icon: "🎯", family: "days",     tier: 1, threshold: 3,     reward: 1,   countKey: "total_login_days",  prevId: null },
   { id: "water_100",   label: "Собрал 100 капель",     icon: "💧", family: "water",    tier: 1, threshold: 100,   reward: 1,   countKey: "total_water_drops", prevId: null },
   { id: "sun_100",     label: "Поймал 100 солнышек",   icon: "☀️", family: "sun",      tier: 1, threshold: 100,   reward: 1,   countKey: "total_sun_catches", prevId: null },
-  { id: "leaf_100",    label: "Внёс 100 удобрений",   icon: "🫘", family: "leaf",     tier: 1, threshold: 100,   reward: 1,   countKey: "total_leaf_picks",  prevId: null },
+  // 🌰 — brown pellet (emoji style like 💧/☀️); 🫘 often missing on Windows.
+  { id: "leaf_100",    label: "Внёс 100 удобрений",   icon: "🌰", family: "leaf",     tier: 1, threshold: 100,   reward: 1,   countKey: "total_leaf_picks",  prevId: null },
   // Tier 2 — 30 яблок
-  { id: "sessions_10", label: "Завершил 10 сессий",   icon: "⚡", family: "sessions", tier: 2, threshold: 10,    reward: 30,  countKey: "total_sessions",    prevId: "sessions_1" },
   { id: "days_10",     label: "Зашёл в игру 10 дней", icon: "🎯", family: "days",     tier: 2, threshold: 10,    reward: 30,  countKey: "total_login_days",  prevId: "days_1" },
   { id: "water_1000",  label: "Собрал 1 000 капель",    icon: "💧", family: "water",    tier: 2, threshold: 1000,  reward: 30,  countKey: "total_water_drops", prevId: "water_100" },
   { id: "sun_1000",    label: "Поймал 1 000 солнышек",  icon: "☀️", family: "sun",      tier: 2, threshold: 1000,  reward: 30,  countKey: "total_sun_catches", prevId: "sun_100" },
-  { id: "leaf_1000",   label: "Внёс 1 000 удобрений",  icon: "🫘", family: "leaf",     tier: 2, threshold: 1000,  reward: 30,  countKey: "total_leaf_picks",  prevId: "leaf_100" },
+  { id: "leaf_1000",   label: "Внёс 1 000 удобрений",  icon: "🌰", family: "leaf",     tier: 2, threshold: 1000,  reward: 30,  countKey: "total_leaf_picks",  prevId: "leaf_100" },
   // Tier 3 — 100 яблок
-  { id: "sessions_100",label: "Завершил 100 сессий",  icon: "⚡", family: "sessions", tier: 3, threshold: 100,   reward: 100, countKey: "total_sessions",    prevId: "sessions_10" },
   { id: "days_100",    label: "Зашёл в игру 100 дней",icon: "🎯", family: "days",     tier: 3, threshold: 100,   reward: 100, countKey: "total_login_days",  prevId: "days_10" },
   { id: "water_10000", label: "Собрал 10 000 капель",   icon: "💧", family: "water",    tier: 3, threshold: 10000, reward: 100, countKey: "total_water_drops", prevId: "water_1000" },
   { id: "sun_10000",   label: "Поймал 10 000 солнышек", icon: "☀️", family: "sun",      tier: 3, threshold: 10000, reward: 100, countKey: "total_sun_catches", prevId: "sun_1000" },
-  { id: "leaf_10000",  label: "Внёс 10 000 удобрений", icon: "🫘", family: "leaf",     tier: 3, threshold: 10000, reward: 100, countKey: "total_leaf_picks",  prevId: "leaf_1000" },
+  { id: "leaf_10000",  label: "Внёс 10 000 удобрений", icon: "🌰", family: "leaf",     tier: 3, threshold: 10000, reward: 100, countKey: "total_leaf_picks",  prevId: "leaf_1000" },
 ];
 
 const TIER_LABELS: Record<number, string> = { 1: "Простые", 2: "Средние", 3: "Сложные" };
@@ -85,7 +85,7 @@ export function AchievementsPanel({ onApplesClaimed }: PanelProps) {
     const prevClaimed = a.prevId === null || claimed.includes(a.prevId);
     if (!prevClaimed) return { pct: 0, frozen: true, done: false };
 
-    const val = counts ? counts[a.countKey] : 0;
+    const val = counts ? Number(counts[a.countKey]) || 0 : 0;
     const pct = Math.min(100, Math.round((val / a.threshold) * 100));
     return { pct, frozen: false, done: false };
   }
@@ -107,7 +107,7 @@ export function AchievementsPanel({ onApplesClaimed }: PanelProps) {
           <div className="ach-list">
             {ACHIEVEMENTS.filter(a => a.tier === tier).map(a => {
               const { pct, frozen, done } = getProgress(a);
-              const val = counts ? counts[a.countKey] : 0;
+              const val = counts ? Number(counts[a.countKey]) || 0 : 0;
               const canClaim = !done && !frozen && pct >= 100;
               return (
                 <div key={a.id} className={`ach-item${done ? " ach-item-done" : frozen ? " ach-item-frozen" : ""}`}>

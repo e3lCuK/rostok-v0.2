@@ -31,4 +31,26 @@ describe("Level modal embeds achievements; no bottom nav", () => {
     expect(lvlSrc).toContain("lvl-badge-ach-dot");
     expect(cssSrc).toContain(".lvl-badge-ach-dot");
   });
+
+  it("level diamond uses thin flask-style rim + cream shell", () => {
+    expect(lvlSrc).toContain("const SW = 1.05");
+    expect(lvlSrc).toContain("#2f5c0e");
+    expect(lvlSrc).toContain('rgba(255, 248, 236, 0.92)');
+    expect(lvlSrc).toContain("vectorEffect=\"non-scaling-stroke\"");
+    expect(lvlSrc).not.toContain("drop-shadow(0 0 10px");
+  });
+
+  it("tutorial achievement «Пройти обучение» + blink after dismiss", () => {
+    expect(achSrc).toContain('id: "tutorial_1"');
+    expect(achSrc).toContain("Пройти обучение");
+    expect(achSrc).toContain('countKey: "tutorial_done"');
+    expect(achSrc).toMatch(/tutorial_1[\s\S]*?reward:\s*1/);
+    expect(pageSrc).toContain("checkPendingAchievements()");
+    expect(pageSrc).toMatch(
+      /handleTutorialDismiss[\s\S]*?checkPendingAchievements\(\)/,
+    );
+    expect(pageSrc).toMatch(
+      /useEffect\(\(\) => \{\s*if \(!tutorialDone\) return;\s*checkPendingAchievements\(\);/,
+    );
+  });
 });

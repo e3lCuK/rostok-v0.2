@@ -420,6 +420,20 @@ describe("v3 root wait timer — full cycle semantics", () => {
     });
   });
 
+  it("9b. product: timer=0 syncs roots settle; collect is separate transfer", () => {
+    // Generation lands in roots via GET settle — not directly into activity buttons.
+    expect(pageSrc).toContain("onRefreshState={syncRootsFromServer}");
+    expect(pageSrc).toContain("<EconomyV3RootSystem");
+    expect(pageSrc).toContain("transferEnabled");
+    expect(compSrc).not.toContain("transferV3Root");
+    const rootsSrc = readFileSync(
+      join(here, "../components/v2/EconomyV3RootSystem.tsx"),
+      "utf8",
+    );
+    expect(rootsSrc).toContain("api.transferV3Root");
+    expect(rootsSrc).toContain("/game/v3/roots/transfer");
+  });
+
   it("10. host CSS keeps capital-hourglass nested in chest (≤430 / ≤360)", () => {
     expect(cssSrc).toContain("--v3-stack-gap");
     expect(cssSrc).toMatch(
@@ -444,8 +458,13 @@ describe("v3 root wait timer — full cycle semantics", () => {
     expect(compSrc).toContain("frozen = false");
     expect(compSrc).toContain("v3-root-wait-timer--frozen");
     expect(compSrc).toContain('data-timer-frozen={frozen ? "true" : "false"}');
-    expect(pageSrc).toContain("frozen={excessCleaning}");
+    expect(pageSrc).toContain("frozen={excessUiGrey}");
+    expect(pageSrc).toContain("v3-capital-chest-host--metelka-frozen");
     expect(cssSrc).toContain(".v3-root-wait-timer--frozen");
+    expect(cssSrc).toContain(".v3-capital-chest-host--metelka-frozen");
+    expect(cssSrc).toContain(
+      ".v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__shell",
+    );
   });
 
   it("capsule is tall capital-hourglass; fill bottom→top", () => {
@@ -459,12 +478,13 @@ describe("v3 root wait timer — full cycle semantics", () => {
     );
     expect(cssSrc).toContain("v3-root-wait-timer-hourglass");
     expect(cssSrc).toContain("v3-capital-badge--in-bulb");
-    // Same palette as before: green rim + mint wash.
+    // Capital-gold flask palette (same as capital sum), not activity green.
+    expect(cssSrc).toContain("--v3-flask-capital: #c9920a");
     expect(cssSrc).toMatch(
-      /\.v3-root-wait-timer-hourglass__rim[\s\S]*?stroke:\s*#166534/,
+      /\.v3-root-wait-timer-hourglass__rim[\s\S]*?stroke:\s*var\(--v3-flask-rim/,
     );
     expect(cssSrc).toMatch(
-      /\.v3-root-wait-timer-capsule__fill\s*\{[\s\S]*?fill:\s*rgba\(134,\s*239,\s*172,\s*0\.5\)/,
+      /\.v3-root-wait-timer-capsule__fill\s*\{[\s\S]*?fill:\s*var\(--v3-flask-fill/,
     );
     expect(compSrc).toContain("V3WaitTimerHourglass");
     expect(compSrc).toContain("barProgress={timer.barProgress}");

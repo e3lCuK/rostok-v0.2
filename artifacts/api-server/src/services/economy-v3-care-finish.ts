@@ -114,6 +114,29 @@ function parsePresetNullable(raw: unknown): number | null {
   return n;
 }
 
+function catchCounterColumn(activity: RootKind): string {
+  switch (activity) {
+    case "water":
+      return "total_water_drops";
+    case "sun":
+      return "total_sun_catches";
+    case "fertilizer":
+      return "total_leaf_picks";
+  }
+}
+
+/** Items caught in the minigame — counts toward catch achievements (incl. tutorial). */
+function parseCollectedCount(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0 && raw <= 10_000) {
+    return Math.round(raw);
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 0 && n <= 10_000) return n;
+  }
+  return 0;
+}
+
 /**
  * Finish the active v3 Care activity under FOR UPDATE.
  * Idempotent when the matching session is already completed.
@@ -123,6 +146,7 @@ export async function finishEconomyV3CareActivity(
   activityRaw: unknown,
   skillRaw: unknown,
   nowMs: number = Date.now(),
+  collectedRaw: unknown = 0,
 ): Promise<FinishEconomyV3CareActivityResponse> {
   if (!isEconomyV3RootsEnabled()) {
     throw new EconomyV3CareFinishError(
@@ -324,8 +348,21 @@ export async function finishEconomyV3CareActivity(
     let pendingBonus =
       parseFloat(String(locked.pending_bonus_reward ?? "0")) || 0;
     const tutorialActive = isEconomyV2TutorialActive(locked.tutorial_done);
+    const itemCount = parseCollectedCount(collectedRaw);
 
     if (!finished.alreadyCompleted) {
+      // Catch counters always count (including tutorial) for achievements.
+      if (itemCount > 0) {
+        const counterCol = catchCounterColumn(finished.activity);
+        await client.query(
+          `UPDATE game_state
+           SET ${counterCol} = COALESCE(${counterCol}, 0) + $2,
+               updated_at = NOW()
+           WHERE user_id = $1`,
+          [String(userId), itemCount],
+        );
+      }
+
       const freshnessRaw = (locked as { v2_freshness?: unknown }).v2_freshness;
       const freshness =
         freshnessRaw != null && Number.isFinite(Number(freshnessRaw))

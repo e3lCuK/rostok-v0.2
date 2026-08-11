@@ -407,14 +407,15 @@ describe("Economy v3 full user cycle (integration)", () => {
         generatingExcess: true,
       },
       metelkaCycle: {
-        required: false,
+        required: true,
         completedForCycle: false,
-        transferLocked: false,
-        careLocked: false,
+        transferLocked: true,
+        careLocked: true,
         phase: "metelka_available",
       },
     });
-    expect(canTransferV3Root(fullRoots.roots.water, false, false)).toBe(true);
+    // Transfer locked until Metelka finishes — only roots hold energy.
+    expect(canTransferV3Root(fullRoots.roots.water, false, true)).toBe(false);
     expect(
       shouldShowMetelkaCardWithV3Gate({
         excess: {

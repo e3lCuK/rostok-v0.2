@@ -10,7 +10,7 @@ import V3WaitTimerHourglass, {
 const here = dirname(fileURLToPath(import.meta.url));
 
 describe("V3WaitTimerHourglass", () => {
-  it("renders one continuous hourglass with narrow neck + centered energy/time", () => {
+  it("renders visible upper flask with narrow neck + centered energy/time", () => {
     const html = renderToStaticMarkup(
       <V3WaitTimerHourglass
         barProgress={0.35}
@@ -19,20 +19,25 @@ describe("V3WaitTimerHourglass", () => {
       />,
     );
     expect(html).toContain('data-timer-shape="hourglass"');
+    expect(html).toContain('data-v3-hourglass-part="upper"');
     expect(html).toContain('data-timer-fill="true"');
+    expect(html).toContain('data-v3-hourglass-fill="upper"');
     expect(html).toContain('data-timer-energy-icon="true"');
     expect(html).toContain('data-timer-upper="true"');
     expect(html).toContain(V3_HOURGLASS_OUTER_PATH);
-    // Single silhouette path (shell + rim + clip) — not two separate bulbs.
+    // Upper silhouette path (shell + rim + clip) — mid/button live elsewhere.
     expect(html.split(V3_HOURGLASS_OUTER_PATH).length - 1).toBeGreaterThanOrEqual(2);
     expect(html).toContain("08:24");
     expect(html).toContain('aria-valuenow="35"');
     expect(html).not.toContain("data-capital-chest-hit");
   });
 
-  it("CSS: capital face = lower-bulb base half; vertical fill", () => {
+  it("CSS: three-part flask — upper slot, mid behind chest, button fill", () => {
     const css = readFileSync(join(here, "../../bank.css"), "utf8");
     expect(css).toContain("v3-capital-hourglass-slot");
+    expect(css).toContain("v3-hourglass-mid");
+    expect(css).toContain("--v3-hourglass-upper-height");
+    expect(css).toContain("--v3-hourglass-mid-height");
     expect(css).toContain("v3-capital-badge--in-bulb");
     expect(css).toContain("v3-capital-badge__bulb");
     expect(css).toContain("--v3-hourglass-paint-width");
@@ -46,10 +51,16 @@ describe("V3WaitTimerHourglass", () => {
       /\.v3-capital-badge--in-bulb\s*\{[\s\S]*?border-radius:\s*40%\s*\/\s*48%/,
     );
     expect(css).toMatch(
-      /\.v3-capital-badge__fill\s*\{[\s\S]*?height:\s*var\(--v3-hg-fill/,
+      /\.v3-capital-badge__fill\s*\{[\s\S]*?--v3-hg-fill-button/,
+    );
+    expect(css).toMatch(
+      /\.v3-hourglass-mid__fill\s*\{[\s\S]*?--v3-hg-fill-mid/,
     );
     expect(css).toMatch(
       /\.v3-capital-hourglass-slot\s*\{[\s\S]*?z-index:\s*3/,
+    );
+    expect(css).toMatch(
+      /\.v3-capital-hourglass-slot\s*\{[\s\S]*?--v3-hourglass-upper-height/,
     );
     expect(css).toContain("--v3-hourglass-lid-foot");
     expect(css).toContain("v3-root-wait-timer-hourglass__lid-foot");

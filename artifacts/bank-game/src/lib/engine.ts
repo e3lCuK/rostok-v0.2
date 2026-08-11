@@ -19,6 +19,8 @@ export const DEFAULT_CAPITAL = 100_000;
 export interface UserState {
   balances: {
     balance: number;
+    /** Capital in the vault icon (0 after tutorial transfer). */
+    vaultBalance?: number;
     earned: number;
     totalDaysEarned: number;
     startDate: number;
@@ -52,6 +54,8 @@ export interface UserState {
     totalApples: number;
     purchasedItems: string[];
     tutorialDone: boolean;
+    /** Tree + underground unlocked after tutorial plant (or tutorial already done). */
+    sproutPlanted?: boolean;
     /** Economy v2 available activity seconds (0–60). Isolated from v1 8h lock. */
     v2EnergySeconds?: number;
     v2EnergyAnchorAt?: number | null;

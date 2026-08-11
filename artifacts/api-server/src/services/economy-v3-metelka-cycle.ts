@@ -148,6 +148,25 @@ export function isCareBlockedByMetelka(input: {
 }
 
 /**
+ * Root → reserve transfer stays locked until Metelka is finished for this
+ * roots-full cycle (product order: roots → excess → Metelka → transfer → Care).
+ *
+ * Unlocked after Metelka finish (`completedForCycle`) even if the reward coin
+ * is still pending. Locked while the session is active, or while Metelka is
+ * still required / excess card is up before that finish.
+ */
+export function isV3RootTransferLockedByMetelka(input: {
+  required: boolean;
+  completedForCycle: boolean;
+  excessAvailable: boolean;
+  metelkaSessionActive: boolean;
+}): boolean {
+  if (input.metelkaSessionActive === true) return true;
+  if (input.completedForCycle === true) return false;
+  return input.required === true || input.excessAvailable === true;
+}
+
+/**
  * Build public cycle flags + phase from roots, persisted markers, and excess UI.
  */
 export function buildV3MetelkaCyclePublic(input: {
@@ -160,11 +179,12 @@ export function buildV3MetelkaCyclePublic(input: {
 }): V3MetelkaCycleFlags {
   const required = input.required === true;
   const completedForCycle = input.completedForCycle === true;
-  const metelkaBusy =
-    input.metelkaSessionActive === true ||
-    input.metelkaPendingResult === true;
-  // Transfer stays locked while Metelka UI is in flight (active/pending result).
-  const transferLocked = metelkaBusy;
+  const transferLocked = isV3RootTransferLockedByMetelka({
+    required,
+    completedForCycle,
+    excessAvailable: input.excessAvailable === true,
+    metelkaSessionActive: input.metelkaSessionActive === true,
+  });
   // Care: blocked by available excess or active session — not by coin pending.
   const careLocked = isCareBlockedByMetelka({
     excessAvailable: input.excessAvailable === true,
@@ -178,10 +198,10 @@ export function buildV3MetelkaCyclePublic(input: {
     phase = "metelka_pending_result";
   } else if (input.excessAvailable) {
     phase = "metelka_available";
-  } else if (input.rootsFull) {
-    phase = "roots_full_waiting_excess";
   } else if (completedForCycle && input.rootsFull) {
     phase = "root_transfer_unlocked";
+  } else if (input.rootsFull) {
+    phase = "roots_full_waiting_excess";
   } else {
     phase = "roots_accumulating";
   }

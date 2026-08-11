@@ -1,13 +1,18 @@
 /**
  * POST /api/game/tutorial/v3/prepare
  *
- * Idempotent tutorial root grant for Economy v3 (5s per root).
+ * Idempotent tutorial root grant for Economy v3 (10s / two segments per root).
  * Body `{ kind: "water"|"sun"|"fertilizer" }` grants exactly one root (staged fill).
  * Body `{ all: true }` grants all three (recovery / legacy).
  * `kind` is required unless `all: true` — empty body must NOT fill all roots.
  */
 
 import { Router } from "express";
+import {
+  EconomyV3CapitalVaultError,
+  plantTutorialSprout,
+  transferVaultToChest,
+} from "../services/economy-v3-capital-vault";
 import {
   EconomyV3TutorialError,
   armTutorialV3Wait,
@@ -119,6 +124,40 @@ router.post(
           .json({ error: err.message, code: err.code });
       }
       req.log?.error({ err }, "Error syncing v3 tutorial wait energy");
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+/** Unlock tree + underground after the player taps the plant pad. */
+router.post("/game/tutorial/v3/plant-sprout", requireAuth, async (req: any, res) => {
+  try {
+    const result = await plantTutorialSprout(req.userId);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof EconomyV3CapitalVaultError) {
+      return res.status(err.status).json({ error: err.message, code: err.code });
+    }
+    req.log?.error({ err }, "Error planting tutorial sprout");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** Move vault capital into the tree chest (active_balance). */
+router.post(
+  "/game/tutorial/v3/capital-vault/transfer",
+  requireAuth,
+  async (req: any, res) => {
+    try {
+      const result = await transferVaultToChest(req.userId);
+      return res.json(result);
+    } catch (err) {
+      if (err instanceof EconomyV3CapitalVaultError) {
+        return res
+          .status(err.status)
+          .json({ error: err.message, code: err.code });
+      }
+      req.log?.error({ err }, "Error transferring tutorial capital vault");
       return res.status(500).json({ error: "Internal server error" });
     }
   },

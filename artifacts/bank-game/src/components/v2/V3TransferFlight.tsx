@@ -1,25 +1,31 @@
 /**
- * Soft energy flight from a v3 root to its activity reserve card.
- * Fixed-layer portal; path from measured DOM rects; pointer-events none.
+ * Transfer cue: `+X с` flies from the root to above its activity card.
+ * No colored particle blobs — only the seconds label (tutorial + live).
  */
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { EconomyV3RootKind } from "@/lib/api";
 import {
+  formatV3TransferSecondsLabel,
   measureV3TransferFlight,
   type V3TransferFlightPoints,
 } from "@/lib/v3TransferFlight";
 
 type Props = {
   kind: EconomyV3RootKind;
+  /** Whole seconds transferred — drives the `+X с` floater. */
+  seconds?: number;
   /** Flight duration in ms — should match parent transfer anim window. */
   durationMs: number;
   onComplete?: () => void;
 };
 
+const MEASURE_RETRY_FRAMES = 8;
+
 export default function V3TransferFlight({
   kind,
+  seconds = 0,
   durationMs,
   onComplete,
 }: Props) {
@@ -27,13 +33,38 @@ export default function V3TransferFlight({
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const completedRef = useRef(false);
+  const label = formatV3TransferSecondsLabel(seconds);
 
   useEffect(() => {
     completedRef.current = false;
-    const measure = () => setPoints(measureV3TransferFlight(kind));
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    let cancelled = false;
+    let frames = 0;
+    let raf = 0;
+
+    const tryMeasure = () => {
+      if (cancelled) return;
+      const next = measureV3TransferFlight(kind);
+      if (next) {
+        setPoints(next);
+        return;
+      }
+      frames += 1;
+      if (frames < MEASURE_RETRY_FRAMES) {
+        raf = window.requestAnimationFrame(tryMeasure);
+      }
+    };
+
+    tryMeasure();
+    const onResize = () => {
+      const next = measureV3TransferFlight(kind);
+      if (next) setPoints(next);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
   }, [kind]);
 
   useEffect(() => {
@@ -46,7 +77,7 @@ export default function V3TransferFlight({
     return () => window.clearTimeout(timer);
   }, [points, durationMs]);
 
-  if (typeof document === "undefined" || !points) return null;
+  if (typeof document === "undefined" || !points || !label) return null;
 
   const style = {
     ["--v3-flight-color" as string]: points.color,
@@ -64,13 +95,19 @@ export default function V3TransferFlight({
       className="v3-transfer-flight-layer"
       data-v3-transfer-flight="true"
       data-v3-transfer-flight-kind={kind}
+      data-v3-transfer-flight-seconds={String(
+        Math.floor(Number(seconds) || 0),
+      )}
+      data-v3-transfer-flight-particles="false"
       aria-hidden="true"
     >
-      <span className="v3-transfer-flight-blob" style={style} />
       <span
-        className="v3-transfer-flight-blob v3-transfer-flight-blob--soft"
+        className="v3-transfer-flight-label"
+        data-v3-transfer-flight-label="true"
         style={style}
-      />
+      >
+        {label}
+      </span>
     </div>,
     document.body,
   );

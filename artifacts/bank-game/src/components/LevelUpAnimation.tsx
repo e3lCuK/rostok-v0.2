@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import TreeSVG from "@/components/TreeSVG";
 
 interface Props {
   newLevel: number;
@@ -56,7 +57,10 @@ export default function LevelUpAnimation({ newLevel, onComplete }: Props) {
           animate={{ opacity: [0.6, 0.2, 0.6] }}
           transition={{ duration: 0.8, repeat: 1, ease: "easeInOut" }}
         />
-        <span className="levelup-icon">🌳</span>
+        <span className="levelup-icon" aria-hidden="true">
+          {/* Stage 0 «Росток» — same flat+outline art as the field tree. */}
+          <TreeSVG stage={0} size={52} />
+        </span>
         <span className="levelup-title">Новое достижение!</span>
         <span className="levelup-number">УРОВЕНЬ {newLevel}</span>
       </motion.div>

@@ -247,11 +247,17 @@ describe("POST /game/v3/care/finish-activity", () => {
 
     const res = await runRoute("/game/v3/care/finish-activity", {
       session: { userId: "7" },
-      body: { activity: "sun", skill: 0.8 },
+      body: { activity: "sun", skill: 0.8, count: 5 },
       log: { error: vi.fn() },
     });
 
-    expect(finishMock).toHaveBeenCalledWith("7", "sun", 0.8);
+    expect(finishMock).toHaveBeenCalledWith(
+      "7",
+      "sun",
+      0.8,
+      expect.any(Number),
+      5,
+    );
     expect(res.body).toMatchObject({
       finished: true,
       activity: "sun",

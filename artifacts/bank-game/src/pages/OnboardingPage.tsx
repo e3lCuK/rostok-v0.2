@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import TreeSVG from "@/components/TreeSVG";
 import { DEFAULT_CAPITAL, formatCapital } from "@/lib/engine";
 
 interface Props {
@@ -39,7 +40,9 @@ export default function OnboardingPage({ onComplete }: Props) {
     <div className="onboarding-page">
       <div className="onboarding-center">
         <div className="onboarding-header">
-          <span className="onboarding-icon">🌳</span>
+          <span className="onboarding-icon" aria-hidden="true">
+            <TreeSVG stage={0} size={110} />
+          </span>
           <div>
             <h1 className="onboarding-title">Открыть демо-счёт</h1>
             <p className="onboarding-tagline">Растите капитал играючи</p>

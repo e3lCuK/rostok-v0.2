@@ -144,9 +144,12 @@ describe("resolveV3CareStartPresetSeconds / canStart", () => {
     expect(pageSrc).toContain("rootsCollectionLocked");
     expect(pageSrc).toContain("activitiesInteractionLocked");
     expect(pageSrc).toContain("ROOTS_COLLECTION_INCOMPLETE_HINT");
-    // Accent theming follows tutorial lock only — not rootsCollectionLocked.
+    // Accent theming matches live rootsCollectionLocked (not greyed by tutorial).
     expect(pageSrc).toMatch(
-      /isV3ActivityButtonVisuallyLocked\(\s*v3Card,\s*tutorialActivitiesLocked/,
+      /isV3ActivityButtonVisuallyLocked\(\s*v3Card,\s*false\s*\)/,
+    );
+    expect(pageSrc).toMatch(
+      /v3Themed\s*=\s*\n?\s*useV3\s*&&\s*shouldThemeV3ActivityButton\(v3Card\)/,
     );
   });
 
@@ -331,7 +334,7 @@ describe("resolveV3CareStartPresetSeconds / canStart", () => {
         rootsFull: true,
         required: true,
         completedForCycle: false,
-        transferLocked: false,
+        transferLocked: true,
         careLocked: true,
         phase: "metelka_available",
       },

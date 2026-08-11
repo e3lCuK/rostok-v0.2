@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { Droplets, Sun } from "lucide-react";
 import GameTimer from "./GameTimer";
+import FertilizerIcon from "./FertilizerIcon";
 import {
   buildWaterV1LegacyPreset,
   type WaterPreset,
@@ -22,7 +24,6 @@ const CONFIGS = {
     timerBg:     "#dbeafe",
     timerColor:  V3_ACTIVITY_ACCENT_COLORS.water,
     scoreFg:     "#1e40af",
-    scoreEmoji:  "💧",
     dropColor:   V3_ACTIVITY_ACCENT_COLORS.water,
     dropShadow:  "rgba(43,127,255,0.22)",
     barColor:    "#1565e0",
@@ -34,7 +35,6 @@ const CONFIGS = {
     timerBg:     "#fef3c7",
     timerColor:  V3_ACTIVITY_ACCENT_COLORS.sun,
     scoreFg:     "#92400e",
-    scoreEmoji:  "☀️",
     dropColor:   V3_ACTIVITY_ACCENT_COLORS.sun,
     dropShadow:  "rgba(255,193,7,0.22)",
     barColor:    "#e8900c",
@@ -46,7 +46,6 @@ const CONFIGS = {
     timerBg:     "#dcfce7",
     timerColor:  "#22c55e",
     scoreFg:     "#166534",
-    scoreEmoji:  "🌱",
     dropColor:   "#22c55e",
     dropShadow:  "rgba(34,197,94,0.15)",
     barColor:    "#16a34a",
@@ -54,6 +53,34 @@ const CONFIGS = {
     border:      "2px solid #bbf7d0",
   },
 } as const;
+
+function ScoreIcon({ type, size }: { type: GameType; size: number }) {
+  if (type === "water") {
+    return (
+      <Droplets
+        size={size}
+        strokeWidth={2.25}
+        color={V3_ACTIVITY_ACCENT_COLORS.water}
+      />
+    );
+  }
+  if (type === "sun") {
+    return (
+      <Sun
+        size={size}
+        strokeWidth={2.25}
+        color={V3_ACTIVITY_ACCENT_COLORS.sun}
+      />
+    );
+  }
+  return (
+    <FertilizerIcon
+      size={size}
+      filled={false}
+      color={V3_ACTIVITY_ACCENT_COLORS.fertilizer}
+    />
+  );
+}
 
 const DROP_R      = 11;
 const BAR_W       = 88;
@@ -272,7 +299,7 @@ export default function FallingGameWater({
       <div className="mini-game-header">
         <GameTimer timeLeftMs={timerMs} totalMs={totalMs} color={cfg.timerColor} trackColor={cfg.timerBg} />
         <div className="mini-game-counter">
-          <span>{cfg.scoreEmoji}</span>
+          <ScoreIcon type={type} size={20} />
           <span className="mini-game-counter-val">{catchCount}</span>
         </div>
       </div>
@@ -291,7 +318,9 @@ export default function FallingGameWater({
           style={{ background: cfg.bg }}
           onClick={() => onComplete(result.skillScore, result.catches)}
         >
-          <span className="mini-game-result-emoji">{cfg.scoreEmoji}</span>
+          <span className="mini-game-result-emoji" aria-hidden="true">
+            <ScoreIcon type={type} size={42} />
+          </span>
           <p className="mini-game-result-count" style={{ color: cfg.resultColor }}>
             Поймано: {result.catches}
           </p>

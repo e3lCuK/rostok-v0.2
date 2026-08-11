@@ -354,10 +354,12 @@ describe("GamePage wiring (7G reserves + 7H start)", () => {
     expect(pageSrc).not.toContain("V3ActivityReserveMeter");
     expect(pageSrc).toContain("data-v3-activity-seconds-label");
     expect(pageSrc).toContain("reserveSeconds} с");
-    // Completed cards: checkmark only — seconds return after «Уход» diverge.
-    expect(pageSrc).toContain(
-      "Completed = checkmark only; seconds return after «Уход» diverge",
-    );
+    // Empty reserve: icon only — hide «0 с» until seconds are credited.
+    expect(pageSrc).toContain("v3Card.reserveSeconds > 0");
+    expect(pageSrc).toContain("Seconds only after reserve accrues");
+    // Metelka cleaning: hide seconds + recommend pulse on frozen grey trio.
+    expect(pageSrc).toContain("!excessCleaning");
+    expect(pageSrc).toContain("Metelka cleaning: icon-only frozen grey");
     expect(pageSrc).toContain("shouldClearStaleV3CareUiAfterTutorial");
     // Diverge / spent-ghost rows keep the seconds label after «Уход».
     expect(pageSrc).toContain("divergeReserveSeconds");
@@ -505,6 +507,15 @@ describe("v3ActivityReserveFillPercent — continuous visual height", () => {
     // Timer-capsule contrast: label stays sharp over the light wash.
     expect(cssSrc).toMatch(
       /\.action-btn-bank--v3-reserve \.v3-activity-reserve-seconds\s*\{[\s\S]*?text-shadow:\s*0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.55\)/,
+    );
+    // Activity rim matches flask outline weight (~1.05), not a heavy 2px card border.
+    expect(cssSrc).toContain("--v3-care-rim-width");
+    expect(cssSrc).toMatch(
+      /\.action-btn-bank\s*\{[\s\S]*?border:\s*var\(--v3-care-rim-width/,
+    );
+    // Seconds counter matches capital sum type.
+    expect(cssSrc).toMatch(
+      /\.v3-activity-reserve-seconds\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
     );
     expect(cssSrc).toMatch(
       /\.v3-activity-reserve-fill\s*\{[\s\S]*?z-index:\s*0/,

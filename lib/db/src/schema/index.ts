@@ -34,6 +34,8 @@ import {
     standardBalance: numeric("standard_balance", { precision: 15, scale: 2 }).notNull().default("0"),
     gamifiedBalance: numeric("gamified_balance", { precision: 15, scale: 2 }).notNull().default("0"),
     activeBalance: numeric("active_balance", { precision: 15, scale: 2 }).notNull().default("0"),
+    /** Capital parked in the vault UI until transferred into the tree chest. */
+    vaultBalance: numeric("vault_balance", { precision: 15, scale: 2 }).notNull().default("0"),
     standardEarned: numeric("standard_earned", { precision: 15, scale: 2 }).notNull().default("0"),
     gamifiedEarned: numeric("gamified_earned", { precision: 15, scale: 2 }).notNull().default("0"),
     activeEarned: numeric("active_earned", { precision: 15, scale: 2 }).notNull().default("0"),
@@ -93,6 +95,8 @@ import {
     lastLoginDate: text("last_login_date"),
     purchasedItems: jsonb("purchased_items").notNull().default([]),
     tutorialDone: boolean("tutorial_done").notNull().default(true),
+    /** Tutorial: tree + underground roots unlocked after tap-to-plant. */
+    sproutPlanted: boolean("sprout_planted").notNull().default(false),
     /** Economy v2 available activity seconds (0–60, fractional). Isolated from v1 8h session lock. */
     v2EnergySeconds: numeric("v2_energy_seconds").notNull().default("0"),
     /** Epoch ms when v2 energy was last settled/written — generation clock for roots. */

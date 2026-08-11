@@ -49,4 +49,26 @@ describe("tutorialWaitClock — F5-safe 12:00 wait", () => {
     expect(gameSrc).toContain("alreadyComplete");
     expect(gameSrc).toContain("tutorial_done === true");
   });
+
+  it("account reset / fresh onboarding clears persisted wait clock", async () => {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const appSrc = readFileSync(join(here, "../App.tsx"), "utf8");
+    expect(appSrc).toContain("clearTutorialWaitClock");
+    expect(appSrc).toMatch(/if\s*\(\s*!data\.exists\s*\)[\s\S]*?clearTutorialWaitClock/);
+    expect(appSrc).toMatch(
+      /handleOnboardingComplete[\s\S]*?clearTutorialWaitClock[\s\S]*?initAccount/,
+    );
+    const panelPath = join(here, "../local/debug-panel.tsx");
+    if (existsSync(panelPath)) {
+      const panelSrc = readFileSync(panelPath, "utf8");
+      expect(panelSrc).toContain("clearTutorialWaitClock");
+      expect(panelSrc).toContain("reset-progress");
+      expect(panelSrc).toMatch(
+        /clearStaleWaitClockBeforeAccountWipe[\s\S]*?reset-progress/,
+      );
+    }
+  });
 });

@@ -276,6 +276,25 @@ async function runMigrations() {
   // Economy v3 roots + activity reserves (storage only; flag-gated snapshot).
   await applyEconomyV3RootMigrations(pool);
 
+  // Existing live accounts: vault empty, sprout already "planted".
+  await pool.query(
+    `UPDATE game_state SET sprout_planted = TRUE
+     WHERE sprout_planted = FALSE
+       AND (tutorial_done = TRUE OR tutorial_done IS NULL)`,
+  );
+  // Mid-tutorial accounts created before vault: re-park capital in the vault.
+  await pool.query(
+    `UPDATE accounts a
+     SET vault_balance = a.active_balance,
+         active_balance = 0
+     FROM game_state g
+     WHERE g.user_id = a.user_id::text
+       AND g.tutorial_done = FALSE
+       AND COALESCE(g.sprout_planted, FALSE) = FALSE
+       AND COALESCE(a.vault_balance, 0) = 0
+       AND COALESCE(a.active_balance, 0) > 0`,
+  );
+
   // Mark all existing users as tutorial done (only new inserts start with FALSE)
   await pool.query(`UPDATE game_state SET tutorial_done = TRUE WHERE tutorial_done = FALSE AND last_session_time IS NOT NULL`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS starting_capital NUMERIC(15,2) NOT NULL DEFAULT 0`);

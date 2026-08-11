@@ -385,17 +385,12 @@ export const V3_TUTORIAL_COMPLETE_CLEAR_SQL = `
   v3_care_cycle_claimed_total_income = NULL,
   pending_base_reward = 0,
   pending_bonus_reward = 0,
-  /* Keep tutorial collectibles: +1 мм / +1 яблоко; wipe XP / session stats. */
+  /* Keep tutorial collectibles: +1 мм / +1 яблоко / claimed skill XP.
+   * Also keep catch counters from tutorial minigames (achievements). */
   tree_growth_mm = 1,
   tree_growth_remainder = 0,
   total_apples = 1,
-  player_xp = 0,
-  player_level = 1,
-  xp_history = '[]'::jsonb,
   total_sessions = 0,
-  total_water_drops = 0,
-  total_sun_catches = 0,
-  total_leaf_picks = 0,
   streak_days = 0,
   last_streak_date = NULL
 `;

@@ -198,21 +198,33 @@ export async function claimEconomyV3CareCycle(
       const claimedAtDate = new Date(claimedAtMs);
 
       if (tutorialActive) {
-        // Mark cycle claimed for idempotency — do not persist XP / income / anchors.
+        // Persist skill XP; income / growth / anchors stay demo until tutorial/complete.
+        playerXp = playerXp + snapshot.xp;
+        playerLevel = calcPlayerLevel(playerXp);
         await client.query(
           `UPDATE game_state
-           SET v3_care_cycle_claimed_at = $2,
-               v3_care_cycle_claimed_xp = 0,
+           SET player_xp = $2,
+               player_level = $3,
+               v3_care_cycle_claimed_at = $4,
+               v3_care_cycle_claimed_xp = $5,
                v3_care_cycle_claimed_tree_growth = 0,
                v3_care_cycle_claimed_base_income = 0,
                v3_care_cycle_claimed_bonus_income = 0,
                v3_care_cycle_claimed_total_income = 0,
                updated_at = NOW()
            WHERE user_id = $1`,
-          [String(userId), claimedAtDate],
+          [
+            String(userId),
+            playerXp,
+            playerLevel,
+            claimedAtDate,
+            snapshot.xp,
+          ],
         );
+        locked.player_xp = playerXp;
+        locked.player_level = playerLevel;
         locked.v3_care_cycle_claimed_at = claimedAtDate;
-        locked.v3_care_cycle_claimed_xp = 0;
+        locked.v3_care_cycle_claimed_xp = snapshot.xp;
         locked.v3_care_cycle_claimed_tree_growth = 0;
         locked.v3_care_cycle_claimed_base_income = 0;
         locked.v3_care_cycle_claimed_bonus_income = 0;
@@ -265,7 +277,8 @@ export async function claimEconomyV3CareCycle(
 
     await client.query("COMMIT");
 
-    const responseXp = tutorialActive && decided.applyAwards ? 0 : snapshot.xp;
+    // Tutorial: return real XP for the LevelWidget flash; keep growth/income demo-only.
+    const responseXp = snapshot.xp;
     const responseTree =
       tutorialActive && decided.applyAwards ? 0 : snapshot.treeGrowth;
     const responseIncome =

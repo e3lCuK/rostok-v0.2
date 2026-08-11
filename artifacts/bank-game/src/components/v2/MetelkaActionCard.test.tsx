@@ -301,6 +301,19 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(html).toContain('aria-label="Вода"');
   });
 
+  it("cleaning frozen trio: no seconds label and no activity pulse", () => {
+    const page = readFileSync(join(here, "../../pages/GamePage.tsx"), "utf8");
+    const cssSrc = readFileSync(join(here, "../../bank.css"), "utf8");
+    expect(page).toContain("!excessCleaning");
+    expect(page).toContain("Metelka cleaning: icon-only frozen grey");
+    expect(cssSrc).toMatch(
+      /\.action-buttons-row--cleaning[\s\S]*?\.v3-activity-reserve-seconds\s*\{[\s\S]*?display:\s*none/,
+    );
+    expect(cssSrc).toMatch(
+      /\.action-buttons-row--cleaning[\s\S]*?\.action-btn-bank\s*\{[\s\S]*?animation:\s*none/,
+    );
+  });
+
   it("3–4. active session → Metelka hidden, care trio frozen (grey)", () => {
     expect(shouldShowMetelkaCard(sessionActive)).toBe(false);
     expect(isExcessCleaningMode(sessionActive)).toBe(true);
@@ -381,8 +394,10 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(page).toContain("startEconomyV2ExcessSession");
     expect(page).toContain("ExcessCleaningTimer");
     expect(page).toContain("hideEnergyTimer={excessCleaning}");
-    expect(page).toContain("frozen={excessCleaning}");
-    expect(page).toContain("useUndergroundRootsScene && !excessCleaning");
+    expect(page).toContain("frozen={excessUiGrey}");
+    expect(page).toContain(
+      "useUndergroundRootsScene && tutorialDone && !excessCleaning",
+    );
     expect(page).toContain("excess_session_already_active");
     expect(page).toContain("excess_not_available");
   });

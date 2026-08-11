@@ -341,13 +341,23 @@ describe("Economy v3 primary roots UI (8C)", () => {
     );
     expect(pageSrc).not.toContain("hideEnergyTimer={false}");
     expect(pageSrc).toContain("<V3RootWaitTimer");
-    expect(pageSrc).toContain("frozen={excessCleaning}");
+    expect(pageSrc).toContain("frozen={excessUiGrey}");
     expect(pageSrc).toContain(
       "useUndergroundRootsScene && tutorialDone && !excessCleaning",
     );
     expect(pageSrc).toContain("field-visibility-btn");
     expect(pageSrc).toContain(
       "if (excessCleaning) setUndergroundRootsMasked(false)",
+    );
+    // Eye control: cream shell, no rim, short height.
+    expect(cssSrc).toMatch(
+      /\.field-visibility-btn\s*\{[\s\S]*?border:\s*none/,
+    );
+    expect(cssSrc).toMatch(
+      /\.field-visibility-btn\s*\{[\s\S]*?height:\s*20px/,
+    );
+    expect(cssSrc).toMatch(
+      /\.field-visibility-btn\s*\{[\s\S]*?background:\s*var\(--field-caption-bg/,
     );
   });
 

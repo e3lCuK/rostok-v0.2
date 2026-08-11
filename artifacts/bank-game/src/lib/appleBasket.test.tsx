@@ -23,6 +23,7 @@ describe("AppleBasket on play field", () => {
     expect(pageSrc).toContain('from "@/components/AppleBasket"');
     expect(pageSrc).toContain("<AppleBasket");
     expect(pageSrc).toContain("onClick={() => setShowShop(true)}");
+    expect(pageSrc).toContain("dropHighlight={appleDropTargetActive}");
     expect(pageSrc).toContain("data-apple-basket-popup");
     expect(pageSrc).toContain("apple-basket-popup-slot");
   });
@@ -32,19 +33,25 @@ describe("AppleBasket on play field", () => {
     expect(cssSrc).toMatch(/\.apple-basket-popup-slot\s*\{[^}]*left:\s*0/s);
     expect(cssSrc).not.toMatch(/\.apple-basket-popup-slot\s*\{[^}]*translateX\(-50%\)/s);
     expect(cssSrc).toMatch(/\.apple-basket-host\s*\{[^}]*display:\s*block/s);
+    // Apple counter + flash label match capital type.
+    expect(basketSrc).toContain("field-caption-value");
+    expect(cssSrc).toMatch(
+      /\.apple-popup-label\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
+    );
   });
 
   it("manual apple collect flies toward basket (left/down)", () => {
-    expect(pageSrc).toMatch(/y:\s*90,\s*x:\s*-40/);
+    expect(pageSrc).toMatch(/y:\s*90,\s*x:\s*-22/);
     expect(pageSrc).not.toMatch(/y:\s*-220,\s*x:\s*-90/);
   });
 
-  it("CSS hosts basket near ground / left bush", () => {
+  it("CSS hosts basket near ground / right of left bush", () => {
     expect(cssSrc).toContain(".apple-basket-host");
     expect(cssSrc).toContain(".apple-basket");
     expect(cssSrc).toContain(".game-area--v3-roots .apple-basket-host");
     expect(cssSrc).toContain("var(--v2-scene-lift)");
-    expect(cssSrc).toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*0/s);
+    expect(cssSrc).toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*15%/s);
+    expect(cssSrc).not.toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*0(?:px)?;/s);
   });
 
   it("basket renders count and accessibility label", () => {

@@ -65,10 +65,10 @@ export default function SettingsWidget({ onClose, onOpenDailyReward, dailyAvaila
             onKeyDown={e => e.key === "Enter" && saveEmail()}
           />
           <button className="settings-save-sm" onClick={saveEmail} disabled={emailBusy} title="Сохранить">
-            {emailBusy ? "…" : <Check size={12} />}
+            {emailBusy ? "…" : <Check size={12} strokeWidth={2.25} />}
           </button>
           <button className="settings-save-sm settings-close-sm" onClick={close} title="Закрыть">
-            <X size={12} />
+            <X size={12} strokeWidth={2.25} />
           </button>
         </div>
         {emailErr && <p className="settings-err">{emailErr}</p>}
@@ -91,10 +91,10 @@ export default function SettingsWidget({ onClose, onOpenDailyReward, dailyAvaila
             onKeyDown={e => e.key === "Enter" && savePw()}
           />
           <button className="settings-save-sm" onClick={savePw} disabled={pwBusy} title="Сохранить">
-            {pwBusy ? "…" : <Check size={12} />}
+            {pwBusy ? "…" : <Check size={12} strokeWidth={2.25} />}
           </button>
           <button className="settings-save-sm settings-close-sm" onClick={close} title="Закрыть">
-            <X size={12} />
+            <X size={12} strokeWidth={2.25} />
           </button>
         </div>
         {pwErr && <p className="settings-err">{pwErr}</p>}
@@ -107,17 +107,17 @@ export default function SettingsWidget({ onClose, onOpenDailyReward, dailyAvaila
     <div className="settings-widget">
       <div className="settings-icon-row">
         <button className="settings-action-btn settings-bell-btn" onClick={onOpenDailyReward} title="Ежедневные награды">
-          <Bell size={14} />
+          <Bell size={14} strokeWidth={2.25} />
           {dailyAvailable && <span className="settings-bell-dot" />}
         </button>
         <button className="settings-action-btn" onClick={() => setPanel("email")} title="Почта">
-          <Mail size={14} />
+          <Mail size={14} strokeWidth={2.25} />
         </button>
         <button className="settings-action-btn" onClick={() => setPanel("password")} title="Пароль">
-          <Lock size={14} />
+          <Lock size={14} strokeWidth={2.25} />
         </button>
         <button className="settings-action-btn settings-action-logout" onClick={() => logout()} title="Выйти">
-          <LogOut size={14} />
+          <LogOut size={14} strokeWidth={2.25} />
         </button>
       </div>
     </div>

@@ -172,7 +172,8 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
   });
 
   it("GamePage: finish stores metelkaPendingReward; XP flash path; no Care coin", () => {
-    expect(page).toContain("normalizeMetelkaPendingReward(res.metelkaPendingReward)");
+    expect(page).toContain("metelkaPendingReward: res.metelkaPendingReward");
+    expect(page).toContain("normalizeMetelkaPendingReward");
     expect(page).toContain("MetelkaRewardCoin");
     expect(page).toContain("claimMetelkaPendingReward");
     expect(page).toContain("shouldShowMetelkaFinishXpAnimation");
@@ -191,10 +192,15 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
 
   it("GamePage: record-only clear skips XP/money credit UI", () => {
     expect(page).toContain('reward.rewardDelta?.kind === "progress"');
-    expect(page).toContain("Never open Care collectible coin from Metelka finish");
+    expect(page).toContain("Record-only clear (v2): progress only");
+    // Metelka finish uses pending coin, not Care apple overlay.
+    expect(page).toContain("MetelkaRewardCoin");
+    expect(page).not.toMatch(
+      /finishEconomyV2ExcessSession[\s\S]{0,800}setShowApples\(true\)/,
+    );
   });
 
-  it("API + CSS: Metelka coin reuses Care tree-apple-coin", () => {
+  it("API + CSS: Metelka coin reuses Care tree-apple-coin + drag-to-chest", () => {
     expect(apiSrc).toContain("/game/v2/excess/metelka/claim");
     expect(apiSrc).toContain("claimMetelkaPendingReward");
     expect(css).toContain(".tree-apple-coin");
@@ -207,6 +213,11 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
     );
     expect(coinSrc).toContain("tree-apple-coin");
     expect(coinSrc).toContain("tree-apple-pending");
+    expect(coinSrc).toContain("onDragStart");
+    expect(coinSrc).toContain("onDragEnd");
+    expect(coinSrc).toContain("onDragActiveChange");
+    expect(page).toContain("setCoinDropTargetActive(active)");
+    expect(page).toContain("draggingMetelkaCoin");
     expect(coinSrc).not.toContain("formatMetelkaCoinAmountLabel");
     expect(css).toContain("gold-pulse");
   });

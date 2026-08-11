@@ -2,7 +2,7 @@
  * Economy v3 roots — three activity roots × five segments.
  * Primary UI when `game.v3Roots.enabled` (server ENABLE_ECONOMY_V3_ROOTS).
  * Manual transfer via POST /game/v3/roots/transfer.
- * After success, a short in-root energy-rise animation may play before applying snapshot.
+ * After success: in-root drain + flight blob + `+X с` label → activity, then apply snapshot.
  */
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
@@ -135,15 +135,10 @@ export function v3SegmentFillForDisplay(
   );
 }
 
-/** In-root drain / press feedback at the start of transfer (ms). */
-export const V3_TRANSFER_RISE_MS = 180;
-/** Soft flight root → activity reserve (ms). */
+/** Soft +X с flight root → above activity (ms). */
 export const V3_TRANSFER_FLIGHT_MS = 520;
-/** Short settle before snapshot apply (ms). */
-export const V3_TRANSFER_FADE_MS = 100;
-/** Total manual transfer animation before applying snapshot. */
-export const V3_TRANSFER_ANIM_MS =
-  V3_TRANSFER_RISE_MS + V3_TRANSFER_FLIGHT_MS + V3_TRANSFER_FADE_MS;
+/** Total manual transfer cue before applying snapshot (label only). */
+export const V3_TRANSFER_ANIM_MS = V3_TRANSFER_FLIGHT_MS;
 
 export const V3_ROOT_LABELS: Record<EconomyV3RootKind, string> = {
   water: "Полив",
@@ -515,18 +510,6 @@ function EconomyV3RootColumn({
               </div>
             );
           })}
-          {transferring ? (
-            <div
-              className="v3-root-transfer-channel"
-              data-v3-transfer-channel={kind}
-              aria-hidden="true"
-            >
-              <span
-                className="v3-root-transfer-energy"
-                style={{ background: fillColor }}
-              />
-            </div>
-          ) : null}
         </div>
       </div>
     </button>
@@ -666,29 +649,18 @@ export default function EconomyV3RootSystem({
       return;
     }
 
+    // Always enter transferring so the `+X с` cue above the activity is visible.
     const plan = planV3ManualTransferSuccess({
       kind,
       holdRoot,
       pendingSnapshot: result.v3Roots,
       reducedMotion,
     });
-
-    if (plan.mode === "immediate") {
-      // prefers-reduced-motion: short state transition, no flying particles.
-      commitPendingTransfer({
-        kind,
-        holdRoot,
-        pendingSnapshot: plan.snapshot,
-      });
-      busyRef.current = null;
-      setBusyRoot(null);
-      return;
-    }
-
     const next: V3TransferringState = {
-      kind: plan.kind,
-      holdRoot: plan.holdRoot,
-      pendingSnapshot: plan.pendingSnapshot,
+      kind,
+      holdRoot,
+      pendingSnapshot:
+        plan.mode === "animate" ? plan.pendingSnapshot : plan.snapshot,
     };
     transferringRef.current = next;
     setTransferring(next);
@@ -768,6 +740,10 @@ export default function EconomyV3RootSystem({
       {transferring ? (
         <V3TransferFlight
           kind={transferring.kind}
+          seconds={Math.max(
+            0,
+            Math.floor(Number(transferring.holdRoot.seconds) || 0),
+          )}
           durationMs={V3_TRANSFER_FLIGHT_MS}
         />
       ) : null}

@@ -11,8 +11,8 @@ import {
   V3_SEGMENT_SECONDS,
 } from "./economy-v3-roots";
 
-/** Tutorial grants exactly one playable segment per root. */
-export const V3_TUTORIAL_ROOT_SECONDS = V3_SEGMENT_SECONDS; // 5
+/** Tutorial grants two segments per root (matches 10s mini-activities). */
+export const V3_TUTORIAL_ROOT_SECONDS = V3_SEGMENT_SECONDS * 2; // 10
 
 /**
  * Pure grant: fill root(s) to tutorial seconds when still empty and not yet
@@ -104,5 +104,54 @@ export function grantTutorialV3RootsPure(input: {
     rootFertilizerSeconds: roots.fertilizer,
     changed,
     alreadyPrepared,
+  };
+}
+
+/**
+ * Tutorial activity buttons must show 10 с. If a stale grant left 5 s in a
+ * reserve, top it up to the tutorial target (never invent energy from 0).
+ */
+export function topUpTutorialReservesPure(input: {
+  reserveWaterSeconds: number;
+  reserveSunSeconds: number;
+  reserveFertilizerSeconds: number;
+  effectivePresetSeconds: number;
+  tutorialRootSeconds?: number;
+}): {
+  reserveWaterSeconds: number;
+  reserveSunSeconds: number;
+  reserveFertilizerSeconds: number;
+  changed: boolean;
+} {
+  const capacity = Math.max(
+    1,
+    Math.floor(Number(input.effectivePresetSeconds) || 1),
+  );
+  const target = Math.min(
+    capacity,
+    Math.max(
+      1,
+      Math.floor(Number(input.tutorialRootSeconds) || V3_TUTORIAL_ROOT_SECONDS),
+    ),
+  );
+  const topUp = (raw: number): number => {
+    const sec = clampReserveSeconds(raw, capacity);
+    if (sec <= 0 || sec >= target) return sec;
+    return clampReserveSeconds(target, capacity);
+  };
+  const reserveWaterSeconds = topUp(input.reserveWaterSeconds);
+  const reserveSunSeconds = topUp(input.reserveSunSeconds);
+  const reserveFertilizerSeconds = topUp(input.reserveFertilizerSeconds);
+  return {
+    reserveWaterSeconds,
+    reserveSunSeconds,
+    reserveFertilizerSeconds,
+    changed:
+      reserveWaterSeconds !==
+        clampReserveSeconds(input.reserveWaterSeconds, capacity) ||
+      reserveSunSeconds !==
+        clampReserveSeconds(input.reserveSunSeconds, capacity) ||
+      reserveFertilizerSeconds !==
+        clampReserveSeconds(input.reserveFertilizerSeconds, capacity),
   };
 }

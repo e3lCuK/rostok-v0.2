@@ -299,6 +299,25 @@ describe("settleEconomyV3Roots (round-robin distribution)", () => {
     expect(r.generationRrCursor).toBe(1);
   });
 
+  it("6b. product: timer energy fills roots first — reserves unchanged until transfer", () => {
+    const r = settleEconomyV3Roots({
+      ...baseInput,
+      reserveWaterSeconds: 5,
+      reserveSunSeconds: 5,
+      reserveFertilizerSeconds: 5,
+      generationAnchorAt: NOW - 3 * T * 1000,
+      nowMs: NOW,
+    });
+    expect(r.wholeSeconds).toBe(3);
+    expect(r.rootWaterSeconds).toBe(1);
+    expect(r.rootSunSeconds).toBe(1);
+    expect(r.rootFertilizerSeconds).toBe(1);
+    // Activity buttons do not receive generation directly.
+    expect(r.reserveWaterSeconds).toBe(5);
+    expect(r.reserveSunSeconds).toBe(5);
+    expect(r.reserveFertilizerSeconds).toBe(5);
+  });
+
   it("7–9. root cap at effectivePreset; full root discards its slot while others continue", () => {
     const r = settleEconomyV3Roots({
       ...baseInput,

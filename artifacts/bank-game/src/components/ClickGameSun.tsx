@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Sun } from "lucide-react";
 import GameTimer from "./GameTimer";
 import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
 
@@ -340,7 +341,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
         />
 
         <div className="mini-game-counter">
-          <span>☀️</span>
+          <Sun size={20} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.sun} />
           <span className="mini-game-counter-val">{catchCount}</span>
         </div>
       </div>
@@ -365,7 +366,9 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
           style={{ background: CFG.bg }}
           onClick={() => onComplete(result.skillScore, result.catches)}
         >
-          <span className="mini-game-result-emoji">☀️</span>
+          <span className="mini-game-result-emoji" aria-hidden="true">
+            <Sun size={42} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.sun} />
+          </span>
 
           <p
             className="mini-game-result-count"

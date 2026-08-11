@@ -160,6 +160,7 @@ describe("Economy v2 debug moved to right panel", () => {
       onRootsApplied: () => {},
       onExcessApplied: () => {},
       onV3RootsApplied: () => {},
+      onPlayerProgressApplied: () => {},
     });
     expect(readEconomyV2DebugSnapshot().energySeconds).toBe(10);
     getEconomyV2DebugBridge()?.onEnergyApplied({
@@ -213,6 +214,21 @@ describe("Economy v2 debug moved to right panel", () => {
     expect(localPanel).toContain("Сброс туториала");
     expect(localPanel).toContain("Сброс аккаунта");
     expect(localPanel).toContain("Удалить аккаунт");
+    // Must wipe F5 wait clock or the new life resumes the old ~10:xx deadline.
+    expect(localPanel).toContain("clearTutorialWaitClock");
+    expect(localPanel).toMatch(
+      /clearStaleWaitClockBeforeAccountWipe[\s\S]*?reset-progress/,
+    );
+  });
+
+  it("15b. +опыт soft-applies XP/level (no reload) so LevelUpAnimation can fire", () => {
+    expect(localPanel).toContain("debugAddXP");
+    expect(localPanel).toContain("onPlayerProgressApplied");
+    expect(localPanel).not.toMatch(
+      /debugAddXP[\s\S]{0,120}reload\(\)/,
+    );
+    expect(page).toContain("onPlayerProgressApplied");
+    expect(page).toContain("setLevelUpData({ level: playerLevel })");
   });
 
   it("layout: bank input + Добавить share one row", () => {
@@ -295,6 +311,7 @@ describe("Economy v2 debug moved to right panel", () => {
       onRootsApplied: () => {},
       onExcessApplied: () => {},
       onV3RootsApplied: () => {},
+      onPlayerProgressApplied: () => {},
     });
     expect(fn).toHaveBeenCalledTimes(1);
     notifyEconomyV2DebugSnapshot(); // same values — no-op
@@ -321,6 +338,7 @@ describe("Economy v2 debug moved to right panel", () => {
       onRootsApplied: () => {},
       onExcessApplied: () => {},
       onV3RootsApplied: () => {},
+      onPlayerProgressApplied: () => {},
     });
     const a = readEconomyV2DebugSnapshot();
     const b = readEconomyV2DebugSnapshot();
@@ -378,6 +396,9 @@ describe("Economy v2 debug moved to right panel", () => {
       /debugEconomyV3Roots[\s\S]{0,200}window\.location\.reload/,
     );
     expect(page).toContain("onV3RootsApplied");
+    // Debug fill clears Care journal — must also drop stale «Уход» chrome.
+    expect(page).toContain("cycleGone");
+    expect(page).toContain('dispatchCarePhase({ type: "reset" })');
     expect(page).toContain("applyEconomyV3RootsToState");
     expect(parseNonNegativeIntInput("0")).toBe(0);
     expect(parseNonNegativeIntInput("7")).toBe(7);

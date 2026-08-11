@@ -9,10 +9,8 @@ import {
 import { Zap } from "lucide-react";
 
 import RootEnergySystem from "./RootEnergySystem";
-import IncomeChestFloat from "./IncomeChestFloat";
 import { useV2TrunkAnchor } from "./useV2TrunkAnchor";
 import { api, type EconomyV2RootsState } from "@/lib/api";
-import type { IncomeChestFeedback } from "@/lib/incomeChestFeedback";
 import {
   findGeneratingSectionIndex,
   getNextCollectableSectionIndex,
@@ -30,9 +28,6 @@ interface Props {
   tutorialDone: boolean;
   /** Hide the root energy countdown (e.g. during Metelka cleaning). */
   hideEnergyTimer?: boolean;
-  /** One-shot float after successful Metelka income acknowledge. */
-  incomeChestFeedback?: IncomeChestFeedback | null;
-  onIncomeChestFeedbackComplete?: (id: string) => void;
   onRootsChange: (roots: EconomyV2RootsState, energySeconds: number) => void;
   onRefreshState: () => Promise<void>;
   onError?: (message: string) => void;
@@ -56,8 +51,6 @@ export default function RootEnergyLayer({
   capital,
   tutorialDone,
   hideEnergyTimer = false,
-  incomeChestFeedback = null,
-  onIncomeChestFeedbackComplete,
   onRootsChange,
   onRefreshState,
   onError,
@@ -305,10 +298,6 @@ export default function RootEnergyLayer({
         </span>
       ))}
 
-      <IncomeChestFloat
-        feedback={incomeChestFeedback}
-        onComplete={(id) => onIncomeChestFeedbackComplete?.(id)}
-      />
     </div>
   );
 }

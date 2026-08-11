@@ -35,24 +35,49 @@ function centerOf(rect: DOMRect): { x: number; y: number } {
 }
 
 /**
- * Measure flight path from the chosen root to its matching activity card/reserve.
- * Returns null when either endpoint is missing (e.g. SSR / card not mounted).
+ * Point just above the activity card top edge (not center, not bottom reserve fill).
+ * Offset keeps the `+X с` cue clearly over the button, not under it.
+ */
+export function activityCardTopAnchor(rect: DOMRect): { x: number; y: number } {
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top - 14,
+  };
+}
+
+/** Resolve the activity button element used as the flight landing target. */
+export function resolveV3ActivityFlightTarget(
+  kind: EconomyV3RootKind,
+  doc: Document = document,
+): Element | null {
+  return (
+    doc.querySelector(V3_ACTIVITY_CARD_SELECTOR(kind)) ??
+    doc.querySelector(V3_ACTIVITY_RESERVE_SELECTOR(kind))?.closest("button") ??
+    null
+  );
+}
+
+/**
+ * Measure flight path from the chosen root to above its activity card.
+ * Returns null only when the root itself is missing.
+ * If the activity card is unmounted (Metelka row / ghost), arcs upward from the root
+ * so the `+X с` collect cue still plays.
  */
 export function measureV3TransferFlight(
   kind: EconomyV3RootKind,
   doc: Document = document,
 ): V3TransferFlightPoints | null {
   const fromEl = doc.querySelector(V3_ROOT_SELECTOR(kind));
-  const toEl =
-    doc.querySelector(V3_ACTIVITY_RESERVE_SELECTOR(kind)) ??
-    doc.querySelector(V3_ACTIVITY_CARD_SELECTOR(kind));
-  if (!fromEl || !toEl) return null;
+  if (!fromEl) return null;
 
   const from = centerOf(fromEl.getBoundingClientRect());
-  const to = centerOf(toEl.getBoundingClientRect());
-  // Soft arc toward the card (activity column is typically left of the tree).
+  const toEl = resolveV3ActivityFlightTarget(kind, doc);
+  const to = toEl
+    ? activityCardTopAnchor(toEl.getBoundingClientRect())
+    : { x: from.x, y: from.y - 96 };
+  // Soft arc that peaks above the button, then settles above its top edge.
   const midX = from.x + (to.x - from.x) * 0.45;
-  const midY = Math.min(from.y, to.y) - Math.abs(to.y - from.y) * 0.18 - 12;
+  const midY = Math.min(from.y, to.y) - Math.abs(to.y - from.y) * 0.28 - 24;
 
   return {
     kind,
@@ -71,6 +96,16 @@ export function v3RootToActivityKind(
   kind: EconomyV3RootKind,
 ): EconomyV3RootKind {
   return kind;
+}
+
+/**
+ * Floater label for root → activity transfer (`+10 с`).
+ * Whole seconds only; empty when nothing transferable.
+ */
+export function formatV3TransferSecondsLabel(seconds: unknown): string {
+  const n = Math.max(0, Math.floor(Number(seconds) || 0));
+  if (n <= 0) return "";
+  return `+${n} с`;
 }
 
 const pulseTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();

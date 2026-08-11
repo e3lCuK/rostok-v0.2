@@ -125,8 +125,9 @@ function baseV3(
 }
 
 describe("v3 Care cycle — shovel / preview / claim helpers", () => {
-  it("ready shows «Уход» (readyToFinish or status ready)", () => {
+  it("ready shows «Уход» only when readyToFinish (not bare status ready)", () => {
     expect(shouldShowV3CareShovel(baseV3())).toBe(true);
+    // status ready + session still pending ack → must NOT hide activity row
     expect(
       shouldShowV3CareShovel(
         baseV3({
@@ -137,7 +138,7 @@ describe("v3 Care cycle — shovel / preview / claim helpers", () => {
           },
         }),
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldShowV3CareShovel(
         baseV3({
@@ -378,6 +379,9 @@ describe("v3 Care cycle — GamePage / api wiring (7I)", () => {
     // Status/reward line under «Уход» removed from player UI.
     expect(pageSrc).not.toContain("data-v3-care-reward-preview");
     expect(pageSrc).not.toContain("v3-activity-preview-status");
+    // Stale shovel (debug clear) recovers once, then resets chrome — no silent no-op.
+    expect(pageSrc).toContain('action === "none"');
+    expect(pageSrc).toContain("Цикл ухода не готов");
   });
 
   it("pending rewards come from claim response fields", () => {

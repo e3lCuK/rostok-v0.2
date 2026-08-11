@@ -27,7 +27,10 @@ import {
   settleEconomyV3RootsInTransaction,
   type EconomyV3DbClient,
 } from "./economy-v3-roots-settle";
-import { loadCapitalForUser } from "./economy-v2-energy-settle";
+import {
+  isEconomyV2TutorialActive,
+  loadCapitalForUser,
+} from "./economy-v2-energy-settle";
 import {
   normalizeExcessSeconds,
 } from "./economy-v2-excess";
@@ -37,6 +40,10 @@ import {
   readV3MetelkaCompletedForCycle,
   readV3MetelkaRequired,
 } from "./economy-v3-metelka-cycle";
+import {
+  grantTutorialV3RootsPure,
+  V3_TUTORIAL_ROOT_SECONDS,
+} from "./economy-v3-tutorial-pure";
 
 export class EconomyV3RootsTransferError extends Error {
   readonly status: number;
@@ -173,6 +180,16 @@ export async function transferEconomyV3Root(
       };
     }
 
+    // Metelka-before-transfer: block manual collect until Metelka finishes.
+    if (settled.snapshot.metelkaCycle?.transferLocked === true) {
+      await client.query("COMMIT");
+      throw new EconomyV3RootsTransferError(
+        409,
+        "metelka_transfer_locked",
+        "Сначала пройдите Метёлку — потом собирайте энергию из корней",
+      );
+    }
+
     const basePresetSeconds = normalizeDailyCap(locked.v3_daily_cap_seconds);
     const effectivePresetSeconds = computeV3EffectivePresetSeconds({
       basePresetSeconds,
@@ -183,11 +200,78 @@ export async function transferEconomyV3Root(
     const firstTransferredRoot =
       firstRaw != null && validateRootKind(firstRaw) ? firstRaw : null;
 
+    // Tutorial: force two-cell (10s) fills before collect so activity presets
+    // show 10 с (stale 5s grants / local-only pops cannot under-spend).
+    let rootWaterSeconds = settled.rootWaterSeconds;
+    let rootSunSeconds = settled.rootSunSeconds;
+    let rootFertilizerSeconds = settled.rootFertilizerSeconds;
+    if (isEconomyV2TutorialActive(locked.tutorial_done)) {
+      const transferredSet = new Set(
+        normalizeTransferredRoots(locked.v3_transferred_roots),
+      );
+      const forceTutorialFill = (kind: RootKind, sec: number): number => {
+        if (transferredSet.has(kind)) return sec;
+        // Upgrade any present energy, and always the root about to be collected.
+        if (sec > 0 || kind === rootRaw) {
+          return Math.max(sec, V3_TUTORIAL_ROOT_SECONDS);
+        }
+        return sec;
+      };
+      const bumped = grantTutorialV3RootsPure({
+        rootWaterSeconds,
+        rootSunSeconds,
+        rootFertilizerSeconds,
+        reserveWaterSeconds: clampReserveSeconds(
+          locked.v3_reserve_water_seconds,
+          effectivePresetSeconds,
+        ),
+        reserveSunSeconds: clampReserveSeconds(
+          locked.v3_reserve_sun_seconds,
+          effectivePresetSeconds,
+        ),
+        reserveFertilizerSeconds: clampReserveSeconds(
+          locked.v3_reserve_fertilizer_seconds,
+          effectivePresetSeconds,
+        ),
+        transferredRoots: normalizeTransferredRoots(locked.v3_transferred_roots),
+        effectivePresetSeconds,
+      });
+      rootWaterSeconds = forceTutorialFill("water", bumped.rootWaterSeconds);
+      rootSunSeconds = forceTutorialFill("sun", bumped.rootSunSeconds);
+      rootFertilizerSeconds = forceTutorialFill(
+        "fertilizer",
+        bumped.rootFertilizerSeconds,
+      );
+      const rootsChanged =
+        rootWaterSeconds !== settled.rootWaterSeconds ||
+        rootSunSeconds !== settled.rootSunSeconds ||
+        rootFertilizerSeconds !== settled.rootFertilizerSeconds;
+      if (rootsChanged) {
+        await client.query(
+          `UPDATE game_state
+           SET v3_root_water_seconds = $2,
+               v3_root_sun_seconds = $3,
+               v3_root_fertilizer_seconds = $4,
+               updated_at = NOW()
+           WHERE user_id = $1`,
+          [
+            String(userId),
+            rootWaterSeconds,
+            rootSunSeconds,
+            rootFertilizerSeconds,
+          ],
+        );
+        locked.v3_root_water_seconds = rootWaterSeconds;
+        locked.v3_root_sun_seconds = rootSunSeconds;
+        locked.v3_root_fertilizer_seconds = rootFertilizerSeconds;
+      }
+    }
+
     const transferred = transferEconomyV3RootPure({
       root: rootRaw,
-      rootWaterSeconds: settled.rootWaterSeconds,
-      rootSunSeconds: settled.rootSunSeconds,
-      rootFertilizerSeconds: settled.rootFertilizerSeconds,
+      rootWaterSeconds,
+      rootSunSeconds,
+      rootFertilizerSeconds,
       reserveWaterSeconds: clampReserveSeconds(
         locked.v3_reserve_water_seconds,
         effectivePresetSeconds,

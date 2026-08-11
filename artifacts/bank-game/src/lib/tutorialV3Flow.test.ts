@@ -16,13 +16,16 @@ import {
   isV3TutorialRootEnergyReady,
   isV3TutorialRootStep,
   mergeStagedTutorialPrepare,
+  mergeTutorialRootsPreserveFill,
   nextV3TutorialFillKind,
   nextV3TutorialStepFromCompletedActivities,
   nextV3TutorialStepAfterRootTransfer,
   nextV3TutorialRootStep,
   resolveV3TutorialStepFromServer,
+  shouldApplyResolvedV3TutorialStep,
   shouldClearStaleV3CareUiAfterTutorial,
   tutorialHighlightRoot,
+  TUTORIAL_PLAN_ICON_COLORS,
   TUTORIAL_V3_FILL_SECONDS,
   TUTORIAL_V3_ROOT_POP_MS,
   TUTORIAL_V3_ROOT_SECONDS,
@@ -149,6 +152,7 @@ function sampleV3(
 describe("Economy v3 Tutorial flow (8E)", () => {
   it("staged fill: 2s cadence water → sun → fertilizer before collect", () => {
     expect(TUTORIAL_V3_FILL_SECONDS).toBe(5);
+    expect(TUTORIAL_V3_ROOT_SECONDS).toBe(10);
     expect(pageSrc).toContain("V3TutorialFillTimer");
     expect(pageSrc).toContain("tutorialFillDeadlineMs");
     expect(pageSrc).toContain("prepareTutorialV3({ kind })");
@@ -176,8 +180,19 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(pageSrc).toContain("handoffDeadlineAtMs");
     expect(pageSrc).toContain('setTutorialTimerKind("wait")');
     expect(pageSrc).toContain('tutorialTimerKind === "wait"');
-    // 12:00 must arm even if intro effect is cancelled by step advance.
+    // Fill/wait bootstrap must survive intro → root-collect step changes
+    // (old `tutorialStep !== "intro"` gate cancelled the timer → idle "—:—").
+    expect(pageSrc).toContain("tutorialEnergyBootstrap");
     expect(pageSrc).toContain("areV3TutorialRootsEnergyReady(game.v3Roots)");
+    // Stale wait clock must not block the fill loop (idle "—:—" on intro).
+    expect(pageSrc).toContain("dropStaleTutorialWaitClock");
+    expect(pageSrc).toMatch(
+      /dropStaleTutorialWaitClock[\s\S]*?setTutorialStep\("intro"\)/,
+    );
+    // Prepare must not block water→sun→fertilizer; watchdog restarts a dead loop.
+    expect(pageSrc).toContain("persistPreparedKind");
+    expect(pageSrc).toContain("tutorialFillRepairNonce");
+    expect(pageSrc).toContain("mergeTutorialRootsPreserveFill");
     // After 12:00 elapses — settle root energy like main (without ending tutorial).
     expect(apiSrc).toContain("armTutorialV3Wait");
     expect(apiSrc).toContain("syncTutorialV3WaitEnergy");
@@ -221,8 +236,9 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(nextV3TutorialFillKind(empty)).toBe("water");
     expect(areV3TutorialRootsEnergyReady(empty)).toBe(false);
 
-    const onlyWater = withTutorialRootSeconds(empty, "water", 5);
-    expect(onlyWater.roots.water.seconds).toBe(5);
+    const onlyWater = withTutorialRootSeconds(empty, "water", 10);
+    expect(onlyWater.roots.water.seconds).toBe(10);
+    expect(onlyWater.roots.water.fullSegments).toBe(2);
     expect(onlyWater.roots.sun.seconds).toBe(0);
     expect(onlyWater.roots.fertilizer.seconds).toBe(0);
     const merged = mergeStagedTutorialPrepare(
@@ -230,27 +246,140 @@ describe("Economy v3 Tutorial flow (8E)", () => {
       "water",
       withTutorialRootSeconds(
         withTutorialRootSeconds(
-          withTutorialRootSeconds(empty, "water", 5),
+          withTutorialRootSeconds(empty, "water", 10),
           "sun",
-          5,
+          10,
         ),
         "fertilizer",
-        5,
+        10,
       ),
     );
     // Even if server returns all three, staged merge keeps sun/fert local.
-    expect(merged.roots.water.seconds).toBe(5);
+    expect(merged.roots.water.seconds).toBe(10);
     expect(merged.roots.sun.seconds).toBe(0);
     expect(merged.roots.fertilizer.seconds).toBe(0);
+
+    // Stale 5s grant must not underrun local two-cell pop (infinite water loop).
+    const staleServer = withTutorialRootSeconds(empty, "water", 5);
+    const keepLocal = mergeStagedTutorialPrepare(
+      onlyWater,
+      "water",
+      staleServer,
+    );
+    expect(keepLocal.roots.water.seconds).toBe(10);
+    expect(nextV3TutorialFillKind(keepLocal)).toBe("sun");
+
+    // Collect must not snap uncollected siblings from 10s → 5s.
+    const localTrio = withTutorialRootSeconds(
+      withTutorialRootSeconds(
+        withTutorialRootSeconds(empty, "water", 10),
+        "sun",
+        10,
+      ),
+      "fertilizer",
+      10,
+    );
+    const afterWaterCollect = mergeTutorialRootsPreserveFill(
+      localTrio,
+      sampleV3({
+        roots: {
+          water: {
+            ...empty.roots.water,
+            seconds: 0,
+            fullSegments: 0,
+            fillFraction: 0,
+            playableFromRoot: false,
+            transferred: true,
+          },
+          sun: {
+            ...empty.roots.sun,
+            seconds: 5,
+            fullSegments: 1,
+            fillFraction: 0.2,
+            playableFromRoot: true,
+          },
+          fertilizer: {
+            ...empty.roots.fertilizer,
+            seconds: 5,
+            fullSegments: 1,
+            fillFraction: 0.2,
+            playableFromRoot: true,
+          },
+        },
+        reserves: {
+          water: { seconds: 10, capacitySeconds: 20, playable: true },
+          sun: { seconds: 0, capacitySeconds: 20, playable: false },
+          fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
+        },
+        generation: {
+          ...empty.generation,
+          transferredRoots: ["water"],
+          firstTransferredRoot: "water",
+        },
+      }),
+    );
+    expect(afterWaterCollect.roots.water.seconds).toBe(0);
+    expect(afterWaterCollect.roots.sun.seconds).toBe(10);
+    expect(afterWaterCollect.roots.fertilizer.seconds).toBe(10);
+    expect(afterWaterCollect.reserves.water.seconds).toBe(10);
+
+    // Third collect clears transferredRoots — must not resurrect last root fill.
+    const afterAllCollected = mergeTutorialRootsPreserveFill(
+      localTrio,
+      sampleV3({
+        roots: {
+          water: {
+            ...empty.roots.water,
+            seconds: 0,
+            fullSegments: 0,
+            fillFraction: 0,
+            playableFromRoot: false,
+            transferred: false,
+          },
+          sun: {
+            ...empty.roots.sun,
+            seconds: 0,
+            fullSegments: 0,
+            fillFraction: 0,
+            playableFromRoot: false,
+            transferred: false,
+          },
+          fertilizer: {
+            ...empty.roots.fertilizer,
+            seconds: 0,
+            fullSegments: 0,
+            fillFraction: 0,
+            playableFromRoot: false,
+            transferred: false,
+          },
+        },
+        reserves: {
+          water: { seconds: 10, capacitySeconds: 20, playable: true },
+          sun: { seconds: 10, capacitySeconds: 20, playable: true },
+          fertilizer: { seconds: 10, capacitySeconds: 20, playable: true },
+        },
+        generation: {
+          ...empty.generation,
+          transferredRoots: [],
+          firstTransferredRoot: null,
+        },
+      }),
+    );
+    expect(afterAllCollected.roots.water.seconds).toBe(0);
+    expect(afterAllCollected.roots.sun.seconds).toBe(0);
+    expect(afterAllCollected.roots.fertilizer.seconds).toBe(0);
+    expect(afterAllCollected.reserves.fertilizer.seconds).toBe(10);
+    expect(pageSrc).toContain("prepareTutorialV3({ all: true })");
+    expect(pageSrc).toContain("mergeTutorialRootsPreserveFill");
 
     const waterOnly = sampleV3({
       roots: {
         ...empty.roots,
         water: {
           ...empty.roots.water,
-          seconds: 5,
-          fullSegments: 1,
-          fillFraction: 0.2,
+          seconds: 10,
+          fullSegments: 2,
+          fillFraction: 0.4,
           playableFromRoot: true,
         },
       },
@@ -266,7 +395,7 @@ describe("Economy v3 Tutorial flow (8E)", () => {
   });
 
   it("root order Water → Sun → Fertilizer → activities; activities free order", () => {
-    expect(TUTORIAL_V3_ROOT_SECONDS).toBe(5);
+    expect(TUTORIAL_V3_ROOT_SECONDS).toBe(10);
     expect(nextV3TutorialStepAfterRootTransfer("water")).toBe("v3-root-sun");
     expect(nextV3TutorialStepAfterRootTransfer("sun")).toBe(
       "v3-root-fertilizer",
@@ -318,33 +447,33 @@ describe("Economy v3 Tutorial flow (8E)", () => {
             frozen: true,
           },
           sun: {
-            seconds: 5,
-            fullSegments: 1,
+            seconds: 10,
+            fullSegments: 2,
             partialSegmentSeconds: 0,
             capacitySeconds: 25,
-            fillFraction: 0.2,
+            fillFraction: 0.4,
             playableFromRoot: true,
             transferred: false,
             frozen: true,
           },
           fertilizer: {
-            seconds: 5,
-            fullSegments: 1,
+            seconds: 10,
+            fullSegments: 2,
             partialSegmentSeconds: 0,
             capacitySeconds: 25,
-            fillFraction: 0.2,
+            fillFraction: 0.4,
             playableFromRoot: true,
             transferred: false,
             frozen: true,
           },
         },
         reserves: {
-          water: { seconds: 5, capacitySeconds: 20, playable: true },
+          water: { seconds: 10, capacitySeconds: 20, playable: true },
           sun: { seconds: 0, capacitySeconds: 20, playable: false },
           fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
         },
         careAvailability: {
-          water: { reserveSeconds: 5, playable: true, maxPresetSeconds: 5 },
+          water: { reserveSeconds: 10, playable: true, maxPresetSeconds: 10 },
           sun: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
           fertilizer: { reserveSeconds: 0, playable: false, maxPresetSeconds: 0 },
         },
@@ -400,17 +529,17 @@ describe("Economy v3 Tutorial flow (8E)", () => {
           },
         },
         reserves: {
-          water: { seconds: 5, capacitySeconds: 20, playable: true },
-          sun: { seconds: 5, capacitySeconds: 20, playable: true },
-          fertilizer: { seconds: 5, capacitySeconds: 20, playable: true },
+          water: { seconds: 10, capacitySeconds: 20, playable: true },
+          sun: { seconds: 10, capacitySeconds: 20, playable: true },
+          fertilizer: { seconds: 10, capacitySeconds: 20, playable: true },
         },
         careAvailability: {
-          water: { reserveSeconds: 5, playable: true, maxPresetSeconds: 5 },
-          sun: { reserveSeconds: 5, playable: true, maxPresetSeconds: 5 },
+          water: { reserveSeconds: 10, playable: true, maxPresetSeconds: 10 },
+          sun: { reserveSeconds: 10, playable: true, maxPresetSeconds: 10 },
           fertilizer: {
-            reserveSeconds: 5,
+            reserveSeconds: 10,
             playable: true,
-            maxPresetSeconds: 5,
+            maxPresetSeconds: 10,
           },
         },
         generation: {
@@ -428,15 +557,22 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(step).toBe("v3-activities-intro");
   });
 
-  it("intro wait card; root collect steps stay pulse-only", () => {
+  it("intro wait card; then collect-roots card with energy icon", () => {
     expect(v3TutorialOverlayConfig("intro")).toEqual({
       icon: "wait",
       text: "Дождитесь формирования энергии",
       hint: "Смотрите на таймер у корней.",
+      accent: TUTORIAL_PLAN_ICON_COLORS.wait,
     });
-    expect(v3TutorialOverlayConfig("v3-root-water")).toBeNull();
-    expect(v3TutorialOverlayConfig("v3-root-sun")).toBeNull();
-    expect(v3TutorialOverlayConfig("v3-root-fertilizer")).toBeNull();
+    const collect = {
+      icon: "energy",
+      text: "Соберите энергию из корней",
+      hint: "Нажмите на корневые ячейки по очереди.",
+      accent: TUTORIAL_PLAN_ICON_COLORS.energy,
+    };
+    expect(v3TutorialOverlayConfig("v3-root-water")).toEqual(collect);
+    expect(v3TutorialOverlayConfig("v3-root-sun")).toEqual(collect);
+    expect(v3TutorialOverlayConfig("v3-root-fertilizer")).toEqual(collect);
     expect(
       v3TutorialOverlayConfig("v3-activities-intro", {
         recommendedActivity: "water",
@@ -454,10 +590,29 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     ).toBe("Собирайте гранулы в ряд.");
     expect(flowSrc).not.toContain("Нажмите на синий корень");
     expect(flowSrc).not.toContain("корня Воды");
-    expect(flowSrc).not.toContain("Соберите энергию");
     expect(pageSrc).toContain('cfg.icon === "wait"');
+    expect(pageSrc).toContain('cfg.icon === "energy"');
     expect(pageSrc).toContain("<Clock");
-    expect(pageSrc).toContain('color="#166534"');
+    expect(pageSrc).toContain("<Zap");
+    expect(pageSrc).toContain("TUTORIAL_PLAN_ICON_COLORS");
+    expect(pageSrc).toContain("--tutorial-accent");
+    expect(pageSrc).toContain("cfg.accent");
+  });
+
+  it("F5 re-resolve must not regress past intro (Care shovel → empty roots)", () => {
+    expect(shouldApplyResolvedV3TutorialStep("complete", "intro")).toBe(false);
+    expect(
+      shouldApplyResolvedV3TutorialStep("v3-activities-intro", "intro"),
+    ).toBe(false);
+    expect(shouldApplyResolvedV3TutorialStep("v3-root-water", "intro")).toBe(
+      false,
+    );
+    expect(shouldApplyResolvedV3TutorialStep("intro", "v3-root-water")).toBe(
+      true,
+    );
+    expect(shouldApplyResolvedV3TutorialStep("intro", "intro")).toBe(false);
+    expect(shouldApplyResolvedV3TutorialStep(null, "intro")).toBe(true);
+    expect(pageSrc).toContain("shouldApplyResolvedV3TutorialStep");
   });
 
   it("GamePage: v3 tutorial uses prepare + v3 care; no session endpoints", () => {
@@ -479,8 +634,9 @@ describe("Economy v3 Tutorial flow (8E)", () => {
   });
 
   it("GamePage: shovel during v3 tutorial uses v3 cycle, not legacy finish", () => {
+    expect(pageSrc).toContain("void handleV3CareShovelClick()");
     expect(pageSrc).toMatch(
-      /tutorialStep === \"complete\" &&\s*useV3[\s\S]*?handleV3CareShovelClick/,
+      /useV3\s*\n\s*\?\s*\(\)\s*=>\s*\{\s*\n\s*void handleV3CareShovelClick\(\)/,
     );
     expect(pageSrc).toContain("acknowledgeV3CareCycleOnce");
   });

@@ -25,6 +25,15 @@
   --gold: #d97706;
   /* Shared cream fill: apple / growth / capital badges, empty roots, activity buttons */
   --field-caption-bg: rgba(255, 248, 236, 0.92);
+  /*
+   * Shared counter type — capital sum is the sample
+   * (apples / growth / activity seconds / reward flash labels).
+   */
+  --v3-flask-font: "Segoe UI", system-ui, sans-serif;
+  --v3-flask-font-size: 11px;
+  --v3-flask-font-weight: 700;
+  /* Activity / care button rim — same thin outline as the capital flask. */
+  --v3-care-rim-width: 1.05px;
   --radius: 20px;
   --radius-sm: 12px;
   --shadow: 0 2px 16px rgba(0,0,0,0.06);
@@ -585,6 +594,18 @@ body {
   margin-block: auto;
 }
 
+/*
+ * v3 host is tall (hourglass + chest). Pin the flash to the capital-face
+ * midline so +₽ sits level with the capital sum, not mid-flask.
+ * Use `translate` (not `transform`) so Framer scale still works.
+ */
+.game-area--v3-roots .field-income-popup {
+  top: auto;
+  bottom: calc(var(--v3-chest-face-height, 56px) / 2);
+  margin-block: 0;
+  translate: 0 50%;
+}
+
 .game-beta-badge {
   font-size: 0.58rem;
   font-weight: 600;
@@ -625,19 +646,25 @@ body {
   justify-content: center;
   width: 22px;
   height: 22px;
+  box-sizing: border-box;
+  /* Cream shell, no rim */
   border: none;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #6b7280;
+  border-radius: 6px;
+  background: var(--field-caption-bg);
+  color: #5c3a1a;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(6px);
-  transition: background 0.12s;
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  transition: background 0.12s, opacity 0.12s;
+}
+.game-gear-btn svg {
+  display: block;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 .game-gear-btn:active {
-  background: rgba(255, 255, 255, 0.88);
+  opacity: 0.9;
 }
 
 .game-area-bg-wrap {
@@ -668,6 +695,19 @@ body {
   pointer-events: none;
 }
 
+/* Thin grass↔soil join — short SVG so Y-scale ≈ 1 (even + thin stroke). */
+.bg-soil-join {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  display: block;
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+}
+
 /* Level diamond — top-left of play field (above apple basket) */
 .field-level-host {
   position: absolute;
@@ -683,9 +723,20 @@ body {
 .field-level-host .lvl-badge-wrap {
   pointer-events: auto;
 }
+.field-level-host .vault-badge-wrap {
+  pointer-events: auto;
+}
 .field-level-host .lvl-badge svg {
   width: 64px;
   height: 68px;
+}
+/* Invisible seat for LevelWidget so the vault stays under the level slot. */
+.field-level-host .lvl-badge-slot {
+  width: 64px;
+  height: 68px;
+  flex-shrink: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 .field-level-xp-popup {
   position: relative;
@@ -697,10 +748,143 @@ body {
   z-index: 13;
 }
 
-/* Apple basket — left of left bush; replaces topbar apple row */
+/* Vault (safe) under level diamond — permanent capital parking. */
+.vault-badge-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  margin-top: 2px;
+}
+.vault-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vault-badge-amount {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 800;
+  /* Same gold ink as flask timer / capital sum. */
+  color: #c9920a;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 3px rgba(255, 248, 236, 0.95);
+}
+.vault-badge-wrap--draggable {
+  z-index: 14;
+}
+/* Above tutorial hint cards (z-index 20) so the dragged wallet stays visible. */
+.field-level-host:has(.vault-badge-wrap--dragging),
+.vault-badge-wrap--dragging {
+  z-index: 40;
+}
+.vault-badge-wrap--draggable .vault-badge {
+  border-radius: 12px;
+  animation: vault-capital-pulse 1.35s ease-in-out infinite;
+}
+/* Pulse in flask/capital gold — not activity green. */
+@keyframes vault-capital-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(201, 146, 10, 0.55),
+      0 2px 8px rgba(0, 0, 0, 0.10);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px transparent,
+      0 4px 16px rgba(201, 146, 10, 0.35);
+    transform: scale(1.06);
+  }
+}
+.vault-drag-token {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  z-index: 2;
+  /* Wallet sits on top of the safe — readable grab affordance. */
+  filter: drop-shadow(0 1px 2px rgba(80, 50, 10, 0.35));
+}
+.vault-drag-token--dragging {
+  /* Keep the wallet visible while dragging (was opacity:0 — looked empty). */
+  z-index: 80;
+  cursor: grabbing;
+  filter: drop-shadow(0 4px 10px rgba(80, 50, 10, 0.45));
+  pointer-events: auto;
+}
+.vault-drag-ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.28;
+  z-index: 1;
+}
+
+/* Tutorial plant pad — large hit target; small dashed oval inside. */
+.tutorial-plant-pad {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 64px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 30;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+.tutorial-plant-pad-oval {
+  width: 56px;
+  height: 22px;
+  border: 2px dashed rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 1px rgba(47, 92, 14, 0.12);
+  animation: tut-plant-pad-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.tutorial-plant-pad:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+@keyframes tut-plant-pad-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+.game-tree-wrap--no-sprout {
+  min-height: 120px;
+  width: 140px;
+  pointer-events: auto;
+}
+
+/* Apple basket — right of left bush; replaces topbar apple row */
 .apple-basket-host {
   position: absolute;
-  left: 0;
+  /* Just right of the left bush (~cx 36 in 430 viewBox → ~15% + gap). */
+  left: 15%;
   right: auto;
   bottom: 18px;
   z-index: 8;
@@ -711,16 +895,16 @@ body {
 }
 .game-area--v2-mocks .apple-basket-host {
   bottom: calc(var(--v2-scene-lift) + 16px);
-  left: 0;
+  left: 15%;
   right: auto;
 }
 .game-area--v3-roots .apple-basket-host {
   bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury) + 14px);
-  left: 0;
+  left: 15%;
   right: auto;
 }
 
-/* Field visibility stub — right edge, below grass/soil horizon. */
+/* Field visibility — right edge; cream pill, no rim, short height. */
 .field-visibility-btn {
   position: absolute;
   right: 10px;
@@ -730,22 +914,31 @@ body {
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 28px;
+  height: 20px;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
   border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: rgb(255, 248, 236);
+  border-radius: 6px;
+  background: var(--field-caption-bg);
+  color: #5c3a1a;
   cursor: pointer;
   pointer-events: auto;
   appearance: none;
   -webkit-appearance: none;
+  backdrop-filter: blur(4px);
+  box-shadow: none;
+}
+
+.field-visibility-btn svg {
+  display: block;
+  /* Same readability halo as activity / flask icons. */
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
 .field-visibility-btn:active {
   transform: scale(0.94);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .game-area--v2-mocks .field-visibility-btn {
@@ -760,7 +953,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  /* Slight clearance under the basket shadow (was 2px — pill overlapped) */
+  gap: 4px;
   margin: 0;
   padding: 0;
   border: none;
@@ -769,6 +963,137 @@ body {
 }
 .apple-basket:active .apple-basket-art-wrap {
   filter: brightness(0.97);
+}
+/* While receiving a dragged apple — block shop open; pulse lives on art only. */
+.apple-basket--receiving {
+  pointer-events: none;
+}
+/*
+ * Soft glow on the basket graphic only (not the count badge).
+ * No scale — keeps the basket planted and the pill still.
+ */
+.apple-basket-art-wrap--drop-target {
+  border-radius: 10px;
+  animation: apple-basket-drop-pulse 1.1s ease-in-out infinite;
+}
+@keyframes apple-basket-drop-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 5px rgba(192, 57, 43, 0.7));
+  }
+}
+/*
+ * Idle / drag apple collect:
+ * Pulse the inner token (not the drag host) so CSS transform never fights
+ * framer-motion drag x/y. Tree wrap rises above the basket while dragging.
+ */
+.game-tree-wrap--reward-drag {
+  z-index: 14;
+}
+.tree-apples-overlay--dragging {
+  z-index: 20;
+  overflow: visible;
+}
+/*
+ * Keep grab/grabbing for apple + coin the same. While dragging, lock the
+ * cursor on the whole field — otherwise the pointer leaves the token (apple
+ * path to the basket is long) and the cursor flickers to whatever is under it.
+ */
+.game-area--reward-dragging,
+.game-area--reward-dragging * {
+  cursor: grabbing !important;
+}
+.tree-apple-pending:not(.tree-apple-coin) {
+  cursor: grab;
+  touch-action: none;
+  /* Host stays transform-free for drag; idle pulse lives on the token. */
+  animation: none;
+}
+.tree-apple-pending:not(.tree-apple-coin):not(.tree-apple--dragging) .tree-reward-token {
+  transform-origin: center;
+  animation: apple-collect-idle-pulse 0.95s ease-in-out infinite;
+}
+@keyframes apple-collect-idle-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 7px rgba(192, 57, 43, 0.65));
+  }
+}
+/* Care coin idle pulse on token (Metelka reuses same classes until its drag pass). */
+.tree-apple-coin {
+  cursor: grab;
+  touch-action: none;
+  animation: none !important;
+}
+.tree-apple-coin:not(.tree-apple--dragging) .tree-reward-token {
+  transform-origin: center;
+  animation: coin-collect-idle-pulse 0.9s ease-in-out infinite;
+}
+@keyframes coin-collect-idle-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.22);
+    filter: drop-shadow(0 0 8px rgba(240, 180, 41, 0.75));
+  }
+}
+.tree-apple--dragging {
+  animation: none !important;
+  cursor: grabbing !important;
+  z-index: 40;
+  touch-action: none;
+  filter: drop-shadow(0 5px 10px rgba(80, 40, 20, 0.4));
+}
+.tree-apple--dragging .tree-reward-token {
+  animation: none !important;
+}
+/* Soft imprint left on the canopy while the real token is dragged away. */
+.tree-apple-drag-ghost {
+  position: absolute;
+  display: block;
+  opacity: 0.32;
+  pointer-events: none;
+  line-height: 0;
+  filter: saturate(0.85);
+}
+.tree-apple-drag-ghost .tree-reward-token {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/*
+ * Coin / vault capital drop target — pulse ONLY the lock/clasp.
+ * Strong gold blink (tutorial vault + Care/Metelka coins). No scale.
+ */
+.v2-chest-clasp--drop-target {
+  animation: v2-chest-clasp-drop-pulse 1.05s ease-in-out infinite;
+}
+@keyframes v2-chest-clasp-drop-pulse {
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 1px rgba(201, 146, 10, 0.55))
+      drop-shadow(0 0 4px rgba(201, 146, 10, 0.25));
+    opacity: 1;
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 4px rgba(240, 180, 41, 1))
+      drop-shadow(0 0 12px rgba(201, 146, 10, 0.95))
+      drop-shadow(0 0 22px rgba(201, 146, 10, 0.55));
+    opacity: 1;
+  }
 }
 /* Soft oval under the basket only — no drop-shadow on the art (keeps count pill clean) */
 .apple-basket-art-wrap {
@@ -782,15 +1107,15 @@ body {
   content: "";
   position: absolute;
   left: 50%;
-  /* Same read as bush base ellipse — under basket, clear of count pill */
+  /* Soft ground oval under basket — warm wood tone, not grass green */
   bottom: -1px;
   z-index: 0;
   width: 40px;
   height: 11px;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: #5a9e1e;
-  opacity: 0.55;
+  background: #b8956a;
+  opacity: 0.72;
   pointer-events: none;
 }
 .apple-basket-art {
@@ -817,18 +1142,17 @@ body {
 .apple-basket-badge {
   color: #c0392b;
 }
-/* Shared caption type for growth + apple + capital badges */
-.field-caption-value {
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
+/* Shared caption type — same as capital sum / flask timer. */
+.field-caption-value,
+.field-caption-unit {
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 .field-caption-unit {
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
   opacity: 0.9;
 }
 /* Slot stays out of flow; left-aligned so the icon stays inside the play field */
@@ -1031,9 +1355,10 @@ body {
   66%  { transform: translateY(-2px) translateX(-2px); }
   100% { transform: translateY(0px)  translateX(0px); }
 }
+/* Soft scale pulse — keep sun opaque (same language as bushes / basket). */
 @keyframes bg-sun-pulse {
-  0%, 100% { opacity: 0.30; }
-  50%       { opacity: 0.60; }
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
 }
 @keyframes bg-butterfly-float {
   0%   { transform: translateY(0px)   translateX(0px); }
@@ -1047,7 +1372,11 @@ body {
 .bg-cloud-left  { animation: bg-cloud-drift-left  24s ease-in-out infinite; transform-origin: center; }
 .bg-cloud-right { animation: bg-cloud-drift-right 32s ease-in-out infinite; transform-origin: center; }
 .bg-birds       { animation: bg-birds-float         5s  ease-in-out infinite; transform-origin: center; }
-.bg-sun         { animation: bg-sun-pulse            4s  ease-in-out infinite; }
+.bg-sun         {
+  animation: bg-sun-pulse 4s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
 .bg-butterfly   { animation: bg-butterfly-float      5s  ease-in-out infinite; transform-origin: center; }
 
 @keyframes bg-bush-sway {
@@ -1137,7 +1466,8 @@ body {
   left: 100%;
   top: 42%;
   transform: translateY(-50%);
-  margin-left: 6px;
+  /* Nudge toward trunk (wrap is canopy-wide; 100% sits at outer foliage). */
+  margin-left: -10px;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -1167,7 +1497,8 @@ body {
   left: auto;
   top: 42%;
   transform: translateY(-50%);
-  margin-right: 6px;
+  /* Match growth badge: closer to trunk than the canopy edge. */
+  margin-right: -10px;
   margin-left: 0;
   display: flex;
   flex-direction: row;
@@ -1199,14 +1530,17 @@ body {
 
 .growth-mm-accrual {
   color: #15803d;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
 }
 .growth-mm-accrual-label {
   white-space: nowrap;
   position: relative;
   z-index: 1;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .growth-timer-bar {
@@ -1232,8 +1566,12 @@ body {
   position: relative;
   z-index: 1;
   color: #166534;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 @keyframes leaf-blink {
@@ -1254,31 +1592,41 @@ body {
 }
 .tree-apple {
   position: absolute;
-  border-radius: 50%;
-  background: #c0392b;
-  opacity: 0.82;
+  display: block;
+  /* Art is SVG (flat + outline) — no glow circle fill */
+  border-radius: 0;
+  background: transparent;
+  opacity: 1;
+  overflow: visible;
+  line-height: 0;
 }
+.tree-apple .tree-reward-token {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+/* Scale pulse only — no colored glow (matches flat décor language) */
 @keyframes apple-pulse {
-  0%, 100% { box-shadow: 0 0 0px 0px rgba(192,57,43,0); transform: scale(1); }
-  50%       { box-shadow: 0 0 6px 3px rgba(192,57,43,0.45); transform: scale(1.16); }
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.12); }
 }
 @keyframes gold-pulse {
-  0%, 100% { box-shadow: 0 0 0px 0px rgba(217,119,6,0); transform: scale(1); }
-  50%       { box-shadow: 0 0 8px 4px rgba(217,119,6,0.55); transform: scale(1.2); }
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.14); }
 }
 .tree-apple-pending {
-  cursor: pointer;
+  /* grab/grabbing set above for Care collect; keep hit target live. */
   pointer-events: all;
   animation: apple-pulse 1.1s ease-in-out infinite;
 }
 .tree-apple-coin {
-  background: #fbbf24;
-  opacity: 0.92;
-  animation: gold-pulse 0.9s ease-in-out infinite !important;
+  background: transparent;
+  opacity: 1;
+  /* Idle pulse moved to .tree-reward-token — see coin-collect-idle-pulse. */
 }
-.tree-apple-pending:active {
-  transform: scale(0.88) !important;
-}
+/* Avoid :active scale — fights framer drag and makes the apple jump under the cursor. */
 .game-floater-big {
   font-size: 1.5rem !important;
   font-weight: 900 !important;
@@ -1482,6 +1830,19 @@ body.modal-open {
   border-radius: 12px;
 }
 
+/* Tutorial: tree is visible but not a hit target until tutorial completes. */
+.tree-wrapper--tutorial-locked {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+  line-height: 0;
+  font-size: 0;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .tree-wrapper.transitioning {
   transform: scale(0.82);
   opacity: 0;
@@ -1548,7 +1909,8 @@ body.modal-open {
   left: 50%;
   font-size: 10px;
   font-weight: 700;
-  color: #4d7c0f;
+  /* Same leaf-edge ink as LevelWidget rim. */
+  color: #2f5c0e;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -1632,9 +1994,12 @@ body.modal-open {
   filter: drop-shadow(0 1px 3px rgba(192,57,43,0.35));
 }
 .apple-popup-label {
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 .topbar-reward-popup-income {
   color: #c9920a;
@@ -1654,9 +2019,12 @@ body.modal-open {
   filter: drop-shadow(0 1px 3px rgba(201,146,10,0.4));
 }
 .income-popup-label {
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 .level-widget-wrap {
   position: relative;
@@ -2216,7 +2584,21 @@ body.modal-open {
   background: radial-gradient(ellipse at center, rgba(134, 239, 172, 0.6) 0%, transparent 70%);
   z-index: -1;
 }
-.levelup-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
+.levelup-icon {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 56px;
+  height: 48px;
+  margin-bottom: 4px;
+  line-height: 0;
+}
+.levelup-icon svg {
+  display: block;
+  width: 52px;
+  height: auto;
+  max-height: 48px;
+}
 .levelup-title {
   font-size: 11px;
   font-weight: 600;
@@ -2660,9 +3042,9 @@ body.modal-open {
 }
 
 .care-btn {
-  /* Timer model: opaque rim + light wash; icon = rim. */
+  /* Timer model: opaque rim + light wash of the same brown family; icon = rim. */
   --ac: #92400e;
-  --ac-wash: rgba(251, 191, 36, 0.5);
+  --ac-wash: rgba(196, 140, 96, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2677,8 +3059,8 @@ body.modal-open {
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
   border-radius: 12px;
-  /* Same shell as energy timer / activity buttons */
-  border: 2px solid var(--ac);
+  /* Same thin rim language as the capital flask / activity buttons */
+  border: var(--v3-care-rim-width, 1.05px) solid var(--ac);
   background: var(--field-caption-bg);
   color: var(--ac);
   font-size: 0.67rem;
@@ -2686,7 +3068,8 @@ body.modal-open {
   text-transform: uppercase;
   letter-spacing: 0px;
   cursor: pointer;
-  animation: care-pulse 1.5s ease-in-out infinite;
+  /* Same brightness blink as activity recommend (no scale / outer ring). */
+  animation: tut-activity-pulse 1s ease-in-out infinite;
   backdrop-filter: blur(4px);
   box-shadow: none;
   position: relative;
@@ -2702,15 +3085,16 @@ body.modal-open {
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
-/* Light wash under opaque --ac rim (not rim RGB). */
+/* Light wash under opaque --ac rim (brown contrast, not fertilizer amber). */
 .care-btn .action-btn-fill {
-  background: var(--ac-wash, rgba(251, 191, 36, 0.5));
+  background: var(--ac-wash, rgba(196, 140, 96, 0.5));
   opacity: 1;
 }
 
+/* Legacy name → same brightness blink as activities. */
 @keyframes care-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(146, 64, 14, 0); }
-  50%       { box-shadow: 0 0 0 5px rgba(146, 64, 14, 0.22); }
+  0%, 100% { filter: brightness(1); }
+  50%       { filter: brightness(1.22); }
 }
 
 .care-btn-clicked {
@@ -2753,8 +3137,8 @@ body.modal-open {
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
   border-radius: 12px;
-  /* Same cream shell as apple / growth / capital captions */
-  border: 2px solid var(--ac, #166534);
+  /* Cream shell + thin flask-style rim (not a heavy 2px card border). */
+  border: var(--v3-care-rim-width, 1.05px) solid var(--ac, #166534);
   background: var(--field-caption-bg);
   color: var(--ac, #166534);
   backdrop-filter: blur(4px);
@@ -2823,7 +3207,7 @@ body.modal-open {
 }
 
 .action-buttons-row--care-shovel .care-btn {
-  animation: care-pulse 1.5s ease-in-out infinite;
+  animation: tut-activity-pulse 1s ease-in-out infinite;
 }
 
 .session-actions--converging {
@@ -2947,6 +3331,9 @@ body.modal-open {
   --ac: #8a847c;
   color: #8a847c;
   border-color: #8a847c;
+  /* No recommend / tutorial pulse while Metelka cleaning. */
+  animation: none !important;
+  transform: none !important;
 }
 
 .action-buttons-row--cleaning
@@ -2959,13 +3346,14 @@ body.modal-open {
 .action-buttons-row--cleaning
   .action-buttons-row-cleaning-frozen
   .v3-activity-reserve-seconds {
-  opacity: 0.7;
+  /* Icon-only frozen trio during cleaning. */
+  display: none !important;
 }
 
-/* Excess cleaning countdown — top center of the play field */
+/* Excess cleaning countdown — below sky clouds, still above the tree */
 .excess-cleaning-timer {
   position: absolute;
-  top: 10px;
+  top: 54px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 17;
@@ -3308,7 +3696,7 @@ body.modal-open {
 }
 
 .metelka-action-btn {
-  /* Timer model: opaque rim + light wash; brush = rim. */
+  /* Excess stone grey — same language as frozen flask / capital. */
   --ac: #44403c;
   --ac-wash: rgba(168, 162, 158, 0.5);
   width: var(--action-btn-size, 46px);
@@ -3321,23 +3709,30 @@ body.modal-open {
   /* Inherit frosted shell + border from .action-btn-bank via --ac */
   color: var(--ac);
   border-color: var(--ac);
+  /* Same brightness blink as Care / activity recommend. */
+  animation: tut-activity-pulse 1s ease-in-out infinite;
+}
+
+.metelka-action-btn:disabled {
+  animation: none;
 }
 
 .metelka-action-btn--active {
   cursor: default;
   background: var(--field-caption-bg);
   border-color: var(--ac, #44403c);
-  border-width: 2px;
-  animation: metelka-active-soft 2.6s ease-in-out infinite;
+  border-width: var(--v3-care-rim-width, 1.05px);
+  animation: tut-activity-pulse 1s ease-in-out infinite;
 }
 
+/* Legacy name → same brightness blink as activities. */
 @keyframes metelka-active-soft {
   0%,
   100% {
-    box-shadow: inset 0 0 0 0 rgba(68, 64, 60, 0);
+    filter: brightness(1);
   }
   50% {
-    box-shadow: inset 0 0 10px 0 rgba(68, 64, 60, 0.14);
+    filter: brightness(1.22);
   }
 }
 
@@ -3348,7 +3743,7 @@ body.modal-open {
   z-index: 1;
 }
 
-/* Light wash under opaque --ac rim (timer mint / activity washes). */
+/* Light wash under opaque --ac rim (stone grey). */
 .metelka-action-fill {
   position: absolute;
   left: 0;
@@ -4017,40 +4412,46 @@ body.modal-open {
   align-items: center;
 }
 
-/* Match floating gear button chrome */
+/* Match floating gear button chrome (cream shell, no rim). */
 .settings-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 22px;
   height: 22px;
+  box-sizing: border-box;
   padding: 0;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--field-caption-bg);
   border: none;
-  border-radius: 3px;
+  border-radius: 6px;
   cursor: pointer;
-  color: #6b7280;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(6px);
-  transition: background 0.12s;
+  color: #5c3a1a;
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  transition: background 0.12s, opacity 0.12s;
+}
+
+.settings-action-btn svg {
+  display: block;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 
 .settings-action-btn:hover {
-  background: rgba(255, 255, 255, 0.88);
+  opacity: 0.92;
 }
 
 .settings-action-active {
-  background: rgba(255, 255, 255, 0.88);
-  color: #4b5563;
+  background: var(--field-caption-bg);
+  color: #5c3a1a;
 }
 
 .settings-action-logout {
   color: #b91c1c;
-  background: rgba(254, 226, 226, 0.88);
+  background: rgba(254, 226, 226, 0.72);
 }
 
 .settings-action-logout:hover {
-  background: rgba(254, 202, 202, 0.95);
+  background: rgba(254, 202, 202, 0.85);
   color: #991b1b;
 }
 
@@ -4072,25 +4473,26 @@ body.modal-open {
   justify-content: center;
   width: 22px;
   height: 22px;
+  box-sizing: border-box;
   flex-shrink: 0;
   padding: 0;
-  background: rgba(255, 255, 255, 0.72);
-  color: #6b7280;
+  background: var(--field-caption-bg);
+  color: #5c3a1a;
   border: none;
-  border-radius: 3px;
+  border-radius: 6px;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(6px);
-  transition: background 0.12s;
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.12s;
 }
-.settings-save-sm:hover { background: rgba(255, 255, 255, 0.88); }
+.settings-save-sm:hover { opacity: 0.92; }
 .settings-save-sm:disabled { opacity: 0.5; cursor: default; }
 
 .settings-close-sm {
-  background: rgba(255, 255, 255, 0.72);
-  color: #6b7280;
+  background: var(--field-caption-bg);
+  color: #5c3a1a;
 }
-.settings-close-sm:hover { background: rgba(255, 255, 255, 0.88); }
+.settings-close-sm:hover { opacity: 0.92; }
 
 .settings-input {
   width: 100px;
@@ -4174,7 +4576,10 @@ body.modal-open {
 }
 
 .bank-loading-icon {
-  font-size: 3rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  line-height: 0;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -4494,7 +4899,12 @@ body.modal-open {
   gap: 6px;
 }
 
-.onboarding-icon { font-size: 3rem; line-height: 1; }
+.onboarding-icon {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  line-height: 0;
+}
 
 .onboarding-tagline {
   font-size: 0.72rem;
@@ -4958,6 +5368,11 @@ canvas {
   font-size: 0.9rem;
 }
 
+.mini-game-counter-emoji {
+  font-size: 18px;
+  line-height: 1;
+  display: block;
+}
 .mini-game-counter-val {
   font-size: 0.92rem;
   font-weight: 800;
@@ -5008,6 +5423,9 @@ canvas {
   font-size: 38px;
   line-height: 1;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mini-game-result-count {
@@ -5074,6 +5492,13 @@ canvas {
   justify-content: center;
   box-shadow: 0 2px 5px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.25);
   transition: transform 0.12s ease;
+}
+/* Match-3 fertilizer: chestnut silhouette carries the color; host is transparent. */
+.m3-tile--granule {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 1px 2px rgba(60, 30, 10, 0.28));
 }
 
 
@@ -5529,10 +5954,10 @@ canvas {
   inset: 0;
   z-index: 20;
   display: flex;
-  /* Sit in the sky band so the card does not cover trunk / roots / activities. */
+  /* Higher in the sky — clear of trunk, activities, and roots. */
   align-items: flex-start;
   justify-content: center;
-  padding-top: clamp(52px, 14vh, 110px);
+  padding-top: clamp(10px, 3.5vh, 36px);
   pointer-events: none;
 }
 .tutorial-intro-card {
@@ -5564,7 +5989,8 @@ canvas {
   width: 100%;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #166534;
+  /* Matches welcome-plan step icon via --tutorial-accent. */
+  color: var(--tutorial-accent, #166534);
   text-align: center;
   line-height: 1.25;
 }
@@ -5581,35 +6007,45 @@ canvas {
   width: 100%;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #4b7c25;
+  color: color-mix(in srgb, var(--tutorial-accent, #166534) 78%, #ffffff);
   letter-spacing: 0.01em;
   text-align: center;
 }
 
-/* ── Activity button pulse (tutorial + live recommend) ──────── */
+/* ── Activity button pulse (tutorial + live recommend) ────────
+ * Brightness-only blink — no scale (scale grew past the row and clipped
+ * top / bottom / left). No outer frame / shadow.
+ */
 .tutorial-water-pulse {
-  animation: tut-activity-pulse 1.0s ease-in-out infinite !important;
+  position: relative;
+  z-index: 2;
+  animation: tut-activity-pulse 1s ease-in-out infinite !important;
 }
-/* Pulse tint follows button --ac (water/sun/fertilizer). */
 @keyframes tut-activity-pulse {
   0%, 100% {
-    box-shadow:
-      0 0 0 0 color-mix(in srgb, var(--ac, #2b7fff) 55%, transparent),
-      0 2px 8px rgba(0, 0, 0, 0.10);
-    transform: scale(1);
+    filter: brightness(1);
   }
   50% {
-    box-shadow:
-      0 0 0 8px transparent,
-      0 4px 16px color-mix(in srgb, var(--ac, #2b7fff) 35%, transparent);
-    transform: scale(1.06);
+    filter: brightness(1.22);
   }
 }
 
 /*
- * Root collect pulse — same blink as .tutorial-water-pulse / activities
- * (scale + --ac glow). No outline on the column; segments animate only.
+ * Root collect pulse — per-cell contour glow (not one column rectangle).
  */
+@keyframes v3-root-collect-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ac, #2b7fff) 55%, transparent);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow:
+      0 0 0 1.5px color-mix(in srgb, var(--ac, #2b7fff) 80%, transparent),
+      0 0 5px 0 color-mix(in srgb, var(--ac, #2b7fff) 40%, transparent);
+  }
+}
 .v3-root--tutorial-pulse {
   outline: none;
   box-shadow: none;
@@ -5617,16 +6053,28 @@ canvas {
   transform: none;
 }
 .v3-root--tutorial-pulse .v3-root-segments {
-  animation: tut-activity-pulse 1s ease-in-out infinite !important;
-  border-radius: 6px;
+  animation: none !important;
+  transform: none;
+  box-shadow: none;
+}
+.v3-root--tutorial-pulse .v3-root-segment {
+  /* Keep overflow:hidden so the energy ::after wash stays clipped to
+   * border-radius — overflow:visible showed a sharp rectangular layer. */
+  z-index: 1;
+  animation: v3-root-collect-pulse 1s ease-in-out infinite !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .v3-root--tutorial-pulse .v3-root-segments {
     animation: none !important;
+    box-shadow: none;
+  }
+  .v3-root--tutorial-pulse .v3-root-segment {
+    animation: none !important;
     opacity: 1;
-    filter: brightness(1.14);
+    filter: brightness(1.1);
     transform: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac, #2b7fff) 40%, transparent);
+    box-shadow: 0 0 0 1.5px
+      color-mix(in srgb, var(--ac, #2b7fff) 55%, transparent);
   }
 }
 
@@ -5637,6 +6085,9 @@ canvas {
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: rgba(255,255,255,0.92);
   border: 1.5px solid rgba(100,160,40,0.45);
   border-radius: 24px;
@@ -5648,6 +6099,10 @@ canvas {
   box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   pointer-events: none;
   animation: tut-banner-in 0.3s ease-out;
+}
+.tutorial-minigame-banner svg {
+  flex-shrink: 0;
+  display: block;
 }
 @keyframes tut-banner-in {
   from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.95); }
@@ -5686,9 +6141,16 @@ canvas {
   align-items: center;
   justify-content: center;
   width: 100%;
+  /* Keep font-size token for layout parity with complete card */
   font-size: 2.8rem;
   line-height: 1;
   color: #166534;
+}
+.tutorial-welcome-icon svg {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
 }
 .tutorial-welcome-title {
   margin: 0;
@@ -5698,14 +6160,51 @@ canvas {
   color: #166534;
   text-align: center;
 }
+.tutorial-welcome-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  margin: 2px 0 0;
+}
+.tutorial-welcome-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.tutorial-welcome-step-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  margin-top: 1px;
+}
+.tutorial-welcome-step-icon svg {
+  display: block;
+  flex-shrink: 0;
+}
+.tutorial-welcome-step-icon--trio {
+  gap: 1px;
+}
+.tutorial-welcome-step-icon--trio svg {
+  width: 12px;
+  height: 12px;
+}
 .tutorial-welcome-desc {
   margin: 0;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 0;
   font-size: 0.82rem;
   color: #4b7c25;
   font-weight: 600;
-  text-align: center;
+  text-align: left;
   line-height: 1.35;
   box-sizing: border-box;
 }
@@ -5817,9 +6316,19 @@ canvas {
 }
 .tutorial-complete-close:hover { color: #4a7c25; }
 .tutorial-complete-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 2.8rem;
   line-height: 1;
   margin-bottom: 2px;
+  color: #166534;
+}
+.tutorial-complete-icon svg {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
 }
 .tutorial-complete-title {
   margin: 0;
@@ -6368,12 +6877,14 @@ canvas {
    * Soil art lip sits below --v2-scene-lift (peek + path inset in
    * UndergroundSoilArt). Trunk + wrap-root fork share this join Y.
    *
-   * CALIBRATED: --v3-horizon-drop / --v3-wrap-roots-nudge-y seat the flat
-   * stump base on the grass↔soil lip (no float gap; no buried tip when eye-masked).
-   * APPROVED: 11px + flat stump on the lip (17 buried; 10 floated).
+   * CALIBRATED: soil / green join = --v3-trunk-join (stump ↔ root collar).
+   * Ground SVG bottom sits on that join (fixed 90px tall — do not stretch
+   * height or bushes warp). Soil peek aligns the brown lip to the same Y.
    */
-  --v3-horizon-drop: 11px;
+  --v3-horizon-drop: 13px;
   --v3-trunk-join: calc(var(--v2-scene-lift) - var(--v3-horizon-drop));
+  /* Brown lip flat at trunk-join (UndergroundSoilArt JOIN_Y ≈ 12). */
+  --v3-soil-peek: 18px;
   /* Lower the whole wrap drawing (collar+fan) a bit under the stump. */
   --v3-wrap-roots-nudge-y: 6px;
   --v3-root-crown-bury: 8px;
@@ -6392,9 +6903,30 @@ canvas {
   --v3-hourglass-width: 72%;
   --v3-hourglass-height: 112px;
   --v3-hourglass-paint-width: calc(var(--v3-hourglass-height) * 80 / 140);
-  /* Shared rim for hourglass + capital face (px — also used as CSS height). */
-  --v3-hourglass-rim-width: 2.4px;
-  --v3-hourglass-tuck: 46px; /* lower bulb under chest lid — neck sits lower */
+  /* Shared rim for hourglass + capital face — thin like tree / basket (~1.05). */
+  --v3-hourglass-rim-width: 1.05px;
+  --v3-care-rim-width: var(--v3-hourglass-rim-width);
+  /*
+   * Flask palette = capital sum gold (not activity green).
+   * Rim/ink = #c9920a; wash keeps contrast on cream shell.
+   */
+  --v3-flask-capital: #c9920a;
+  --v3-flask-rim: var(--v3-flask-capital);
+  --v3-flask-ink: var(--v3-flask-capital);
+  --v3-flask-fill: rgba(201, 146, 10, 0.42);
+  /* Counter type tokens live on :root (capital sum is the sample). */
+  /*
+   * Tuck = vertical span from lid line down to the capital-button top in the
+   * full 140-tall glass. Upper SVG height = height − tuck (no tucked lower bulb).
+   * Mid (invisible, behind chest) = tuck − button band (40/140 of height).
+   */
+  --v3-hourglass-tuck: 46px;
+  --v3-hourglass-upper-height: calc(
+    var(--v3-hourglass-height) - var(--v3-hourglass-tuck)
+  );
+  --v3-hourglass-mid-height: calc(
+    var(--v3-hourglass-tuck) - var(--v3-hourglass-height) * 40 / 140
+  );
   --v3-timer-size: var(--v3-hourglass-height);
   --v3-timer-energy-icon: 14px;
   /*
@@ -6436,18 +6968,40 @@ canvas {
   bottom: var(--v2-scene-lift);
   z-index: 3;
 }
+.game-area--v2-mocks .bg-soil-join {
+  bottom: calc(var(--v2-scene-lift) - 1px);
+  z-index: 4;
+}
 
-/* v3: earth surface continues slightly into the underground band over crowns. */
+/*
+ * Green/brown edge = bottom of this SVG = trunk↔root join.
+ * Height stays 90px (matches viewBox) so bushes are not stretched.
+ */
 .game-area--v3-roots .game-area-bg-ground {
-  bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury));
-  height: calc(90px + var(--v3-root-crown-bury));
+  bottom: var(--v3-trunk-join);
+  height: 90px;
+  z-index: 3;
+}
+.game-area--v3-roots .bg-soil-join {
+  bottom: calc(var(--v3-trunk-join) - 1px);
+  /* Behind stump + wrap roots — line must not cut the collar */
   z-index: 3;
 }
 
+.game-area--v3-roots .v2-underground-soil {
+  height: calc(100% + var(--v3-soil-peek));
+}
+
 .game-area--v3-roots .game-tree-wrap {
+  /* Above wrap fan — covers collar neck (top=-12); no mid-trunk “cap” */
   z-index: 5;
-  /* Trunk base on the visible soil lip (not the zone top) */
+  /* Stump on grass↔soil line (stage SVGs flush; no global lift) */
   bottom: var(--v3-trunk-join);
+}
+
+/* Саженец — sit just on the join */
+.game-area--v3-roots .game-tree-wrap[data-tree-stage="1"] {
+  bottom: calc(var(--v3-trunk-join) + 1px);
 }
 
 .game-area--v3-roots .game-tree-wrap .tree-wrapper,
@@ -6483,6 +7037,7 @@ canvas {
   gap: var(--v3-stack-gap);
   width: max-content;
   max-width: 92%;
+  /* Under tree stump so collar neck stays hidden; open-bottom trunk seals join */
   z-index: 4;
   pointer-events: none;
   overflow: visible;
@@ -6558,6 +7113,7 @@ canvas {
   transform: translateX(-50%);
   justify-content: center;
   padding: 0 8px;
+  overflow: visible;
   z-index: 6;
 }
 
@@ -6743,7 +7299,7 @@ canvas {
   transform: translate(-50%, -50%);
   z-index: 6;
   pointer-events: auto;
-  color: #c9920a;
+  color: var(--v3-flask-ink, #c9920a);
   user-select: none;
   cursor: pointer;
   margin: 0;
@@ -6779,8 +7335,8 @@ canvas {
   fill: var(--field-caption-bg);
 }
 .v3-capital-badge__rim {
-  stroke: #166534;
-  stroke-width: var(--v3-hourglass-rim-width, 2.4px);
+  stroke: var(--v3-flask-rim, #c9920a);
+  stroke-width: var(--v3-hourglass-rim-width, 1.05px);
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
@@ -6793,16 +7349,19 @@ canvas {
   overflow: hidden;
   pointer-events: none;
 }
-/* Same vertical progress as the hourglass fill (bottom → top). */
+/*
+ * Button segment fill — first third of sequential flask progress
+ * (--v3-hg-fill-button). Falls back to overall --v3-hg-fill.
+ */
 .v3-capital-badge__fill {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   width: 100%;
-  height: var(--v3-hg-fill, 0%);
+  height: var(--v3-hg-fill-button, var(--v3-hg-fill, 0%));
   max-height: 100%;
-  background: rgba(134, 239, 172, 0.5);
+  background: var(--v3-flask-fill, rgba(201, 146, 10, 0.42));
   pointer-events: none;
   transition: height 1s linear;
 }
@@ -6820,26 +7379,27 @@ canvas {
   pointer-events: none;
 }
 button.v3-capital-badge:focus-visible {
-  outline: 2px solid rgba(22, 101, 52, 0.55);
+  outline: 2px solid rgba(201, 146, 10, 0.65);
   outline-offset: 2px;
 }
 .v3-capital-badge--bump {
   animation: v2-chest-value-bump 420ms ease-out;
 }
+/* Match timer type exactly (size / weight / family). */
 .v3-capital-badge .field-caption-value,
 .v3-capital-badge .field-caption-unit {
   position: relative;
   z-index: 1;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  /* Same caption type as original capital button (.field-caption-*). */
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
+  line-height: 1;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 .v3-capital-badge .field-caption-unit {
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* Soft reaction when capital value changes — brief, not looping. */
@@ -6901,13 +7461,14 @@ button.v3-capital-badge:focus-visible {
   padding: 0;
   height: fit-content;
   pointer-events: none;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
   font-variant-numeric: tabular-nums;
   color: #c9920a;
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
+  line-height: 1;
   opacity: 0;
   transform: translateX(0);
   animation: v2-income-chest-float-side 850ms ease-out forwards;
@@ -7116,7 +7677,7 @@ button.v3-capital-badge:focus-visible {
 
 /*
  * Layers through the chest:
- *   1 chest body → 2 hourglass+lid-foot (one SVG) → 3 capital button.
+ *   1 mid (behind) → 2 chest body → 3 upper hourglass → 4 capital button.
  */
 .game-area--v3-roots .v3-underground-stack .v3-capital-chest-layer--body {
   top: auto;
@@ -7137,33 +7698,60 @@ button.v3-capital-badge:focus-visible {
 }
 
 /*
- * Hourglass behind the lid — lower bulb tucks under via overlap.
+ * Invisible mid flask — behind chest wood, still fills (--v3-hg-fill-mid)
+ * before the upper SVG starts. No shell/rim (never meant to be seen).
+ */
+.game-area--v3-roots .v3-hourglass-mid {
+  position: absolute;
+  left: 50%;
+  bottom: calc(
+    var(--v3-chest-face-height) - var(--v3-hourglass-mid-height)
+  );
+  transform: translateX(-50%);
+  width: var(--v3-hourglass-paint-width);
+  height: max(0px, var(--v3-hourglass-mid-height));
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+}
+.game-area--v3-roots .v3-hourglass-mid__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: var(--v3-hg-fill-mid, 0%);
+  max-height: 100%;
+  background: var(--v3-flask-fill, rgba(201, 146, 10, 0.42));
+  pointer-events: none;
+  transition: height 1s linear;
+}
+
+/*
+ * Visible upper flask only — sits on the lid (no tucked lower bulb under wood).
  * Width ≈ capital button; not clickable (capital badge owns clicks).
  */
 .game-area--v3-roots .v3-capital-hourglass-slot {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--v3-chest-face-height) - var(--v3-hourglass-tuck));
+  bottom: var(--v3-chest-face-height);
   /* Nudge down so the lid line sits flush on the chest (half rim ≈ 1.2px). */
   --v3-hourglass-seat-nudge: 1.2px;
   transform: translate(-50%, var(--v3-hourglass-seat-nudge));
-  /* Tight paint box — same as lid-cut, no 72% letterbox shift. */
   width: var(--v3-hourglass-paint-width);
-  height: var(--v3-hourglass-height);
+  height: var(--v3-hourglass-upper-height);
   /*
    * Above the chest lid so the integrated lid-cut foot stays visible.
-   * Foot peek = viewBox foot band (3.8 + 0.4) of the 140-tall paint box.
+   * Tiny peek below the slot for the lid-foot stroke.
    */
   z-index: 3;
   pointer-events: none;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  /* Hide glass under the lid; peek = half rim stroke below the cut + pad. */
-  --v3-hourglass-lid-foot: calc(var(--v3-hourglass-rim-width, 2.4px) + 1px);
-  clip-path: inset(
-    0 0 calc(var(--v3-hourglass-tuck) - var(--v3-hourglass-lid-foot)) 0
-  );
+  --v3-hourglass-lid-foot: calc(var(--v3-hourglass-rim-width, 1.05px) + 0.5px);
+  overflow: visible;
 }
 
 .game-area--v3-roots .v3-root-wait-timer {
@@ -7178,7 +7766,7 @@ button.v3-capital-badge:focus-visible {
 }
 
 /*
- * Tall capital-hourglass. Palette: cream shell, #166534 rim, mint wash.
+ * Tall capital-hourglass. Palette: cream shell, capital-gold rim + wash.
  * Capital base is the only pointer-events target.
  */
 .game-area--v3-roots .v3-root-wait-timer-capsule {
@@ -7213,8 +7801,8 @@ button.v3-capital-badge:focus-visible {
 
 /* Single outer outline — no neck / lid divider strokes. */
 .game-area--v3-roots .v3-root-wait-timer-hourglass__rim {
-  stroke: #166534;
-  stroke-width: var(--v3-hourglass-rim-width, 2.4px);
+  stroke: var(--v3-flask-rim, #c9920a);
+  stroke-width: var(--v3-hourglass-rim-width, 1.05px);
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
@@ -7222,25 +7810,28 @@ button.v3-capital-badge:focus-visible {
 /* Lid-cut line — identical weight to the flask rim. */
 .game-area--v3-roots .v3-root-wait-timer-hourglass__lid-foot {
   fill: none;
-  stroke: #166534;
-  stroke-width: var(--v3-hourglass-rim-width, 2.4px);
+  stroke: var(--v3-flask-rim, #c9920a);
+  stroke-width: var(--v3-hourglass-rim-width, 1.05px);
   stroke-linecap: butt;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
-/* Unified mint wash — bulb + capital base, bottom → top. */
+/* Unified capital-gold wash — upper + mid + button, bottom → top. */
 .game-area--v3-roots .v3-root-wait-timer-capsule__fill {
-  fill: rgba(134, 239, 172, 0.5);
+  fill: var(--v3-flask-fill, rgba(201, 146, 10, 0.42));
   transition: y 1s linear, height 1s linear;
   pointer-events: none;
 }
 
-/* Zap + time — center of upper bulb (viewBox 0…70 of 140). */
+/*
+ * Zap + time — optical center of the visible upper flask.
+ * Slot is upper-only (height − tuck); 25% was for the old full-140 box.
+ */
 .game-area--v3-roots .v3-root-wait-timer-upper {
   position: absolute;
   left: 50%;
-  top: 25%;
+  top: 44%;
   transform: translate(-50%, -50%);
   z-index: 3;
   display: flex;
@@ -7253,7 +7844,7 @@ button.v3-capital-badge:focus-visible {
 
 .game-area--v3-roots .v3-root-wait-timer-icon {
   display: flex;
-  color: #166534;
+  color: var(--v3-flask-ink, #c9920a);
   line-height: 0;
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
@@ -7261,14 +7852,14 @@ button.v3-capital-badge:focus-visible {
 .game-area--v3-roots .v3-root-wait-timer-capsule__time {
   position: relative;
   z-index: 1;
-  font-size: 11px;
-  font-weight: 700;
-  color: #166534;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  color: var(--v3-flask-ink, #c9920a);
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
-  font-family: "Segoe UI", system-ui, sans-serif;
   pointer-events: none;
 }
 
@@ -7276,25 +7867,59 @@ button.v3-capital-badge:focus-visible {
   animation: v2-root-timer-capsule-pulse 1.4s ease-in-out infinite;
 }
 
-/* Metelka cleaning: whole hourglass+capital grey + frozen. */
+/* Metelka cleaning: hourglass flask grey + frozen (same language as grey roots). */
 .game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-capsule {
-  filter: grayscale(1);
-  opacity: 0.78;
+  opacity: 0.9;
 }
 
-.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__rim {
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__shell {
+  fill: #cdc7bf;
+}
+
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__rim,
+.game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__lid-foot {
   stroke: #8a847c;
 }
 
 .game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-icon,
 .game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-capsule__time {
   color: #6b6560;
+  filter: none;
+  text-shadow: none;
 }
 
 .game-area--v3-roots .v3-root-wait-timer--frozen .v3-root-wait-timer-capsule__fill {
-  fill: rgba(138, 132, 124, 0.45);
+  fill: rgba(138, 132, 124, 0.4);
   animation: none !important;
   transition: none !important;
+}
+
+/*
+ * Capital badge is a sibling of the timer (not inside --frozen).
+ * Host flag greys capital ink / bulb to match the flask during Metelka.
+ */
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge {
+  color: #6b6560;
+  cursor: default;
+  pointer-events: none;
+}
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge__shell {
+  fill: #cdc7bf;
+}
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge__rim {
+  stroke: #8a847c;
+}
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge__fill {
+  background: rgba(138, 132, 124, 0.4);
+  transition: none !important;
+}
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge .field-caption-value,
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge .field-caption-unit {
+  color: #6b6560;
+  text-shadow: none;
+}
+.v3-capital-chest-host--metelka-frozen .v3-capital-badge--bump {
+  animation: none !important;
 }
 
 /* --v3-timer-bottom follows scene tokens; no separate fragile overrides. */
@@ -7392,6 +8017,8 @@ button.v3-capital-badge:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Collect `+X с` floater rises above the stem — must not clip. */
+  overflow: visible;
   flex: 0 0 auto;
   /*
    * Hit target stays 52px; negative margin cancels side dead-space so flex `gap`
@@ -7498,11 +8125,15 @@ button.v3-capital-badge:focus-visible {
   animation: none !important;
   box-shadow: none;
 }
+.v3-root-system--metelka-locked .v3-root--tutorial-pulse .v3-root-segment {
+  animation: none !important;
+  box-shadow: none;
+  transform: none;
+}
 
-/* Busy = in-flight transfer lock; keep size stable, only soften. */
+/* Busy = click lock only — no wait-cursor / dim (reads as “loading”). */
 .v3-root--busy {
-  opacity: 0.72;
-  cursor: wait;
+  cursor: default;
 }
 
 .v3-root-segments {
@@ -7549,11 +8180,11 @@ button.v3-capital-badge:focus-visible {
   height: 15px;
   width: 22px;
   box-sizing: border-box;
-  border-radius: 6px;
-  /* Same cream shell as activity buttons; thinner 1px edge on small cells. */
+  border-radius: 5px;
+  /* Cream shell + thin flask/activity rim (~1.05). */
   background: var(--v3-shell, var(--field-caption-bg));
-  border: 1px solid rgba(70, 55, 40, 0.22);
-  color: rgba(70, 55, 40, 0.22);
+  border: var(--v3-care-rim-width, 1.05px) solid #5c3a1a;
+  color: #5c3a1a;
   overflow: hidden;
   box-shadow: none;
   /* States must not resize segments (no layout shift). */
@@ -7633,8 +8264,8 @@ button.v3-capital-badge:focus-visible {
 
 .v3-root-segment--empty {
   background: var(--v3-shell-empty, var(--v3-shell, var(--field-caption-bg)));
-  border-color: rgba(70, 55, 40, 0.18);
-  color: rgba(70, 55, 40, 0.18);
+  border-color: rgba(92, 58, 26, 0.28);
+  color: rgba(92, 58, 26, 0.28);
 }
 
 .v3-root-segment--partial,
@@ -7662,11 +8293,19 @@ button.v3-capital-badge:focus-visible {
   height: var(--v3-seg-fill, 100%);
   max-height: 100%;
   background: var(--v3-seg-wash, rgba(134, 239, 172, 0.5));
-  border-radius: 0;
+  /* Match cell corners when fill is full (overflow:hidden still clips partial). */
+  border-radius: inherit;
   transform: none;
   transform-origin: bottom center;
   pointer-events: none;
   box-shadow: none;
+  /* Smooth +seconds fill (tutorial pop + live settle). Drain uses its own keyframes. */
+  transition: height 350ms ease-out;
+}
+
+.v3-root--transferring .v3-root-segment--partial::after,
+.v3-root--transferring .v3-root-segment--full::after {
+  transition: none;
 }
 
 /* empty — muted idle shell, no motion */
@@ -7690,7 +8329,13 @@ button.v3-capital-badge:focus-visible {
 .v3-root--tutorial-pulse.v3-root--full .v3-root-segments,
 .v3-root--tutorial-pulse.v3-root--accumulating .v3-root-segments,
 .v3-root--tutorial-pulse.v3-root--waiting .v3-root-segments {
-  animation: tut-activity-pulse 1s ease-in-out infinite !important;
+  animation: none !important;
+}
+.v3-root--tutorial-pulse.v3-root--ready .v3-root-segment,
+.v3-root--tutorial-pulse.v3-root--full .v3-root-segment,
+.v3-root--tutorial-pulse.v3-root--accumulating .v3-root-segment,
+.v3-root--tutorial-pulse.v3-root--waiting .v3-root-segment {
+  animation: v3-root-collect-pulse 1s ease-in-out infinite !important;
 }
 
 @keyframes v3-root-ready-breathe {
@@ -7794,14 +8439,9 @@ button.v3-capital-badge:focus-visible {
   filter: brightness(1.1);
 }
 
-/* Manual transfer: drain in-root while flight travels to the activity card. */
+/* Manual transfer: hold fill while +X с flies; no drain / wait-cursor “loading”. */
 .v3-root--transferring {
-  cursor: wait;
-}
-
-.v3-root--transferring .v3-root-segment--full::after,
-.v3-root--transferring .v3-root-segment--partial::after {
-  animation: v3-root-transfer-drain 700ms ease-in forwards;
+  cursor: default;
 }
 
 .v3-root-transfer-channel {
@@ -7859,11 +8499,6 @@ button.v3-capital-badge:focus-visible {
   .v3-root--transferring .v3-root-segment--partial::after,
   .v3-root-transfer-energy {
     animation: none;
-  }
-
-  .v3-root--transferring {
-    filter: brightness(1.05);
-    opacity: 0.85;
   }
 }
 
@@ -7931,6 +8566,33 @@ button.v3-capital-badge:focus-visible {
   animation-delay: 20ms;
 }
 
+/*
+ * `+X с` lands ABOVE the activity button (toY = card.top - 14).
+ * Hold readable near the end so it reads as “added on top”, not under the row.
+ */
+.v3-transfer-flight-label {
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate(
+    calc(var(--v3-flight-x1) - 50%),
+    calc(var(--v3-flight-y1) - 8px)
+  );
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--v3-flight-color, #5f93c9);
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85),
+    0 0 10px color-mix(in srgb, var(--v3-flight-color, #5f93c9) 40%, transparent);
+  animation: v3-transfer-flight-label-above var(--v3-flight-ms, 520ms) ease-out forwards;
+  will-change: transform, opacity;
+  z-index: 1;
+}
+
 @keyframes v3-transfer-flight-move {
   0% {
     transform: translate(var(--v3-flight-x0), var(--v3-flight-y0)) scale(0.85);
@@ -7949,9 +8611,49 @@ button.v3-capital-badge:focus-visible {
   }
 }
 
+@keyframes v3-transfer-flight-label-above {
+  0% {
+    transform: translate(
+        calc(var(--v3-flight-x0) - 50%),
+        calc(var(--v3-flight-y0) - 4px)
+      )
+      scale(0.88);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(
+        calc(var(--v3-flight-x1) - 50%),
+        calc(var(--v3-flight-y1) - 10px)
+      )
+      scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+        calc(var(--v3-flight-x1) - 50%),
+        calc(var(--v3-flight-y1) - 22px)
+      )
+      scale(1);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .v3-transfer-flight-layer {
+  .v3-transfer-flight-blob,
+  .v3-transfer-flight-blob--soft {
     display: none;
+  }
+
+  .v3-transfer-flight-label {
+    animation: none;
+    opacity: 1;
+    transform: translate(
+      calc(var(--v3-flight-x1) - 50%),
+      calc(var(--v3-flight-y1) - 14px)
+    );
   }
 }
 
@@ -8080,10 +8782,12 @@ button.v3-capital-badge:focus-visible {
 }
 
 .v3-activity-reserve-seconds {
-  font-size: 0.55rem;
-  font-weight: 700;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
   line-height: 1;
   letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   text-transform: none;
   /* Same tone as the activity icon (inherits button `color` / --ac). */
   color: currentColor;

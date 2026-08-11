@@ -12,6 +12,8 @@ import {
 } from "@/lib/v3Roots";
 import { isEconomyV3GameCycleEnabled } from "@/lib/v3GameCycle";
 import { normalizeV2Excess } from "@/components/v2/EconomyV2EnergyDebugControls";
+import { clearTutorialWaitClock } from "@/lib/tutorialWaitClock";
+import TreeSVG from "@/components/TreeSVG";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
@@ -33,6 +35,9 @@ function AppShell() {
       setLoading(true);
       const data = await api.getState();
       if (!data.exists) {
+        // Account wipe / first run — drop F5-persisted wait deadline from the
+        // previous life so the new ~12:00 capsule does not resume at 10:xx.
+        clearTutorialWaitClock();
         setOnboarding(true);
         setLoading(false);
         return;
@@ -42,11 +47,17 @@ function AppShell() {
       const useV3 = isEconomyV3GameCycleEnabled(v3Roots);
 
       const userState: UserState = {
-      balances: data.balances!,
+      balances: {
+        ...data.balances!,
+        vaultBalance: data.balances?.vaultBalance ?? 0,
+      },
       game: {
         ...(data.game! as UserState["game"]),
         xpHistory: data.game!.xpHistory ?? [],
         tutorialDone: data.game!.tutorialDone ?? true,
+        sproutPlanted:
+          data.game!.sproutPlanted === true ||
+          data.game!.tutorialDone === true,
         // v3 exclusive: do not hydrate v2 Care / bank / roots into the live cycle.
         v2EnergySeconds: useV3 ? 0 : (data.game!.v2EnergySeconds ?? 0),
         v2EnergyAnchorAt: useV3 ? null : (data.game!.v2EnergyAnchorAt ?? null),
@@ -79,6 +90,7 @@ function AppShell() {
 
   async function handleOnboardingComplete(capital: number) {
     try {
+      clearTutorialWaitClock();
       await api.initAccount(capital);
     } catch (err: any) {
       if (err?.status === 401) {
@@ -97,7 +109,9 @@ function AppShell() {
     return (
       <div className="bank-app">
         <div className="bank-loading">
-          <span className="bank-loading-icon">🌳</span>
+          <span className="bank-loading-icon" aria-hidden="true">
+            <TreeSVG stage={0} size={110} />
+          </span>
           <p>Загрузка...</p>
         </div>
       </div>
@@ -151,7 +165,9 @@ function Root() {
     return (
       <div className="bank-app">
         <div className="bank-loading">
-          <span className="bank-loading-icon">🌳</span>
+          <span className="bank-loading-icon" aria-hidden="true">
+            <TreeSVG stage={0} size={110} />
+          </span>
           <p>Загрузка...</p>
         </div>
       </div>

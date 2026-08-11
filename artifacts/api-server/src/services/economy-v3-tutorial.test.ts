@@ -4,12 +4,17 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   grantTutorialV3RootsPure,
+  topUpTutorialReservesPure,
   V3_TUTORIAL_ROOT_SECONDS,
 } from "./economy-v3-tutorial-pure";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const settleSrc = readFileSync(join(here, "economy-v3-roots-settle.ts"), "utf8");
 const rootsSrc = readFileSync(join(here, "economy-v3-roots.ts"), "utf8");
+const transferSrc = readFileSync(
+  join(here, "economy-v3-roots-transfer.ts"),
+  "utf8",
+);
 const gameSrc = readFileSync(join(here, "../routes/game.ts"), "utf8");
 const tutorialRouteSrc = readFileSync(
   join(here, "../routes/game-v3-tutorial.ts"),
@@ -51,7 +56,7 @@ describe("Economy v3 tutorial grant (8E)", () => {
     expect(sun.rootFertilizerSeconds).toBe(0);
   });
 
-  it("grants 5s once per empty root; idempotent; skips transferred/reserved", () => {
+  it("grants 10s (two segments) once per empty root; idempotent; skips transferred/reserved", () => {
     const first = grantTutorialV3RootsPure({
       rootWaterSeconds: 0,
       rootSunSeconds: 0,
@@ -82,9 +87,9 @@ describe("Economy v3 tutorial grant (8E)", () => {
 
     const afterWater = grantTutorialV3RootsPure({
       rootWaterSeconds: 0,
-      rootSunSeconds: 5,
-      rootFertilizerSeconds: 5,
-      reserveWaterSeconds: 5,
+      rootSunSeconds: V3_TUTORIAL_ROOT_SECONDS,
+      rootFertilizerSeconds: V3_TUTORIAL_ROOT_SECONDS,
+      reserveWaterSeconds: V3_TUTORIAL_ROOT_SECONDS,
       reserveSunSeconds: 0,
       reserveFertilizerSeconds: 0,
       transferredRoots: ["water"],
@@ -92,7 +97,7 @@ describe("Economy v3 tutorial grant (8E)", () => {
     });
     expect(afterWater.changed).toBe(false);
     expect(afterWater.rootWaterSeconds).toBe(0);
-    expect(afterWater.rootSunSeconds).toBe(5);
+    expect(afterWater.rootSunSeconds).toBe(V3_TUTORIAL_ROOT_SECONDS);
   });
 
   it("clamps persisted over-cap roots to effectivePresetSeconds", () => {
@@ -118,7 +123,29 @@ describe("Economy v3 tutorial grant (8E)", () => {
 
   it("skips auto-transfer while tutorial is active", () => {
     expect(settleSrc).toContain("Tutorial: player must transfer remaining roots manually");
-    expect(settleSrc).toMatch(/tutorialActive\s*\?\s*null/);
+    expect(settleSrc).toMatch(/rowTutorialActive\s*\n\s*\?\s*null/);
+  });
+
+  it("tutorial transfer upgrades stale sibling fills before collect", () => {
+    expect(transferSrc).toContain("grantTutorialV3RootsPure");
+    expect(transferSrc).toContain("V3_TUTORIAL_ROOT_SECONDS");
+    expect(transferSrc).toContain("isEconomyV2TutorialActive");
+    expect(transferSrc).toContain("forceTutorialFill");
+  });
+
+  it("tops up stale 5s tutorial reserves to 10s for activity buttons", () => {
+    expect(V3_TUTORIAL_ROOT_SECONDS).toBe(10);
+    const topped = topUpTutorialReservesPure({
+      reserveWaterSeconds: 5,
+      reserveSunSeconds: 5,
+      reserveFertilizerSeconds: 0,
+      effectivePresetSeconds: 25,
+    });
+    expect(topped.changed).toBe(true);
+    expect(topped.reserveWaterSeconds).toBe(10);
+    expect(topped.reserveSunSeconds).toBe(10);
+    expect(topped.reserveFertilizerSeconds).toBe(0);
+    expect(settleSrc).toContain("topUpTutorialReservesPure");
   });
 
   it("exposes prepare route and clears v3 on tutorial complete", () => {

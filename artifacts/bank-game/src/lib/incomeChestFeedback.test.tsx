@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { formatRub } from "@/lib/engine";
 import type { EconomyV2ExcessResultState } from "@/lib/api";
-import IncomeChestFloat from "@/components/v2/IncomeChestFloat";
 import {
   createIncomeChestFeedback,
   formatIncomeChestFloatLabel,
@@ -85,20 +83,11 @@ describe("incomeChestFeedback helpers", () => {
     expect(chestSrc).not.toContain('data-lid-state="open"');
   });
 
-  it("7–8. float uses unique id; markup renders amount once", () => {
+  it("7–8. helper ids stay unique; label format stable", () => {
     const a = createIncomeChestFeedback(0.1);
     const b = createIncomeChestFeedback(0.1);
     expect(a.id).not.toBe(b.id);
-    const html = renderToStaticMarkup(
-      <IncomeChestFloat feedback={a} onComplete={() => {}} />,
-    );
-    expect(html).toContain('data-income-chest-float="true"');
-    expect(html).toContain(formatIncomeChestFloatLabel(0.1));
-    expect(
-      renderToStaticMarkup(
-        <IncomeChestFloat feedback={null} onComplete={() => {}} />,
-      ),
-    ).toBe("");
+    expect(formatIncomeChestFloatLabel(0.1)).toContain("₽");
   });
 
   it("9. double-click guarded by excessAckBusy", () => {
@@ -107,39 +96,40 @@ describe("incomeChestFeedback helpers", () => {
       page.indexOf("const apples = totalApples"),
     );
     expect(ack).toContain("if (excessAckBusy) return");
-    expect(page).toContain("createIncomeChestFeedback");
+    expect(page).toContain("playCoinIncomeFeedback");
   });
 
-  it("10. error path does not set incomeChestFeedback", () => {
+  it("10. error path does not trigger income popup", () => {
     const ack = page.slice(
       page.indexOf("async function handleAcknowledgeExcessResult"),
       page.indexOf("const apples = totalApples"),
     );
     const catchIdx = ack.indexOf("} catch");
     expect(catchIdx).toBeGreaterThan(0);
-    expect(ack.slice(catchIdx)).not.toContain("setIncomeChestFeedback");
-    expect(ack.slice(catchIdx)).not.toContain("createIncomeChestFeedback");
+    expect(ack.slice(catchIdx)).not.toContain("playCoinIncomeFeedback");
+    expect(ack.slice(catchIdx)).not.toContain("setShowIncomePopup");
   });
 
-  it("11. F5: feedback is React state only — not localStorage", () => {
-    expect(page).toContain("incomeChestFeedback");
-    expect(page).not.toMatch(/localStorage.*incomeChest|incomeChest.*localStorage/);
+  it("11. F5: income popup is React state only — not localStorage", () => {
+    expect(page).toContain("showIncomePopup");
+    expect(page).not.toMatch(/localStorage.*incomePopup|incomePopup.*localStorage/);
   });
 
-  it("12. prefers-reduced-motion disables float travel", () => {
-    expect(css).toContain("v2-income-chest-float");
-    expect(css).toMatch(
-      /prefers-reduced-motion:\s*reduce[\s\S]*?v2-income-chest-float/,
-    );
+  it("12. single beige field-income-popup — no second chest float", () => {
+    expect(css).toContain("field-income-popup");
+    expect(page).toContain('data-field-income-popup="true"');
+    expect(page).toContain("playCoinIncomeFeedback");
+    expect(page).not.toContain("createIncomeChestFeedback");
+    expect(page).not.toContain("setIncomeChestFeedback");
+    expect(page).not.toContain("<IncomeChestFloat");
+    expect(layerSrc).not.toContain("IncomeChestFloat");
   });
 
-  it("13–14. per-click reward path sets chest feedback; lid closed", () => {
+  it("13–14. per-click reward path uses beige popup; lid closed", () => {
     expect(page).toContain("onWebReward");
-    expect(page).toContain("createIncomeChestFeedback(credited)");
+    expect(page).toContain("playCoinIncomeFeedback(credited)");
     expect(page).toContain("asPositiveRewardAmount");
     expect(page).toContain("rewardDelta?.baseIncomeAmount");
     expect(page).not.toContain("Уборка завершена");
-    expect(layerSrc).toContain("IncomeChestFloat");
-    expect(layerSrc).toContain("incomeChestFeedback");
   });
 });

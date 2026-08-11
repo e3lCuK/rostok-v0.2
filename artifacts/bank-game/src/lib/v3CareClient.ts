@@ -237,6 +237,11 @@ export function resolveV3CareRecovery(
 /**
  * Shovel «Уход» to finish the cycle — server-only.
  * Never true once status is `finished` (that stage uses claim / acknowledge).
+ *
+ * Use `readyToFinish` only (not bare `status === "ready"`). After the third
+ * activity finish the cycle is already `ready` while the session is still
+ * pending ack — treating that as shovel-ready hides the activity row before
+ * ack and blocks the converge → «Уход» path (especially on a second cycle).
  */
 export function shouldShowV3CareShovel(
   v3Roots: EconomyV3RootsState | null | undefined,
@@ -244,7 +249,7 @@ export function shouldShowV3CareShovel(
   const cycle = v3Roots?.careCycle;
   if (!cycle) return false;
   if (cycle.status === "finished") return false;
-  return cycle.readyToFinish === true || cycle.status === "ready";
+  return cycle.readyToFinish === true;
 }
 
 /**

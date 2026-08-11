@@ -28,10 +28,10 @@ export const V3_ACTIVITY_FILL_WASH_COLORS: Record<EconomyV3RootKind, string> = {
   fertilizer: "rgba(251, 191, 36, 0.5)",
 };
 
-/** «Уход» shovel — opaque rim + light amber wash (timer contrast). */
+/** «Уход» shovel — opaque brown rim + lighter brown wash (same family as rim). */
 export const V3_CARE_SHOVEL_RIM = "#92400e";
-export const V3_CARE_SHOVEL_WASH = "rgba(251, 191, 36, 0.5)";
+export const V3_CARE_SHOVEL_WASH = "rgba(196, 140, 96, 0.5)";
 
-/** Metelka brush card — opaque stone rim + light grey wash. */
+/** Metelka brush card — stone grey (same language as excess flask freeze). */
 export const V3_METELKA_RIM = "#44403c";
 export const V3_METELKA_WASH = "rgba(168, 162, 158, 0.5)";

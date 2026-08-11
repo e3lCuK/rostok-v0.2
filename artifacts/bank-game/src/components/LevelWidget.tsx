@@ -10,8 +10,13 @@ interface Props {
   onClick?: () => void;
 }
 
-const COLOR = "#4d7c0f";
-const SW = 2;
+/** Leaf-edge ink — same outline family as tree / flask rim weight. */
+const COLOR = "#2f5c0e";
+const SW = 1.05;
+/** Cream shell — matches activity buttons / field captions. */
+const SHELL = "rgba(255, 248, 236, 0.92)";
+/** Light wash under rim (timer / activity contrast). */
+const FILL_WASH = "rgba(134, 239, 172, 0.42)";
 
 const TOP:   [number, number] = [30,  5];
 const RIGHT: [number, number] = [55, 30];
@@ -74,18 +79,8 @@ export default function LevelWidget({
       ) : null}
       <motion.div
         className="lvl-badge"
-        animate={showGain
-          ? {
-              scale: [1, 1.12, 1],
-              filter: [
-                "drop-shadow(0 0 3px rgba(77,124,15,0.3))",
-                "drop-shadow(0 0 10px rgba(77,124,15,0.75))",
-                "drop-shadow(0 0 3px rgba(77,124,15,0.3))",
-              ],
-            }
-          : { scale: 1, filter: "drop-shadow(0 0 3px rgba(77,124,15,0.28))" }
-        }
-        transition={{ duration: 0.7, ease: "easeOut" }}
+        animate={showGain ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+        transition={{ duration: 0.55, ease: "easeOut" }}
       >
         <svg width="72" height="77" viewBox="0 0 60 64" fill="none">
           <defs>
@@ -94,28 +89,32 @@ export default function LevelWidget({
             </clipPath>
           </defs>
 
-          {/* Белый фон */}
+          {/* Cream shell */}
           <polygon
             points={`${pt(TOP)} ${pt(RIGHT)} ${pt(GAP_R)} ${pt(GAP_L)} ${pt(LEFT)}`}
-            fill="rgba(255,255,255,0.80)"
+            fill={SHELL}
           />
 
-          {/* Светло-зелёный прогресс снизу вверх */}
+          {/* Progress wash — bottom → top */}
           <motion.rect
             x="0" width="60"
             y={springY}
             height={springH}
-            fill="#bbf7d0"
+            fill={FILL_WASH}
             clipPath="url(#diamond-clip)"
           />
 
-          {/* Контур ромба */}
+          {/* Thin flask-style rim */}
           <polyline
             points={`${pt(GAP_R)} ${pt(RIGHT)} ${pt(TOP)} ${pt(LEFT)} ${pt(GAP_L)}`}
-            stroke={COLOR} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
+            stroke={COLOR}
+            strokeWidth={SW}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
           />
 
-          {/* Цифра уровня */}
+          {/* Level digit */}
           <text
             x="30" y="30"
             textAnchor="middle" dominantBaseline="central"

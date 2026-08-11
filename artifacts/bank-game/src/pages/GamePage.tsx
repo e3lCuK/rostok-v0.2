@@ -26,7 +26,7 @@ import FertilizerMatchGame from "@/components/FertilizerMatchGame";
 import FertilizerIcon from "@/components/FertilizerIcon";
 import { ACHIEVEMENTS, AchievementsPanel } from "@/components/AchievementsModal";
 import ShopModal from "@/components/ShopModal";
-import { Droplets, Sun, Play, CheckCircle2, Shovel, Lock, X, TreePine, Pencil, Check, Settings, ScrollText, Star, Eye, EyeOff, Gift, Clock } from "lucide-react";
+import { Droplets, Sun, Play, CheckCircle2, Shovel, Lock, X, TreePine, Pencil, Check, Settings, ScrollText, Star, Eye, EyeOff, Gift, Clock, Zap } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -41,11 +41,8 @@ import EconomyV3RootSystem from "@/components/v2/EconomyV3RootSystem";
 import CapitalChestUnderRoots from "@/components/v2/CapitalChestUnderRoots";
 import V3UndergroundWrapRoots from "@/components/v2/V3UndergroundWrapRoots";
 import V3RootWaitTimer from "@/components/v2/V3RootWaitTimer";
-import {
-  createIncomeChestFeedback,
-  INCOME_CHEST_FLOAT_MS,
-  type IncomeChestFeedback,
-} from "@/lib/incomeChestFeedback";
+import TreeRewardToken from "@/components/v2/TreeRewardToken";
+import { INCOME_CHEST_FLOAT_MS } from "@/lib/incomeChestFeedback";
 import {
   applyEconomyV2EnergyToState,
   applyEconomyV2RootsDebugToState,
@@ -202,8 +199,10 @@ import {
   careTrioDivergeTransition,
 } from "@/lib/careConvergeMotion";
 import {
+  activityFillPercentFromV3Skill,
   activityResultFillPercent,
   careShovelFillPercent,
+  resolveCareShovelFillPercent,
   isCareActivityCubeDone,
   mergeActivityFillPercent,
   scheduleFillHeightReveal,
@@ -220,13 +219,16 @@ import {
   getV3CareActivitiesCompleted,
   isV3TutorialActivitiesInteractionLocked,
   isV3TutorialLiveCareStep,
+  isV3TutorialPreEnergyStep,
   isV3TutorialRootEnergyReady,
   isV3TutorialRootStep,
   mergeStagedTutorialPrepare,
+  mergeTutorialRootsPreserveFill,
   nextV3TutorialFillKind,
   nextV3TutorialStepFromCompletedActivities,
   nextV3TutorialStepAfterRootTransfer,
   resolveV3TutorialStepFromServer,
+  shouldApplyResolvedV3TutorialStep,
   TUTORIAL_V3_FILL_MS,
   TUTORIAL_V3_ROOT_POP_MS,
   TUTORIAL_V3_ROOT_SECONDS,
@@ -235,6 +237,9 @@ import {
   clearV3CareUiAfterTutorial,
   resolveTutorialGenerationAnchorAt,
   shouldClearStaleV3CareUiAfterTutorial,
+  tutorialStepAfterWelcome,
+  TUTORIAL_PLAN_ICON_COLORS,
+  V3_TUTORIAL_REWARD_OVERLAY,
   type TutorialStep,
   type TutorialV3TimerKind,
   tutorialHighlightRoot,
@@ -242,6 +247,7 @@ import {
   v3TutorialOverlayConfig,
   withTutorialRootSeconds,
 } from "@/lib/tutorialFlow";
+import VaultWidget from "@/components/VaultWidget";
 import {
   armTutorialWaitClock,
   clearTutorialWaitClock,
@@ -392,6 +398,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     activity: EconomyV3RootKind;
     skill: number;
     score: number;
+    count: number;
   } | null>(null);
   /** Ack after result fill; blocks starting next activity until success. */
   const [v3PendingAck, setV3PendingAck] = useState<EconomyV3RootKind | null>(
@@ -412,12 +419,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [appleCount, setAppleCount] = useState(1);
   const [collectedAppleIndices, setCollectedAppleIndices] = useState<number[]>([]);
   const [flyingAppleIndices, setFlyingAppleIndices] = useState<number[]>([]);
+  /** Care / Metelka reward drag: apple → basket, coins → chest lock. */
+  const [draggingAppleIdx, setDraggingAppleIdx] = useState<number | null>(null);
+  const [draggingMetelkaCoin, setDraggingMetelkaCoin] = useState(false);
+  const [appleDropTargetActive, setAppleDropTargetActive] = useState(false);
+  const [coinDropTargetActive, setCoinDropTargetActive] = useState(false);
+  const rewardDragLockRef = useRef(false);
+  const rewardDragging = draggingAppleIdx !== null || draggingMetelkaCoin;
   const [showApplePopup, setShowApplePopup] = useState(false);
   const [applePopupCount, setApplePopupCount] = useState(1);
   const [showIncomePopup, setShowIncomePopup] = useState(false);
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
   const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
   const [tutorialDone, setTutorialDone] = useState(state.game.tutorialDone ?? true);
+  /** Sync for async achievement checks (setState is not visible yet inside dismiss). */
+  const tutorialDoneRef = useRef(tutorialDone);
+  tutorialDoneRef.current = tutorialDone;
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(
     (state.game.tutorialDone ?? true) ? null : "welcome"
   );
@@ -435,6 +452,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   /** Tutorial reward beat: reveal mm / apple badges only when their counters appear. */
   const [tutorialShowGrowthBadge, setTutorialShowGrowthBadge] = useState(false);
   const [tutorialShowAppleBadge, setTutorialShowAppleBadge] = useState(false);
+  /** Level badge during tutorial Care rewards (XP flash → growth → apples). */
+  const [tutorialShowLevelBadge, setTutorialShowLevelBadge] = useState(false);
   const tutorialRewardCollectRef = useRef({ apple: false, coin: false });
   const tutorialRewardActiveRef = useRef(false);
   /** Demo counters kept until «Начать играть» reapplies them onto post-complete state. */
@@ -657,6 +676,47 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setTutorialActivitiesExhausted(false);
         setShowActivityGhost(false);
         setCareClicked(false);
+        // Drop stale «Уход» chrome when the server cycle is gone; otherwise the
+        // shovel stays visible but clicks are a no-op (action === "none").
+        const cycleGone =
+          !shouldShowV3CareShovel(v3Roots) &&
+          !shouldShowV3RewardPreview(v3Roots) &&
+          !shouldAcknowledgeV3CareCycle(v3Roots);
+        if (cycleGone) {
+          dispatchCarePhase({ type: "reset" });
+          setWaterResultPct(null);
+          setLightResultPct(null);
+          setFertilizerResultPct(null);
+          setDisplayFillHeights(zeroDisplayFills());
+          setSessionScores(null);
+          setCareSyncError(null);
+        } else {
+          hydrateCareResultFillsFromV3Cycle(v3Roots);
+        }
+      },
+      onPlayerProgressApplied: (patch) => {
+        const cur = stateRef.current;
+        const prevLevel = cur.game.playerLevel ?? 1;
+        const playerXP = Math.max(0, Math.floor(Number(patch.playerXP) || 0));
+        const playerLevel = Math.max(
+          1,
+          Math.floor(Number(patch.playerLevel) || 1),
+        );
+        const xpDelta = playerXP - (cur.game.playerXP ?? 0);
+        commitState({
+          ...cur,
+          game: {
+            ...cur.game,
+            playerXP,
+            playerLevel,
+          },
+        });
+        // Keep prevLevelRef in sync so the playerLevel effect does not double-fire.
+        prevLevelRef.current = playerLevel;
+        if (xpDelta > 0) setXpGainAmount(xpDelta);
+        if (playerLevel > prevLevel) {
+          setLevelUpData({ level: playerLevel });
+        }
       },
     });
     return () => registerEconomyV2DebugBridge(null);
@@ -998,11 +1058,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     // Tutorial exit only — never regular Care claimAll / XP queue.
     tutorialRewardActiveRef.current = false;
     tutorialRewardCollectRef.current = { apple: false, coin: false };
-    setTutorialShowGrowthBadge(false);
-    setTutorialShowAppleBadge(false);
+    // Keep level / basket / mm chrome once revealed — do not hide for congrats.
     // Keep spent/muted activity cubes — do not flash them “active” under congrats.
     setTutorialActivitiesExhausted(true);
-    clearCareRewardPresentationState({ keepSpentActivities: true });
+    clearCareRewardPresentationState({
+      keepSpentActivities: true,
+      keepTutorialFieldChrome: true,
+    });
     // Dismiss the "complete" intro card first
     setShowTutorialCompletionCard(false);
     // Show final congratulations window ("Начать играть" / enter game)
@@ -1010,27 +1072,42 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }
 
   /**
-   * After tutorial «Уход»: left growth timer (same as live Care) → +1 мм →
-   * 1 apple + 1 coin → finish. No XP popup / claimAll; rewards stick into live play.
+   * After tutorial «Уход»: XP flash (claimed skill XP) → growth timer → +1 мм →
+   * 1 apple + 1 coin → finish. No claimAll; XP already applied by claim.
+   * Max XP at tutorial preset T=10 × 3 activities × skill 100% = 120.
    */
-  function handleTutorialCareRewards() {
+  function handleTutorialCareRewards(
+    scoresOverride?: {
+      water: number;
+      sun: number;
+      fert: number;
+      xp: number;
+      base: number;
+      bonus: number;
+      mm: number;
+    } | null,
+    opts?: { levelUp?: boolean; newLevel?: number },
+  ) {
     tutorialRewardActiveRef.current = true;
     tutorialRewardCollectRef.current = { apple: false, coin: false };
     tutorialDemoRewardRef.current = { mm: 0, apples: 0, money: 0 };
     setShowTutorialCompletionCard(false);
     setCareClicked(true);
     setTutorialShowAppleBadge(false);
+    setTutorialShowLevelBadge(true);
     setShowActivityGhost(false);
 
     const fromMM = displayGrowthMMRef.current;
     const toMM = fromMM + 1;
+    // Claimed skill XP: T=10 → max 40/activity, 120/cycle at skill 100%.
+    const xpAmt = Math.max(0, Math.floor(Number(scoresOverride?.xp) || 0));
     setSessionScores({
-      water: 100,
-      sun: 100,
-      fert: 100,
-      xp: 0,
-      base: 1,
-      bonus: 0,
+      water: scoresOverride?.water ?? 100,
+      sun: scoresOverride?.sun ?? 100,
+      fert: scoresOverride?.fert ?? 100,
+      xp: xpAmt,
+      base: scoresOverride?.base ?? 1,
+      bonus: scoresOverride?.bonus ?? 0,
       mm: 1,
     });
 
@@ -1041,62 +1118,82 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }, TUTORIAL_CARE_GHOST_DELAY_MS);
     growthTimeoutsRef.current.push(ghostTimer);
 
-    // Same layout as live Care: countdown left → +N мм left; badge on the right.
-    setTutorialShowGrowthBadge(true);
-    setShowApples(false);
-    setShowGrowthAnim(true);
-    triggerTreeAnim();
-    const timerSecs = Math.max(5, 1);
-    setGrowthTimerTotal(timerSecs);
-    setGrowthCountdown(timerSecs);
-    let countVal = timerSecs - 1;
-    const growthInterval = setInterval(() => {
-      if (!tutorialRewardActiveRef.current) {
+    const startGrowthBeat = () => {
+      if (!tutorialRewardActiveRef.current) return;
+      // Same layout as live Care: countdown left → +N мм left; badge on the right.
+      setTutorialShowGrowthBadge(true);
+      setShowApples(false);
+      setShowGrowthAnim(true);
+      triggerTreeAnim();
+      const timerSecs = Math.max(5, 1);
+      setGrowthTimerTotal(timerSecs);
+      setGrowthCountdown(timerSecs);
+      let countVal = timerSecs - 1;
+      const growthInterval = setInterval(() => {
+        if (!tutorialRewardActiveRef.current) {
+          clearInterval(growthInterval);
+          growthIntervalRef.current = null;
+          return;
+        }
+        if (countVal >= 0) {
+          setGrowthCountdown(countVal--);
+          return;
+        }
         clearInterval(growthInterval);
         growthIntervalRef.current = null;
-        return;
-      }
-      if (countVal >= 0) {
-        setGrowthCountdown(countVal--);
-        return;
-      }
-      clearInterval(growthInterval);
-      growthIntervalRef.current = null;
-      setGrowthCountdown(null);
+        setGrowthCountdown(null);
 
-      tutorialDemoRewardRef.current.mm = toMM;
-      // Persist +1 мм into live state (tutorial/complete keeps it on the server).
-      {
-        const cur = stateRef.current;
-        commitState({
-          ...cur,
-          game: { ...cur.game, treeGrowthMM: toMM },
-        });
-      }
-      animateGrowth(fromMM, toMM);
-      // Same left-of-tree +N мм accrual as live Care (after growth timer).
-      setMmPopupAmount(1);
-      setShowMmPopup(true);
-      const hideMm = setTimeout(() => {
-        setShowMmPopup(false);
-        setMmPopupAmount(0);
-      }, 1400);
-      growthTimeoutsRef.current.push(hideMm);
+        tutorialDemoRewardRef.current.mm = toMM;
+        // Persist +1 мм into live state (tutorial/complete keeps it on the server).
+        {
+          const cur = stateRef.current;
+          commitState({
+            ...cur,
+            game: { ...cur.game, treeGrowthMM: toMM },
+          });
+        }
+        animateGrowth(fromMM, toMM);
+        // Same left-of-tree +N мм accrual as live Care (after growth timer).
+        setMmPopupAmount(1);
+        setShowMmPopup(true);
+        const hideMm = setTimeout(() => {
+          setShowMmPopup(false);
+          setMmPopupAmount(0);
+        }, 1400);
+        growthTimeoutsRef.current.push(hideMm);
 
-      const appleTimer = setTimeout(() => {
+        const appleTimer = setTimeout(() => {
+          if (!tutorialRewardActiveRef.current) return;
+          setShowGrowthAnim(false);
+          setTutorialShowAppleBadge(true);
+          setAppleCount(2);
+          appleCountRef.current = 2;
+          collectedAppleIndicesRef.current = [];
+          setCollectedAppleIndices([]);
+          setFlyingAppleIndices([]);
+          setShowApples(true);
+        }, 1800);
+        growthTimeoutsRef.current.push(appleTimer);
+      }, 1000);
+      growthIntervalRef.current = growthInterval;
+    };
+
+    // Same XP flash as live Care, then growth beat. XP already on player from claim.
+    if (xpAmt > 0) {
+      setShowXpPopup(true);
+      const xpTimer = setTimeout(() => {
         if (!tutorialRewardActiveRef.current) return;
-        setShowGrowthAnim(false);
-        setTutorialShowAppleBadge(true);
-        setAppleCount(2);
-        appleCountRef.current = 2;
-        collectedAppleIndicesRef.current = [];
-        setCollectedAppleIndices([]);
-        setFlyingAppleIndices([]);
-        setShowApples(true);
-      }, 1800);
-      growthTimeoutsRef.current.push(appleTimer);
-    }, 1000);
-    growthIntervalRef.current = growthInterval;
+        setXpGainAmount(xpAmt);
+        if (opts?.levelUp && opts.newLevel != null) {
+          setLevelUpData({ level: opts.newLevel });
+        }
+        setShowXpPopup(false);
+        startGrowthBeat();
+      }, 1400);
+      growthTimeoutsRef.current.push(xpTimer);
+    } else {
+      startGrowthBeat();
+    }
   }
 
   function maybeFinishTutorialRewards() {
@@ -1119,10 +1216,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   function handleTutorialDismiss() {
     setShowTutorialComplete(false);
+    // Unlock live chrome gates BEFORE clearing temporary tutorial badges.
+    // Otherwise level / basket / mm unmount for a frame (blink) while blur lifts.
+    tutorialDoneRef.current = true;
+    setTutorialDone(true);
     setTimeout(() => {
       void (async () => {
         // Clear all tutorial UI leftovers so Care returns to normal unlock rules.
         // Must also idle reward presentation (no deferred XP/growth/apples replay).
+        // Safe: tutorialDone already keeps level / basket / mm mounted.
         setTutorialActivitiesExhausted(false);
         clearCareRewardPresentationState();
         setTutorialStep(null);
@@ -1246,10 +1348,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             setTotalApples(next.game.totalApples ?? keptApples);
             displayGrowthMMRef.current = next.game.treeGrowthMM ?? keptMm;
             setDisplayGrowthMM(next.game.treeGrowthMM ?? keptMm);
+            tutorialDoneRef.current = true;
             setTutorialDone(true);
             commitState(next);
           } else {
             // Offline fallback: keep counters already applied during the reward beat.
+            tutorialDoneRef.current = true;
             setTutorialDone(true);
             commitState(
               applyEconomyV3RootsToState(
@@ -1268,6 +1372,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           }
         } catch {
           // Keep local tutorial collectibles if refresh fails.
+          tutorialDoneRef.current = true;
           setTutorialDone(true);
           commitState(
             applyEconomyV3RootsToState(
@@ -1284,6 +1389,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             ),
           );
         }
+        // Tutorial achievement «Пройти обучение» → pulse level badge (pending claim).
+        checkPendingAchievements();
         // Only open streak widget if it's not the first day
         const todayStr = new Date().toISOString().slice(0, 10);
         const accountStartStr = new Date(stateRef.current.balances.startDate)
@@ -1325,8 +1432,127 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   const { balances, game } = state;
   const totalBalance = balances.balance;
+  const vaultBalance = Math.max(0, Number(balances.vaultBalance) || 0);
+  const sproutPlanted =
+    game.sproutPlanted === true || tutorialDone === true;
   const excessCleaning = isExcessCleaningMode(game.v2Excess);
   const excessResultPending = isExcessResultAvailable(game.v2Excess);
+  /** Excess phase: grey flask + capital coin (same as Metelka freeze). */
+  const excessUiGrey =
+    excessCleaning ||
+    game.v3Roots?.excessGate?.generatingExcess === true;
+
+  const [vaultTransferBusy, setVaultTransferBusy] = useState(false);
+  const [plantSproutBusy, setPlantSproutBusy] = useState(false);
+  const plantLockRef = useRef(false);
+  const plantRevealTimersRef = useRef<number[]>([]);
+
+  function clearPlantRevealTimers() {
+    for (const id of plantRevealTimersRef.current) {
+      window.clearTimeout(id);
+    }
+    plantRevealTimersRef.current = [];
+  }
+
+  useEffect(() => () => clearPlantRevealTimers(), []);
+
+  function beginSproutPlantReveal(balancesPatch?: {
+    balance?: number;
+    vaultBalance?: number;
+    earned?: number;
+  }) {
+    // Start underground masked so the wipe can rise after the sprout appears.
+    setUndergroundRootsMasked(true);
+    commitState({
+      ...stateRef.current,
+      balances: {
+        ...stateRef.current.balances,
+        ...(balancesPatch?.balance != null
+          ? { balance: balancesPatch.balance }
+          : {}),
+        ...(balancesPatch?.vaultBalance != null
+          ? { vaultBalance: balancesPatch.vaultBalance }
+          : {}),
+        ...(balancesPatch?.earned != null
+          ? { earned: balancesPatch.earned }
+          : {}),
+      },
+      game: {
+        ...stateRef.current.game,
+        sproutPlanted: true,
+      },
+    });
+    clearPlantRevealTimers();
+    // Sprout paints first; then open the root column from the soil.
+    plantRevealTimersRef.current.push(
+      window.setTimeout(() => {
+        setUndergroundRootsMasked(false);
+      }, 280),
+    );
+    plantRevealTimersRef.current.push(
+      window.setTimeout(() => {
+        setTutorialStep("capital-transfer");
+      }, 1100),
+    );
+  }
+
+  async function handlePlantSprout() {
+    if (plantLockRef.current || plantSproutBusy || sproutPlanted) return;
+    plantLockRef.current = true;
+    setPlantSproutBusy(true);
+    // Optimistic UI — do not block the plant beat on a stale api-server build.
+    beginSproutPlantReveal();
+    try {
+      const res = await api.plantTutorialSprout();
+      commitState({
+        ...stateRef.current,
+        balances: {
+          ...stateRef.current.balances,
+          balance: res.balances.balance,
+          vaultBalance: res.balances.vaultBalance,
+          earned: res.balances.earned,
+        },
+        game: {
+          ...stateRef.current.game,
+          sproutPlanted: true,
+        },
+      });
+    } catch (err) {
+      console.warn("[tutorial] plant sprout API failed (UI already advanced)", err);
+    } finally {
+      setPlantSproutBusy(false);
+    }
+  }
+
+  async function handleVaultCapitalTransfer() {
+    if (vaultTransferBusy || vaultBalance <= 0) return;
+    setVaultTransferBusy(true);
+    setCoinDropTargetActive(false);
+    try {
+      const res = await api.transferTutorialCapitalVault();
+      commitState({
+        ...stateRef.current,
+        balances: {
+          ...stateRef.current.balances,
+          balance: res.balances.balance,
+          vaultBalance: res.balances.vaultBalance,
+          earned: res.balances.earned,
+        },
+        game: {
+          ...stateRef.current.game,
+          sproutPlanted: res.sproutPlanted === true,
+        },
+      });
+      dropStaleTutorialWaitClock();
+      setTutorialTimerKind(null);
+      setTutorialFillDeadlineMs(null);
+      setTutorialStep("intro");
+    } catch {
+      // stay on capital-transfer
+    } finally {
+      setVaultTransferBusy(false);
+    }
+  }
 
   // Eye toggle is hidden during cleaning — keep roots visible.
   useEffect(() => {
@@ -1334,8 +1560,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }, [excessCleaning]);
 
   const [excessAckBusy, setExcessAckBusy] = useState(false);
-  const [incomeChestFeedback, setIncomeChestFeedback] =
-    useState<IncomeChestFeedback | null>(null);
   const [metelkaRewardFloats, setMetelkaRewardFloats] = useState<
     ExcessRewardFloat[]
   >([]);
@@ -1609,7 +1833,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowXpPopup(false);
       setXpFlashAmount(null);
       if (moneyGained > 0) {
-        setIncomeChestFeedback(createIncomeChestFeedback(moneyGained));
+        playCoinIncomeFeedback(moneyGained);
         setHistoryNotif(true);
       }
       if (res.playerLevel > prevLevel) {
@@ -1686,9 +1910,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       });
       excessFinishGuardRef.current.reset();
       if (res.paidIncomeApplied > 0) {
-        setIncomeChestFeedback(
-          createIncomeChestFeedback(res.paidIncomeApplied),
-        );
+        playCoinIncomeFeedback(res.paidIncomeApplied);
       } else if (pendingPaid > 0 && res.paidIncomeApplied === 0) {
         // already applied — no replay
       }
@@ -1735,8 +1957,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   // Check for claimable achievements (dot on level diamond)
   function checkPendingAchievements() {
+    const localTutorialDone = tutorialDoneRef.current;
     api.getAchievements().then(data => {
-      const counts = data.counts as Record<string, number>;
+      const counts = { ...(data.counts as Record<string, number>) };
+      // After tutorial dismiss local unlock can lead the achievements payload;
+      // treat tutorial as done so the level badge pulses immediately.
+      if (localTutorialDone && !(counts.tutorial_done > 0)) {
+        counts.tutorial_done = 1;
+      }
       const claimed = data.claimed;
       const hasPending = ACHIEVEMENTS.some(a => {
         if (claimed.includes(a.id)) return false;
@@ -1748,6 +1976,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }).catch(() => {});
   }
   useEffect(() => { checkPendingAchievements(); }, [game.lastSessionTime]); // re-check on session complete or state reset
+  // After tutorial unlock — pulse level badge for «Пройти обучение».
+  useEffect(() => {
+    if (!tutorialDone) return;
+    checkPendingAchievements();
+  }, [tutorialDone]);
 
   const locked = isSessionLocked(game.lastSessionTime, now);
 
@@ -1916,6 +2149,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       if (act === "fertilizer") setFertilizerResultPct(pct);
       setDisplayFillHeights((d) => ({ ...d, [act]: pct }));
       setV3PendingAck(act);
+      // Auto-ack so a missed timeout / remount cannot leave the trio stuck
+      // without «Уход» (ready cycle + pending completed session).
+      window.setTimeout(() => {
+        void acknowledgeV3CareActivityOnce(act);
+      }, 1000);
     }
   }, [game.v3Roots, tutorialDone, tutorialStep]);
 
@@ -1930,12 +2168,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       v3CycleRecoveredRef.current = null;
       // Idle cycle: drop stale result overlays so a new reserve fill
       // does not paint white «done» shells over thematic colors.
+      // Keep fills while «Уход» / converge chrome still needs quality wash.
       const acts = snap.careCycle?.activities;
       const anyDone =
         acts?.water?.completed === true ||
         acts?.sun?.completed === true ||
         acts?.fertilizer?.completed === true;
-      if (!anyDone && !isV3CareSessionBlocking(snap)) {
+      const keepShovelFill =
+        carePhaseShowsShovel(carePhase) ||
+        carePhase === "care_transition" ||
+        carePhase === "activities_completed" ||
+        shouldShowV3CareShovel(snap) ||
+        shouldShowV3RewardPreview(snap);
+      if (!anyDone && !isV3CareSessionBlocking(snap) && !keepShovelFill) {
         setWaterResultPct(null);
         setLightResultPct(null);
         setFertilizerResultPct(null);
@@ -1972,25 +2217,32 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       enterV3CareShovelUi();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.v3Roots, tutorialDone, tutorialStep]);
+  }, [game.v3Roots, tutorialDone, tutorialStep, carePhase]);
 
   // F5: restore v3 Tutorial step from server snapshot.
+  // Never regress (Care shovel can clear roots → resolve="intro" — tip must not return).
   useEffect(() => {
     if (tutorialDone || !useV3) return;
     const next = resolveV3TutorialStepFromServer({
       tutorialDone: false,
       v3Roots: game.v3Roots,
+      sproutPlanted: game.sproutPlanted === true,
+      vaultBalance: balances.vaultBalance,
     });
     if (next == null || next === "welcome") return;
-    setTutorialStep((cur) => {
-      if (cur === next) return cur;
-      if (cur === "welcome" || cur === "intro" || cur == null) return next;
-      return next;
-    });
-  }, [game.v3Roots, tutorialDone, useV3]);
+    setTutorialStep((cur) =>
+      shouldApplyResolvedV3TutorialStep(cur, next) ? next : cur,
+    );
+  }, [
+    game.v3Roots,
+    game.sproutPlanted,
+    balances.vaultBalance,
+    tutorialDone,
+    useV3,
+  ]);
 
   // v3 Tutorial intro (strict sequence, not simultaneous):
-  // 5s timer (root empty) → quick root pop to 5s → next timer → next root…
+  // 5s timer (root empty) → quick pop fills two cells (10s) → next root…
   // then switch capsule straight to 12:00 (never flash 0).
   const [tutorialFillDeadlineMs, setTutorialFillDeadlineMs] = useState<
     number | null
@@ -2020,11 +2272,40 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     tutorialTimerKindRef.current = tutorialTimerKind;
   }, [tutorialTimerKind]);
 
+  const persistTutorialRootsAll = () => {
+    // Upgrade stale 5s fills → 10s before collect / activity presets.
+    void api
+      .prepareTutorialV3({ all: true })
+      .then((allPrepared) => {
+        const cur = stateRef.current.game.v3Roots;
+        if (!cur || !allPrepared.v3Roots) return;
+        commitState(
+          applyEconomyV3RootsToState(
+            stateRef.current,
+            mergeTutorialRootsPreserveFill(cur, allPrepared.v3Roots),
+          ),
+        );
+      })
+      .catch((err) => {
+        if (import.meta.env.DEV) {
+          console.warn("[v3 tutorial] prepare-all failed", err);
+        }
+      });
+  };
+
+  const dropStaleTutorialWaitClock = () => {
+    clearTutorialWaitClock();
+    tutorialWaitStartedRef.current = false;
+    tutorialWaitStartedAtRef.current = null;
+    tutorialWaitDeadlineMsRef.current = null;
+  };
+
   const startTutorialWaitCountdown = () => {
     // Idempotent + F5-safe: restore sessionStorage clock; never re-arm a fresh 12:00.
     let armedStartedAt: number | null = null;
     if (!tutorialWaitStartedRef.current) {
       tutorialWaitStartedRef.current = true;
+      persistTutorialRootsAll();
       const clock = armTutorialWaitClock(Date.now());
       tutorialWaitStartedAtRef.current = clock.startedAtMs;
       tutorialWaitDeadlineMsRef.current = clock.deadlineMs;
@@ -2051,6 +2332,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setTutorialTimerKind("wait");
       setTutorialFillDeadlineMs(clock.deadlineMs);
     } else {
+      // Remount / Strict Mode: kind is already "wait" but React state may
+      // have lost the deadline — re-bind the capsule from the persisted clock.
+      const clock =
+        loadTutorialWaitClock() ??
+        (tutorialWaitStartedAtRef.current != null &&
+        tutorialWaitDeadlineMsRef.current != null
+          ? {
+              startedAtMs: tutorialWaitStartedAtRef.current,
+              deadlineMs: tutorialWaitDeadlineMsRef.current,
+            }
+          : null);
+      if (clock) {
+        tutorialWaitStartedAtRef.current = clock.startedAtMs;
+        tutorialWaitDeadlineMsRef.current = clock.deadlineMs;
+        setTutorialFillDeadlineMs(clock.deadlineMs);
+        setTutorialTimerKind("wait");
+      }
       armedStartedAt = tutorialWaitStartedAtRef.current;
     }
     // Persist wait start as generation anchor (main-game settle after 12:00).
@@ -2142,10 +2440,46 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialDone, useV3, game.v3Roots, tutorialTimerKind]);
 
+  /**
+   * Bootstrap root-energy fill / 12:00 wait after plant + capital transfer.
+   * Must NOT depend on tutorialStep identity: leaving "intro" for root-collect
+   * used to cancel the fill loop and leave the flask stuck on idle "—:—".
+   */
+  const tutorialEnergyBootstrap =
+    !tutorialDone &&
+    useV3 &&
+    tutorialStep != null &&
+    !isV3TutorialPreEnergyStep(tutorialStep);
+
+  /** Bumped by watchdog when the fill loop dies mid-sequence (e.g. after water). */
+  const [tutorialFillRepairNonce, setTutorialFillRepairNonce] = useState(0);
+  const tutorialFillWatchdogDeadlineRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (tutorialDone || !useV3) return;
-    // After intro, keep the 12:00 wait capsule through collect / Care.
-    if (tutorialStep !== "intro") return;
+    if (!tutorialEnergyBootstrap) return;
+
+    // Wait already armed — restore capsule only when roots are ready.
+    // Stale sessionStorage wait (e.g. after «Сброс туториала») must not
+    // block the 5s fill loop, or the flask stays idle on "—:—".
+    if (
+      tutorialWaitStartedRef.current ||
+      tutorialTimerKindRef.current === "wait"
+    ) {
+      if (areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)) {
+        startTutorialWaitCountdown();
+        return;
+      }
+      dropStaleTutorialWaitClock();
+      if (tutorialTimerKindRef.current === "wait") {
+        setTutorialTimerKind(null);
+        setTutorialFillDeadlineMs(null);
+      }
+    }
+
+    if (areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)) {
+      startTutorialWaitCountdown();
+      return;
+    }
 
     const runId = ++tutorialFillRunRef.current;
     let cancelled = false;
@@ -2181,7 +2515,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       );
     };
 
-    /** Fast 0 → 5s pop after the wait (not during the timer). */
+    /** Fast 0 → 10s (two cells) pop after the wait (not during the timer). */
     const popRootFill = async (kind: EconomyV3RootKind) => {
       const animStart = Date.now();
       const end = animStart + TUTORIAL_V3_ROOT_POP_MS;
@@ -2197,13 +2531,32 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       applyLocalRootFill(kind, TUTORIAL_V3_ROOT_SECONDS);
     };
 
+    const persistPreparedKind = (kind: EconomyV3RootKind) => {
+      // Never block the staged sequence on a slow/hung prepare — local pop is SoT.
+      void api
+        .prepareTutorialV3({ kind })
+        .then((prepared) => {
+          const local = stateRef.current.game.v3Roots;
+          if (!local || !prepared.v3Roots) return;
+          commitState(
+            applyEconomyV3RootsToState(
+              stateRef.current,
+              mergeStagedTutorialPrepare(local, kind, prepared.v3Roots),
+            ),
+          );
+        })
+        .catch(() => {
+          /* transfer path also bumps tutorial grants */
+        });
+    };
+
     (async () => {
       try {
         if (areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)) {
           startTutorialWaitCountdown();
           return;
         }
-        // Phase A: 5s timer (root stays empty). Phase B: quick fill. Repeat.
+        // Phase A: 5s timer (root stays empty). Phase B: pop two cells. Repeat.
         while (stillActive()) {
           const kind = nextV3TutorialFillKind(stateRef.current.game.v3Roots);
           if (kind == null) {
@@ -2216,35 +2569,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           await sleepUntil(deadline);
           if (!stillActive()) return;
           await popRootFill(kind);
-          // Arm 12:00 as soon as the last root pops — before prepare/step races.
+          persistPreparedKind(kind);
           if (nextV3TutorialFillKind(stateRef.current.game.v3Roots) == null) {
             startTutorialWaitCountdown();
-          }
-          if (!stillActive() && tutorialWaitStartedRef.current) {
-            // Intro effect cancelled by step advance; wait capsule already armed.
-            try {
-              await api.prepareTutorialV3({ kind });
-            } catch {
-              /* best-effort persist */
-            }
             return;
           }
           if (!stillActive()) return;
-          const prepared = await api.prepareTutorialV3({ kind });
-          if (!stillActive() && !tutorialWaitStartedRef.current) return;
-          const local = stateRef.current.game.v3Roots;
-          if (local && prepared.v3Roots) {
-            commitState(
-              applyEconomyV3RootsToState(
-                stateRef.current,
-                mergeStagedTutorialPrepare(local, kind, prepared.v3Roots),
-              ),
-            );
-          }
-          if (nextV3TutorialFillKind(stateRef.current.game.v3Roots) == null) {
-            startTutorialWaitCountdown();
-            return;
-          }
         }
       } catch (err) {
         if (
@@ -2262,7 +2592,33 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialDone, useV3, tutorialStep]);
+  }, [tutorialEnergyBootstrap, tutorialFillRepairNonce]);
+
+  /**
+   * If the fill loop dies after a root pop (cancelled effect / hung await),
+   * the flask freezes and later roots never fill. Kick one repair per deadline.
+   */
+  useEffect(() => {
+    if (!tutorialEnergyBootstrap) return;
+    if (tutorialWaitStartedRef.current) return;
+    if (tutorialTimerKind === "wait") return;
+    if (areV3TutorialRootsEnergyReady(game.v3Roots)) return;
+    if (tutorialFillDeadlineMs == null) return;
+    // Countdown still running (or just finished) — give the loop time to pop.
+    if (Date.now() - tutorialFillDeadlineMs < 2000) return;
+    // Already kicked a repair for this frozen deadline.
+    if (tutorialFillWatchdogDeadlineRef.current === tutorialFillDeadlineMs) {
+      return;
+    }
+    tutorialFillWatchdogDeadlineRef.current = tutorialFillDeadlineMs;
+    setTutorialFillRepairNonce((n) => n + 1);
+  }, [
+    tutorialEnergyBootstrap,
+    tutorialTimerKind,
+    tutorialFillDeadlineMs,
+    game.v3Roots,
+    now,
+  ]);
 
   /** Excess must not replace Care while mid-cycle or awaiting «Уход». */
   const metelkaBlockedByCare = useV3
@@ -2395,12 +2751,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     });
   }
 
+  /** Single income flash: beige field-income-popup (no second float). */
   function playCoinIncomeFeedback(amount: number) {
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) return;
     setLastIncomeAmount(n);
     setShowIncomePopup(true);
-    setIncomeChestFeedback(createIncomeChestFeedback(n));
     const hidePopup = setTimeout(() => setShowIncomePopup(false), 1500);
     growthTimeoutsRef.current.push(hidePopup);
   }
@@ -2416,7 +2772,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const redRemaining = coinUncollected ? Math.max(0, remaining - 1) : remaining;
     const cur = stateRef.current;
     const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
-    // Same chest float as Metelka / care income — not only the static +₽ chip.
+    // Same beige income popup as Metelka / care income.
     if (total > 0) playCoinIncomeFeedback(total);
     else setShowIncomePopup(true);
     if (redRemaining > 0) {
@@ -2473,9 +2829,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
   }
 
+  /**
+   * Credit a tree reward token.
+   * Apples + Care coin: call from drag-end (counter only after drop; miss still credits).
+   * Metelka coin: same drag-to-chest via MetelkaRewardCoin → onClaim.
+   */
   function handleAppleClick(appleIdx: number) {
     if (collectedAppleIndicesRef.current.includes(appleIdx)) return;
-    // Mark as manually clicked so exit animation flies toward resources
+    // Mark as manually collected so exit animation flies toward resources
     setFlyingAppleIndices(f => [...f, appleIdx]);
     const next = [...collectedAppleIndicesRef.current, appleIdx];
     collectedAppleIndicesRef.current = next;
@@ -2589,6 +2950,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     collectedAppleIndicesRef.current = [];
     setCollectedAppleIndices([]);
     setFlyingAppleIndices([]);
+    setDraggingAppleIdx(null);
+    setDraggingMetelkaCoin(false);
+    setAppleDropTargetActive(false);
+    setCoinDropTargetActive(false);
+    rewardDragLockRef.current = false;
     if (appleAutoCollectTimerRef.current) {
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
@@ -2601,6 +2967,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
    */
   function clearCareRewardPresentationState(opts?: {
     keepSpentActivities?: boolean;
+    /** Keep level / basket / mm badges after they were revealed in tutorial. */
+    keepTutorialFieldChrome?: boolean;
   }) {
     pendingXpRef.current = null;
     setSessionScores(null);
@@ -2610,13 +2978,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setMmPopupAmount(0);
     setShowIncomePopup(false);
     setShowApplePopup(false);
-    setIncomeChestFeedback(null);
     setXpGainAmount(null);
     setLevelUpData(null);
     tutorialRewardActiveRef.current = false;
     tutorialRewardCollectRef.current = { apple: false, coin: false };
-    setTutorialShowGrowthBadge(false);
-    setTutorialShowAppleBadge(false);
+    if (!opts?.keepTutorialFieldChrome) {
+      setTutorialShowGrowthBadge(false);
+      setTutorialShowAppleBadge(false);
+      setTutorialShowLevelBadge(false);
+    }
     resetCareUiChrome({
       keepSpentActivities: opts?.keepSpentActivities === true,
     });
@@ -2698,6 +3068,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           });
           clearTutorialWaitClock();
           data = await api.getState();
+          // Unlock «Пройти обучение» pending claim after heal.
+          checkPendingAchievements();
         } catch (err) {
           if (import.meta.env.DEV) {
             console.warn("[v3 timer] tutorialComplete heal failed", err);
@@ -2752,6 +3124,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             treeGrowthMM: syncedMm,
             treeGrowthRemainder: serverGame.treeGrowthRemainder ?? 0,
             totalApples: syncedApples,
+            purchasedItems: Array.isArray(serverGame.purchasedItems)
+              ? serverGame.purchasedItems
+              : local.game.purchasedItems,
             playerXP: serverGame.playerXP ?? 0,
             playerLevel: serverGame.playerLevel ?? 1,
             v2Care: emptyV2CareState(),
@@ -2764,10 +3139,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         if (serverGame.tutorialDone !== false) {
           setTutorialDone(true);
           setTotalApples(next.game.totalApples ?? 0);
+          if (Array.isArray(next.game.purchasedItems)) {
+            setPurchasedItems(next.game.purchasedItems);
+          }
           displayGrowthMMRef.current = next.game.treeGrowthMM ?? 0;
           setDisplayGrowthMM(next.game.treeGrowthMM ?? 0);
         }
         let synced = applyEconomyV3FromServerGame(next, serverGame);
+        // During staged tutorial fill, keep fuller local root cells so a poll
+        // cannot snap water/sun/fertilizer back to empty mid-sequence.
+        if (
+          !tutorialDoneRef.current &&
+          local.game.v3Roots &&
+          synced.game.v3Roots
+        ) {
+          synced = applyEconomyV3RootsToState(
+            synced,
+            mergeTutorialRootsPreserveFill(
+              local.game.v3Roots,
+              synced.game.v3Roots,
+            ),
+          );
+        }
         // Poll must not re-apply tutorial Care checkmarks and hide "0 с".
         if (
           (serverGame.tutorialDone !== false || tutorialDone) &&
@@ -2936,10 +3329,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     activity: EconomyV3RootKind,
     skill: number,
     scoreForFill: number,
+    count: number = 0,
   ): Promise<boolean> {
+    const itemCount =
+      typeof count === "number" && Number.isFinite(count) && count >= 0
+        ? Math.round(count)
+        : 0;
     setV3CareBusy(true);
     try {
-      const finished = await api.finishV3CareActivity(activity, skill);
+      const finished = await api.finishV3CareActivity(
+        activity,
+        skill,
+        itemCount,
+      );
       const cur = stateRef.current;
       let next: UserState = applyEconomyV3RootsToState(cur, finished.v3Roots);
       // Income is pending until coin claimAll — do not bump balance / history here.
@@ -2984,7 +3386,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     } catch (err) {
       const friendly = formatV3CareError(err);
       setCareSyncError(friendly);
-      setV3PendingFinish({ activity, skill, score: scoreForFill });
+      setV3PendingFinish({
+        activity,
+        skill,
+        score: scoreForFill,
+        count: itemCount,
+      });
       // Do not keep a completed local fill / do not acknowledge.
       if (activity === "water") setWaterResultPct(null);
       if (activity === "sun") setLightResultPct(null);
@@ -3051,13 +3458,50 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     v3LiveConvergeRef.current = true;
     // Third fill already played on the activity card — skip replaying 0→target.
     skipCareFillAnimationRef.current = true;
+    hydrateCareResultFillsFromV3Cycle(stateRef.current.game.v3Roots);
     dispatchCarePhase({ type: "all_done" });
   }
 
   /** F5 / recovery only — server already ready/finished; skip converge. */
   function enterV3CareShovelUi() {
     skipCareFillAnimationRef.current = true;
+    hydrateCareResultFillsFromV3Cycle(stateRef.current.game.v3Roots);
     dispatchCarePhase({ type: "restore_shovel" });
+  }
+
+  /** Restore «Уход» quality fill from cycle skills when local pcts were cleared. */
+  function hydrateCareResultFillsFromV3Cycle(
+    v3Roots: typeof game.v3Roots | null | undefined,
+  ) {
+    const acts = v3Roots?.careCycle?.activities;
+    if (!acts) return;
+    const w = activityFillPercentFromV3Skill(acts.water?.skill);
+    const s = activityFillPercentFromV3Skill(acts.sun?.skill);
+    const f = activityFillPercentFromV3Skill(acts.fertilizer?.skill);
+    if (w != null) {
+      waterScoreRef.current = w;
+      setWaterResultPct((prev) => mergeActivityFillPercent(prev, w));
+    }
+    if (s != null) {
+      sunScoreRef.current = s;
+      setLightResultPct((prev) => mergeActivityFillPercent(prev, s));
+    }
+    if (f != null) {
+      fertilizerScoreRef.current = f;
+      setFertilizerResultPct((prev) => mergeActivityFillPercent(prev, f));
+    }
+    const avg = v3Roots?.careCycle?.averageSkill;
+    if (
+      w == null &&
+      s == null &&
+      f == null &&
+      avg != null &&
+      Number.isFinite(avg)
+    ) {
+      skillScoreRef.current = activityResultFillPercent(avg * 100);
+    } else if (w != null || s != null || f != null) {
+      skillScoreRef.current = careShovelFillPercent(w, s, f);
+    }
   }
 
   function applyV3RewardPreviewToUi(v3Roots: NonNullable<typeof game.v3Roots>) {
@@ -3220,8 +3664,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         ),
       );
 
-      // Tutorial Care claim: ack, then demo reward beat (growth → +1мм → apple+coin).
-      // No claimAll / XP queue — finish card only after both collectables clicked.
+      // Tutorial Care claim: ack, then XP flash (claimed skill XP) → growth →
+      // +1мм → apple+coin. No claimAll; finish card after both collectables.
       if (!tutorialDone) {
         await acknowledgeV3CareCycleOnce({ skipUiExit: true });
         const curAfter = stateRef.current;
@@ -3238,7 +3682,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setCareSyncError(null);
         if (useV3) {
           setTutorialStep("complete");
-          handleTutorialCareRewards();
+          handleTutorialCareRewards(scoresForQueue, {
+            levelUp: claimed.playerLevel > prevLevel,
+            newLevel: claimed.playerLevel,
+          });
         } else {
           handleTutorialFinish();
         }
@@ -3291,8 +3738,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
    * State conflicts refresh once and continue — no blocking toast.
    */
   async function handleV3CareShovelClick() {
+    const snapNow = stateRef.current.game.v3Roots;
     const liveTutorial =
-      !tutorialDone && useV3 && tutorialStep === "complete";
+      !tutorialDone &&
+      useV3 &&
+      (tutorialStep === "complete" ||
+        showCareButton ||
+        resolveV3CareShovelAction(snapNow) !== "none");
     if ((!tutorialDone && !liveTutorial) || careClicked) return;
     if (
       v3FinishCycleInFlightRef.current ||
@@ -3307,6 +3759,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const snap = stateRef.current.game.v3Roots;
       if (!snap || snap.enabled !== true) return;
       const action = resolveV3CareShovelAction(snap);
+
+      if (action === "none") {
+        if (!retried) {
+          await recoverCareFromServer();
+          await run(true);
+          return;
+        }
+        // Stale shovel after debug clear / desync — return to activity row.
+        dispatchCarePhase({ type: "reset" });
+        setWaterResultPct(null);
+        setLightResultPct(null);
+        setFertilizerResultPct(null);
+        setDisplayFillHeights(zeroDisplayFills());
+        setCareSyncError(
+          "Цикл ухода не готов. Соберите энергию и пройдите активности снова.",
+        );
+        return;
+      }
 
       if (action === "finish-cycle") {
         const finished = await finishV3CareCycleOnce();
@@ -3610,11 +4080,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     // Step 3 — countdown timer (1s per mm, min 5s, no upper cap)
     const timerSecs = Math.max(5, scores?.mm ?? 9);
-    const avgPct = careShovelFillPercent(
-      waterResultPct,
-      lightResultPct,
-      fertilizerResultPct,
-    );
+    const avgPct = resolveCareShovelFillPercent({
+      waterPct: waterResultPct,
+      sunPct: lightResultPct,
+      fertilizerPct: fertilizerResultPct,
+      cycleActivities: stateRef.current.game.v3Roots?.careCycle?.activities,
+      averageSkill: stateRef.current.game.v3Roots?.careCycle?.averageSkill,
+      combinedFallback: skillScoreRef.current,
+    });
     const newAppleCount = (avgPct >= 90 ? 3 : avgPct >= 70 ? 2 : 1) + 1;
     setAppleCount(newAppleCount);
     appleCountRef.current = newAppleCount;
@@ -3817,10 +4290,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             fillRevealCancelRef.current = null;
           });
           setV3PendingAck(type);
+          window.setTimeout(() => {
+            void acknowledgeV3CareActivityOnce(type);
+          }, 1000);
           return;
         }
         const skill = minigameScoreToV3Skill(safe);
-        await finishV3CareActivityWithSkill(type, skill, safe);
+        await finishV3CareActivityWithSkill(type, skill, safe, count);
         return;
       }
       // v3 exclusive: no fallthrough to v2 Care / session/action.
@@ -4105,12 +4581,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           useUndergroundRootsScene ? " game-area--v2-mocks" : ""
         }${useV3RootsUi ? " game-area--v3-roots" : ""}${
           undergroundRootsMasked ? " game-area--underground-masked" : ""
-        }`}
+        }${rewardDragging ? " game-area--reward-dragging" : ""}`}
         ref={gameAreaRef}
         data-v3-roots-scene={useV3RootsUi ? "true" : undefined}
         data-underground-masked={
           undergroundRootsMasked ? "true" : undefined
         }
+        data-reward-dragging={rewardDragging ? "true" : undefined}
       >
         {/* Settings gear: same as eye — only after tutorial is done. */}
         {tutorialDone && (
@@ -4123,7 +4600,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               onClick={() => setShowSettings(s => !s)}
               title="Настройки"
             >
-              <Settings size={14} strokeWidth={2.6} />
+              <Settings size={14} strokeWidth={2.25} />
             </button>
             <AnimatePresence>
               {showSettings && (
@@ -4148,15 +4625,35 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         )}
         {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
         <GameAreaBg purchasedItems={purchasedItems} />
-        {/* Level badge: hidden in tutorial until growth anim finishes (same beat as apple basket). */}
-        {(tutorialDone || tutorialShowAppleBadge) && (
+        {/* Vault always under the level slot (spacer keeps seat while level is hidden). */}
         <div className="field-level-host" data-field-level-host="true">
-          <LevelWidget
-            level={game.playerLevel ?? 1}
-            totalXP={game.playerXP ?? 0}
-            xpGain={xpGainAmount}
-            pendingAchievements={hasPendingAchievements}
-            onClick={() => setShowLevelModal(true)}
+          {tutorialDone || tutorialShowLevelBadge || tutorialShowAppleBadge ? (
+            <LevelWidget
+              level={game.playerLevel ?? 1}
+              totalXP={game.playerXP ?? 0}
+              xpGain={xpGainAmount}
+              pendingAchievements={hasPendingAchievements}
+              onClick={() => setShowLevelModal(true)}
+            />
+          ) : (
+            <div
+              className="lvl-badge-slot"
+              data-level-badge-slot="true"
+              aria-hidden="true"
+            />
+          )}
+          <VaultWidget
+            vaultBalance={vaultBalance}
+            dragEnabled={
+              !tutorialDone &&
+              tutorialStep === "capital-transfer" &&
+              sproutPlanted &&
+              !vaultTransferBusy
+            }
+            onDragActiveChange={setCoinDropTargetActive}
+            onTransfer={() => {
+              void handleVaultCapitalTransfer();
+            }}
           />
           <AnimatePresence>
             {showXpPopup &&
@@ -4185,10 +4682,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             )}
           </AnimatePresence>
         </div>
-        )}
         {(tutorialDone || tutorialShowAppleBadge) && (
           <AppleBasket
             apples={apples}
+            dropHighlight={appleDropTargetActive}
             onClick={() => setShowShop(true)}
             popup={
               <div className="apple-basket-popup-slot" aria-hidden={!showApplePopup}>
@@ -4233,9 +4730,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             onClick={() => setUndergroundRootsMasked((v) => !v)}
           >
             {undergroundRootsMasked ? (
-              <Eye size={18} strokeWidth={2.25} aria-hidden="true" />
+              <Eye size={14} strokeWidth={2.25} aria-hidden="true" />
             ) : (
-              <EyeOff size={18} strokeWidth={2.25} aria-hidden="true" />
+              <EyeOff size={14} strokeWidth={2.25} aria-hidden="true" />
             )}
           </button>
         )}
@@ -4280,7 +4777,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     0,
                 );
                 if (credited > 0) {
-                  setIncomeChestFeedback(createIncomeChestFeedback(credited));
+                  playCoinIncomeFeedback(credited);
                 }
               }}
               onExcessApplied={(excess) => {
@@ -4345,6 +4842,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </>
         )}
         <MetelkaRewardFloatHost floats={metelkaRewardFloats} />
+        {/* Brown soil always — roots/chest unlock only after plant. */}
         {useUndergroundRootsScene && (
           <div className="v2-underground-zone" aria-hidden="true">
             <UndergroundSoilArt />
@@ -4357,8 +4855,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         {/*
           v3 underground column: roots → capital-hourglass+chest (gap 6px).
           Timer nests inside the chest host (tall hourglass tucked into the lid).
+          Hidden until the player plants the sprout in the tutorial.
         */}
-        {useV3RootsUi && (
+        {useV3RootsUi && sproutPlanted && (
           <div
             className="v3-underground-stack"
             data-v3-underground-stack="true"
@@ -4415,18 +4914,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   !tutorialDone ? tutorialHighlightRoot(tutorialStep) : null
                 }
                 onTransferred={(v3Roots) => {
+                  const local = stateRef.current.game.v3Roots;
+                  const nextRoots =
+                    !tutorialDone && useV3 && local
+                      ? mergeTutorialRootsPreserveFill(local, v3Roots)
+                      : v3Roots;
                   commitState(
-                    applyEconomyV3RootsToState(stateRef.current, v3Roots),
+                    applyEconomyV3RootsToState(stateRef.current, nextRoots),
                   );
                   // ordinaryFull may flip Metelka; refresh excess from server SoT.
-                  if (shouldRefreshV3ExcessAfterTransfer(v3Roots)) {
+                  // Skip during tutorial — a stale poll must not snap 10s siblings to 5s.
+                  if (
+                    tutorialDone &&
+                    shouldRefreshV3ExcessAfterTransfer(v3Roots)
+                  ) {
                     void syncRootsFromServer();
                   }
                   if (!tutorialDone && useV3) {
                     const transferred =
-                      v3Roots.generation?.firstTransferredRoot ??
-                      v3Roots.generation?.transferredRoots?.[
-                        (v3Roots.generation?.transferredRoots?.length ?? 1) - 1
+                      nextRoots.generation?.firstTransferredRoot ??
+                      nextRoots.generation?.transferredRoots?.[
+                        (nextRoots.generation?.transferredRoots?.length ?? 1) -
+                          1
                       ];
                     const kind =
                       (["water", "sun", "fertilizer"] as const).find(
@@ -4444,8 +4953,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               />
             </div>
             <div
-              className="v3-capital-chest-host v3-capital-chest-host--with-hourglass"
+              className={`v3-capital-chest-host v3-capital-chest-host--with-hourglass${
+                excessUiGrey ? " v3-capital-chest-host--metelka-frozen" : ""
+              }`}
               data-v3-capital-chest-host="true"
+              data-capital-metelka-frozen={excessUiGrey ? "true" : undefined}
             >
               <AnimatePresence>
                 {showIncomePopup && (
@@ -4482,13 +4994,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </AnimatePresence>
               <CapitalChestUnderRoots
                 capital={balances.balance}
-                incomeChestFeedback={incomeChestFeedback}
-                onIncomeChestFeedbackComplete={(id) => {
-                  setIncomeChestFeedback((prev) =>
-                    prev?.id === id ? null : prev,
-                  );
-                }}
-                onCapitalClick={() => setShowDepositInfo(true)}
+                dropHighlight={coinDropTargetActive}
+                onCapitalClick={
+                  tutorialDone && !coinDropTargetActive && !excessCleaning
+                    ? () => setShowDepositInfo(true)
+                    : undefined
+                }
               >
                 {tutorialFillDeadlineMs != null && tutorialTimerKind != null ? (
                   <V3TutorialFillTimer
@@ -4506,7 +5017,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     capital={balances.balance}
                     tutorialDone={tutorialDone}
                     nowMs={now}
-                    frozen={excessCleaning}
+                    frozen={excessUiGrey}
                     handoffDeadlineAtMs={tutorialWaitDeadlineMsRef.current}
                     handoffTotalSeconds={TUTORIAL_V3_WAIT_SECONDS}
                     onRefreshState={syncRootsFromServer}
@@ -4524,43 +5035,71 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         {!tutorialDone && tutorialStep === "welcome" && (
           <div className="tutorial-welcome-overlay">
             <div className="tutorial-welcome-card">
-              <span className="tutorial-welcome-icon" aria-hidden="true">🌳</span>
+              <span className="tutorial-welcome-icon" aria-hidden="true">
+                <TreePine size={48} strokeWidth={2.25} color="#166534" />
+              </span>
               <h3 className="tutorial-welcome-title">Ухаживайте за деревом</h3>
-              <p className="tutorial-welcome-desc">
-                Чем больше капитал, тем быстрее таймер. Дождитесь энергии в корнях, соберите её и пройдите активности.
-              </p>
-              <p className="tutorial-welcome-desc tutorial-welcome-desc--sub">
-                Три вида активности
-              </p>
-              <div className="tutorial-welcome-games">
-                <div className="tutorial-welcome-game-row">
-                  <span className="tutorial-welcome-game-icon" aria-hidden="true">
-                    <Droplets size={22} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.water} />
+              <div className="tutorial-welcome-steps">
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon" aria-hidden="true">
+                    <TreePine size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.plant} />
                   </span>
-                  <span className="tutorial-welcome-game-label">
-                    Полив — ловить капли
-                  </span>
+                  <p className="tutorial-welcome-desc">
+                    Посадите росток — пусть дерево появится на поле и пустит корни.
+                  </p>
                 </div>
-                <div className="tutorial-welcome-game-row">
-                  <span className="tutorial-welcome-game-icon" aria-hidden="true">
-                    <Sun size={22} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.sun} />
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon" aria-hidden="true">
+                    <Clock size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.wait} />
                   </span>
-                  <span className="tutorial-welcome-game-label">
-                    Освещение — собирать лучи
-                  </span>
+                  <p className="tutorial-welcome-desc">
+                    Дождитесь, пока в корнях созреет энергия.
+                  </p>
                 </div>
-                <div className="tutorial-welcome-game-row">
-                  <span className="tutorial-welcome-game-icon" aria-hidden="true">
-                    <FertilizerIcon size={22} filled={false} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} />
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon" aria-hidden="true">
+                    <Zap size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.energy} />
                   </span>
-                  <span className="tutorial-welcome-game-label">
-                    Удобрение — собирать гранулы в ряд
+                  <p className="tutorial-welcome-desc">
+                    Соберите энергию из корней, когда они будут готовы.
+                  </p>
+                </div>
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon tutorial-welcome-step-icon--trio" aria-hidden="true">
+                    <Droplets size={14} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.water} />
+                    <Sun size={14} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.sun} />
+                    <FertilizerIcon size={14} filled={false} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} />
                   </span>
+                  <p className="tutorial-welcome-desc">
+                    Пройдите активности — полив, свет и удобрение.
+                  </p>
+                </div>
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon" aria-hidden="true">
+                    <Shovel size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.care} />
+                  </span>
+                  <p className="tutorial-welcome-desc">
+                    Завершите уход за деревом и закрепите результат.
+                  </p>
+                </div>
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon" aria-hidden="true">
+                    <Gift size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.reward} />
+                  </span>
+                  <p className="tutorial-welcome-desc">
+                    Заберите награды — урожай и доход с вашего капитала.
+                  </p>
                 </div>
               </div>
               <button
                 className="tutorial-welcome-btn"
-                onClick={() => setTutorialStep("intro")}
+                onClick={() => {
+                  // Fresh plant/capital beat — never resume a previous life's 12:00 wait.
+                  dropStaleTutorialWaitClock();
+                  setTutorialTimerKind(null);
+                  setTutorialFillDeadlineMs(null);
+                  setTutorialStep(tutorialStepAfterWelcome(useV3));
+                }}
               >
                 Начать обучение
               </button>
@@ -4587,25 +5126,62 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               tutorialStep === "sun-intro" ||
               tutorialStep === "fertilizer-intro")
               ? tutorialStep === "intro"
-                ? { icon: "water" as const, text: "Нужно ухаживать\nза деревом", hint: "Нажмите на кнопку 💧" }
+                ? {
+                    icon: "water" as const,
+                    text: "Нужно ухаживать\nза деревом",
+                    hint: "Нажмите на кнопку 💧",
+                    accent: V3_ACTIVITY_ACCENT_COLORS.water,
+                  }
                 : tutorialStep === "sun-intro"
-                ? { icon: "sun" as const, text: "Теперь добавьте\nсолнечного света!", hint: "Нажмите на кнопку ☀️" }
-                : { icon: "fertilizer" as const, text: "Собирай гранулы\nв ряд!", hint: "Нажмите на кнопку удобрения" }
+                ? {
+                    icon: "sun" as const,
+                    text: "Теперь добавьте\nсолнечного света!",
+                    hint: "Нажмите на кнопку ☀️",
+                    accent: V3_ACTIVITY_ACCENT_COLORS.sun,
+                  }
+                : {
+                    icon: "fertilizer" as const,
+                    text: "Собирай гранулы\nв ряд!",
+                    hint: "Нажмите на кнопку удобрения",
+                    accent: V3_ACTIVITY_ACCENT_COLORS.fertilizer,
+                  }
               : null;
           const cfg = v3Cfg ?? legacyCfg;
           if (!cfg) return null;
+          const accent = cfg.accent;
           return (
             <div className="tutorial-intro-overlay">
-              <div className="tutorial-intro-card">
+              <div
+                className="tutorial-intro-card"
+                style={{ ["--tutorial-accent" as string]: accent }}
+                data-tutorial-accent={accent}
+              >
                 <span className="tutorial-intro-tree" aria-hidden="true">
                   {cfg.icon === "fertilizer" ? (
-                    <FertilizerIcon size={48} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} filled={false} />
+                    <FertilizerIcon size={48} color={accent} filled={false} />
                   ) : cfg.icon === "sun" ? (
-                    <Sun size={48} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.sun} />
+                    <Sun size={48} strokeWidth={2.25} color={accent} />
                   ) : cfg.icon === "wait" ? (
-                    <Clock size={48} strokeWidth={2.25} color="#166534" />
+                    <Clock size={48} strokeWidth={2.25} color={accent} />
+                  ) : cfg.icon === "energy" ? (
+                    <Zap size={48} strokeWidth={2.25} color={accent} />
+                  ) : cfg.icon === "plant" ? (
+                    <TreePine size={48} strokeWidth={2.25} color={accent} />
+                  ) : cfg.icon === "vault" ? (
+                    <span className="tutorial-intro-vault-icon" aria-hidden="true">
+                      <svg width="48" height="48" viewBox="0 0 56 56" fill="none">
+                        <rect x="8" y="12" width="40" height="34" rx="6" fill="rgba(255,248,236,0.92)" stroke={accent} strokeWidth="1.6" />
+                        <rect x="12" y="16" width="32" height="26" rx="4" fill="rgba(201,146,10,0.42)" stroke={accent} strokeWidth="1.1" />
+                        <circle cx="28" cy="29" r="7.5" fill="rgba(255,248,236,0.92)" stroke={accent} strokeWidth="1.4" />
+                        <circle cx="28" cy="29" r="2.2" fill={accent} />
+                      </svg>
+                    </span>
+                  ) : cfg.icon === "reward" ? (
+                    <Gift size={48} strokeWidth={2.25} color={accent} />
+                  ) : cfg.icon === "care" ? (
+                    <Shovel size={48} strokeWidth={2.25} color={accent} />
                   ) : (
-                    <Droplets size={48} strokeWidth={2.25} color={V3_ACTIVITY_ACCENT_COLORS.water} />
+                    <Droplets size={48} strokeWidth={2.25} color={accent} />
                   )}
                 </span>
                 <p className="tutorial-intro-text">{cfg.text}</p>
@@ -4628,8 +5204,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
             >
-              <div className="tutorial-intro-card">
-                <span className="tutorial-intro-tree">🌱</span>
+              <div
+                className="tutorial-intro-card"
+                style={{
+                  ["--tutorial-accent" as string]: TUTORIAL_PLAN_ICON_COLORS.care,
+                }}
+                data-tutorial-accent={TUTORIAL_PLAN_ICON_COLORS.care}
+              >
+                <span className="tutorial-intro-tree" aria-hidden="true">
+                  <Shovel
+                    size={48}
+                    strokeWidth={2.25}
+                    color={TUTORIAL_PLAN_ICON_COLORS.care}
+                  />
+                </span>
                 <p className="tutorial-intro-text">
                   <span>Отлично! Все три</span><br/><span>этапа пройдены!</span>
                 </p>
@@ -4650,13 +5238,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               exit={{ opacity: 0 }}
               transition={{ duration: 0.28 }}
             >
-              <div className="tutorial-intro-card">
+              <div
+                className="tutorial-intro-card"
+                style={{
+                  ["--tutorial-accent" as string]: V3_TUTORIAL_REWARD_OVERLAY.accent,
+                }}
+                data-tutorial-accent={V3_TUTORIAL_REWARD_OVERLAY.accent}
+              >
                 <span className="tutorial-intro-tree" aria-hidden="true">
-                  <Gift size={48} strokeWidth={2.25} color="#ca8a04" />
+                  <Gift
+                    size={48}
+                    strokeWidth={2.25}
+                    color={V3_TUTORIAL_REWARD_OVERLAY.accent}
+                  />
                 </span>
-                <p className="tutorial-intro-text">Соберите награду</p>
+                <p className="tutorial-intro-text">{V3_TUTORIAL_REWARD_OVERLAY.text}</p>
                 <span className="tutorial-intro-hint">
-                  Перенесите яблоки и монетки.
+                  {V3_TUTORIAL_REWARD_OVERLAY.hint}
                 </span>
               </div>
             </motion.div>
@@ -4681,7 +5279,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.05 }}
               >
                 <button className="tutorial-complete-close" onClick={handleTutorialDismiss}>✕</button>
-                <span className="tutorial-complete-icon">🌳</span>
+                <span className="tutorial-complete-icon" aria-hidden="true">
+                  <TreePine size={48} strokeWidth={2.25} color="#166534" />
+                </span>
                 <h3 className="tutorial-complete-title">Обучение пройдено!</h3>
                 <p className="tutorial-complete-desc">Ухаживайте за деревом каждый день — оно будет расти, а ваш вклад приносить доход.</p>
                 <button className="tutorial-welcome-btn" onClick={handleTutorialDismiss}>Начать играть</button>
@@ -4709,14 +5309,41 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           )}
         </AnimatePresence>
 
-        <div className={`game-tree-wrap${showGrowthAnim ? " tree-growing" : ""}`}>
+        <div
+          className={`game-tree-wrap${showGrowthAnim ? " tree-growing" : ""}${rewardDragging ? " game-tree-wrap--reward-drag" : ""}${
+            !sproutPlanted ? " game-tree-wrap--no-sprout" : ""
+          }`}
+          data-tree-stage={currentStage}
+          data-sprout-planted={sproutPlanted ? "true" : "false"}
+        >
+          {!sproutPlanted && !tutorialDone && tutorialStep === "plant-sprout" ? (
+            <button
+              type="button"
+              className="tutorial-plant-pad"
+              data-tutorial-plant-pad="true"
+              aria-label="Посадите росток"
+              disabled={plantSproutBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handlePlantSprout();
+              }}
+            >
+              <span className="tutorial-plant-pad-oval" aria-hidden="true" />
+            </button>
+          ) : null}
+          {sproutPlanted ? (
           <motion.div animate={treeControls} style={{ display: "inline-block" }}>
             <button
               type="button"
-              className={`tree-wrapper tree-wrapper--hit${isTransitioning ? " transitioning" : ""}`}
-              data-tree-stages-hit="true"
+              className={`tree-wrapper${tutorialDone ? " tree-wrapper--hit" : " tree-wrapper--tutorial-locked"}${isTransitioning ? " transitioning" : ""}`}
+              data-tree-stages-hit={tutorialDone ? "true" : "false"}
+              data-tree-tutorial-locked={tutorialDone ? undefined : "true"}
               aria-label="Стадии роста дерева"
+              aria-disabled={tutorialDone ? undefined : true}
               onClick={() => {
+                // Tutorial: tree info opens only after tutorial completes.
+                if (!tutorialDone) return;
                 // While collecting apples/coin (or Metelka reward coin), don't open stages.
                 if (showApples || metelkaPendingActive) return;
                 setShowTreeInfo(true);
@@ -4736,6 +5363,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               </AnimatePresence>
             </button>
           </motion.div>
+          ) : null}
           {(tutorialDone || tutorialShowGrowthBadge) && (
             <TreeGrowthBadge
               growthMM={displayGrowthMM}
@@ -4764,12 +5392,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   capital={balances.balance}
                   tutorialDone={tutorialDone}
                   hideEnergyTimer={excessCleaning}
-                  incomeChestFeedback={incomeChestFeedback}
-                  onIncomeChestFeedbackComplete={(id) => {
-                    setIncomeChestFeedback((prev) =>
-                      prev?.id === id ? null : prev,
-                    );
-                  }}
                   onRootsChange={(roots, energySeconds) => {
                     commitState({
                       ...stateRef.current,
@@ -4810,9 +5432,35 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <AnimatePresence>
             {showApples && (
               <div
-                className="tree-apples-overlay tree-apples-overlay-active"
+                className={`tree-apples-overlay tree-apples-overlay-active${draggingAppleIdx !== null ? " tree-apples-overlay--dragging" : ""}`}
                 style={{ width: STAGE_DIMS[currentStage][0], height: STAGE_DIMS[currentStage][1] }}
               >
+                {draggingAppleIdx !== null &&
+                  !collectedAppleIndices.includes(draggingAppleIdx) &&
+                  (() => {
+                    const gi = draggingAppleIdx;
+                    const ghostCoin = gi === appleCount - 1;
+                    const posIdx = ghostCoin ? 3 : gi;
+                    const [gx, gy] = APPLE_POSITIONS[currentStage][posIdx];
+                    const base = APPLE_SIZES[currentStage];
+                    const gr = ghostCoin ? Math.round(base * 1.3) : base;
+                    return (
+                      <div
+                        className="tree-apple-drag-ghost"
+                        style={{
+                          width: gr * 2,
+                          height: gr * 2,
+                          left: `${gx}%`,
+                          top: `${gy}%`,
+                          marginLeft: -gr,
+                          marginTop: -gr,
+                        }}
+                        aria-hidden="true"
+                      >
+                        <TreeRewardToken kind={ghostCoin ? "coin" : "apple"} />
+                      </div>
+                    );
+                  })()}
                 <AnimatePresence>
                   {Array.from({ length: appleCount }, (_, i) => {
                     if (collectedAppleIndices.includes(i)) return null;
@@ -4821,12 +5469,29 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     const [xPct, yPct] = APPLE_POSITIONS[currentStage][posIdx];
                     const baseR = APPLE_SIZES[currentStage];
                     const r = isCoin ? Math.round(baseR * 1.3) : baseR;
+                    const isDragging = draggingAppleIdx === i;
                     return (
                       <motion.div
                         key={i}
-                        className={`tree-apple tree-apple-pending${isCoin ? " tree-apple-coin" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        className={`tree-apple tree-apple-pending${isCoin ? " tree-apple-coin" : ""}${isDragging ? " tree-apple--dragging" : ""}`}
+                        drag={draggingAppleIdx === null || isDragging}
+                        dragMomentum={false}
+                        dragElastic={0}
+                        dragSnapToOrigin={false}
+                        whileDrag={{ scale: 1.28, zIndex: 50, cursor: "grabbing" }}
+                        onDragStart={() => {
+                          if (rewardDragLockRef.current) return;
+                          rewardDragLockRef.current = true;
+                          setDraggingAppleIdx(i);
+                          if (isCoin) setCoinDropTargetActive(true);
+                          else setAppleDropTargetActive(true);
+                        }}
+                        onDragEnd={() => {
+                          // Credit on drop only (hit or miss). Target pulse clears here.
+                          setDraggingAppleIdx(null);
+                          setAppleDropTargetActive(false);
+                          setCoinDropTargetActive(false);
+                          rewardDragLockRef.current = false;
                           handleAppleClick(i);
                         }}
                         initial={{ opacity: 0, scale: 0 }}
@@ -4836,7 +5501,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                           coin: isCoin,
                         }}
                         variants={{
-                          // Apple → basket (left); coin → capital chest (down).
+                          // Apple → basket (left of tree, right of bush); coin → chest.
                           exit: ({
                             manual,
                             coin,
@@ -4857,7 +5522,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                                     opacity: 0,
                                     scale: 0.25,
                                     y: 90,
-                                    x: -40,
+                                    x: -22,
                                     transition: { duration: 0.38, ease: "easeIn" },
                                   }
                               : { opacity: 0, scale: 0, transition: { duration: 0.22 } },
@@ -4865,7 +5530,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                         exit="exit"
                         transition={{ delay: i * 0.35, duration: 0.5, type: "spring", stiffness: 220, damping: 15 }}
                         style={{ width: r * 2, height: r * 2, left: `${xPct}%`, top: `${yPct}%`, marginLeft: -r, marginTop: -r }}
-                      />
+                      >
+                        <TreeRewardToken kind={isCoin ? "coin" : "apple"} />
+                      </motion.div>
                     );
                   })}
                 </AnimatePresence>
@@ -4885,6 +5552,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 claiming={metelkaClaimBusy}
                 error={metelkaClaimError}
                 onClaim={handleClaimMetelkaPendingReward}
+                onDragActiveChange={(active) => {
+                  setDraggingMetelkaCoin(active);
+                  setCoinDropTargetActive(active);
+                }}
               />
             ) : null}
           </AnimatePresence>
@@ -4941,6 +5612,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </div>
 
 
+        {/* Before sprout is planted: no Care activity trio on the soil band. */}
+        {sproutPlanted ? (
         <div
           className={`session-actions-wrap${
             excessCleaning ? " session-actions-wrap--cleaning" : ""
@@ -4963,7 +5636,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               useV3RootsUi && undergroundRootsMasked ? "none" : undefined,
           }}
         >
-        {careSyncError && tutorialDone && (
+        {careSyncError && (tutorialDone || showCareShovelUi) && (
           <div className="v2-care-sync-error" role="alert">
             <span>{careSyncError}</span>
             {pendingActivitySync && (
@@ -5041,8 +5714,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   const activitiesInteractionLocked =
                     tutorialActivitiesLocked || rootsCollectionLocked;
                   // Pulse recommended Care button (tutorial + live after roots).
+                  // Never during Metelka cleaning — frozen grey trio stays still.
                   const v3RecommendBtn =
                     useV3 &&
+                    !excessCleaning &&
                     v3Completed != null &&
                     !areAllV3CareActivitiesCompleted(v3Completed) &&
                     !activitiesInteractionLocked &&
@@ -5112,19 +5787,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   // Metelka lock must not grey Care buttons while Care holds the
                   // row (mid-cycle / «Уход»). When Metelka owns the row, children
                   // are not mounted anyway.
-                  // Visual chrome: tutorial teaching lock only. Live collection
-                  // blocks clicks via activitiesInteractionLocked / canStart, but
-                  // playable cards keep the same --ac accents as tutorial.
+                  // Visual chrome matches live rootsCollectionLocked: playable
+                  // cards keep bright --ac accents; tutorial/root gates only
+                  // block clicks via activitiesInteractionLocked / canStart.
+                  // Empty (0 с) cards stay cream-locked; 10 с show activity color.
                   const v3VisuallyLocked = useV3
-                    ? isV3ActivityButtonVisuallyLocked(
-                        v3Card,
-                        tutorialActivitiesLocked,
-                      )
+                    ? isV3ActivityButtonVisuallyLocked(v3Card, false)
                     : false;
                   const v3Themed =
-                    useV3 &&
-                    !tutorialActivitiesLocked &&
-                    shouldThemeV3ActivityButton(v3Card);
+                    useV3 && shouldThemeV3ActivityButton(v3Card);
                   const allowLegacyStart = mayStartLegacyCareFromActivityCard({
                     previewEnabled: SHOW_ECONOMY_V3_ROOTS_PREVIEW,
                     v3Roots: game.v3Roots,
@@ -5188,6 +5859,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                                     v3PendingFinish.activity,
                                     v3PendingFinish.skill,
                                     v3PendingFinish.score,
+                                    v3PendingFinish.count,
                                   );
                                 }
                               : v3PendingAck === btn.key
@@ -5230,15 +5902,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                             : undefined
                       }
                       aria-label={btn.label}
-                      data-v3-activity-card={v3Card ? btn.key : undefined}
-                      data-v3-activity-state={
-                        tutorialActivitiesLocked
-                          ? "disabled"
-                          : rootsCollectionLocked &&
-                              v3Card?.uiState === "available"
-                            ? "available"
-                            : v3Card?.uiState
-                      }
+                      data-v3-activity-card={useV3 ? btn.key : undefined}
+                      data-v3-activity-state={v3Card?.uiState}
                       data-v3-activity-locked={
                         v3VisuallyLocked ? "true" : undefined
                       }
@@ -5280,8 +5945,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                         ) : (
                           icon
                         )}
-                        {/* Completed = checkmark only; seconds return after «Уход» diverge. */}
+                        {/* Seconds only after reserve accrues; 0 с → icon only.
+                            Metelka cleaning: icon-only frozen grey (no «N с»). */}
                         {v3Card &&
+                        !excessCleaning &&
+                        v3Card.reserveSeconds > 0 &&
                         !(
                           v3Card.uiState === "completed" &&
                           !v3Card.sessionActiveHere
@@ -5336,7 +6004,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       >
                         <div className="action-btn-content">
                           {btn.icon}
-                          {ghostSeconds != null ? (
+                          {ghostSeconds != null && ghostSeconds > 0 ? (
                             <span
                               className="v3-activity-reserve-seconds"
                               data-v3-activity-seconds-label="true"
@@ -5392,21 +6060,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                           onClick={
                             careClicked || merging || careDiverging
                               ? undefined
-                              : !tutorialDone &&
-                                  tutorialStep === "complete" &&
-                                  useV3 &&
-                                  (shouldShowV3CareShovel(game.v3Roots) ||
-                                    shouldShowV3RewardPreview(game.v3Roots) ||
-                                    shouldAcknowledgeV3CareCycle(game.v3Roots))
+                              : useV3
                                 ? () => {
                                     void handleV3CareShovelClick();
                                   }
                                 : !tutorialDone && tutorialStep === "complete"
-                                ? handleTutorialFinish
-                                : useV3
-                                  ? () => {
-                                      void handleV3CareShovelClick();
-                                    }
+                                  ? handleTutorialFinish
                                   : () => {
                                       handleGoToRewards();
                                     }
@@ -5416,11 +6075,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                             <div
                               className="action-btn-fill"
                               style={{
-                                height: `${careShovelFillPercent(
-                                  waterResultPct,
-                                  lightResultPct,
-                                  fertilizerResultPct,
-                                )}%`,
+                                height: `${resolveCareShovelFillPercent({
+                                  waterPct: waterResultPct,
+                                  sunPct: lightResultPct,
+                                  fertilizerPct: fertilizerResultPct,
+                                  cycleActivities:
+                                    game.v3Roots?.careCycle?.activities,
+                                  averageSkill:
+                                    game.v3Roots?.careCycle?.averageSkill,
+                                  combinedFallback: skillScoreRef.current,
+                                })}%`,
                               }}
                             />
                           ) : null}
@@ -5592,7 +6256,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                             {careDiverging ? (
                               <div className="action-btn-content">
                                 {btn.icon}
-                                {divergeReserveSeconds != null ? (
+                                {divergeReserveSeconds != null &&
+                                divergeReserveSeconds > 0 ? (
                                   <span
                                     className="v3-activity-reserve-seconds"
                                     data-v3-activity-seconds-label="true"
@@ -5625,6 +6290,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </motion.div>
         </MotionConfig>
         </div>
+        ) : null}
 
       </div>
 
@@ -5723,9 +6389,32 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <div className="water-game-overlay">
           {!tutorialDone && (
             <div className="tutorial-minigame-banner">
-              {activeMinigame === "water" ? "Ловите воду! 💧"
-               : activeMinigame === "sun" ? "Ловите солнце! ☀️"
-               : "Собирай гранулы в ряд!"}
+              <span>
+                {activeMinigame === "water"
+                  ? "Ловите воду!"
+                  : activeMinigame === "sun"
+                    ? "Ловите солнце!"
+                    : "Собирай гранулы в ряд!"}
+              </span>
+              {activeMinigame === "water" ? (
+                <Droplets
+                  size={18}
+                  strokeWidth={2.25}
+                  color={V3_ACTIVITY_ACCENT_COLORS.water}
+                />
+              ) : activeMinigame === "sun" ? (
+                <Sun
+                  size={18}
+                  strokeWidth={2.25}
+                  color={V3_ACTIVITY_ACCENT_COLORS.sun}
+                />
+              ) : (
+                <FertilizerIcon
+                  size={18}
+                  filled={false}
+                  color={V3_ACTIVITY_ACCENT_COLORS.fertilizer}
+                />
+              )}
             </div>
           )}
           {activeMinigame === "sun" ? (
@@ -5893,6 +6582,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             onPurchase={(_, newApples, newItems) => {
               setTotalApples(newApples);
               setPurchasedItems(newItems);
+              // Keep game state in sync — poll uses Math.max(local, server) and
+              // would restore pre-purchase apples if only the badge was updated.
+              const cur = stateRef.current;
+              commitState({
+                ...cur,
+                game: {
+                  ...cur.game,
+                  totalApples: newApples,
+                  purchasedItems: newItems,
+                },
+              });
             }}
           />
         )}
@@ -5983,6 +6683,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <AchievementsPanel
                   onApplesClaimed={(newTotal) => {
                     setTotalApples(newTotal);
+                    const cur = stateRef.current;
+                    commitState({
+                      ...cur,
+                      game: { ...cur.game, totalApples: newTotal },
+                    });
                     checkPendingAchievements();
                   }}
                 />

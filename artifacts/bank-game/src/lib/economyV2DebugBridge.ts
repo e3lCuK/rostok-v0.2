@@ -48,6 +48,11 @@ export type EconomyV2ExcessApplyPatch = {
   v2Excess: EconomyV2ExcessState;
 };
 
+export type EconomyV2PlayerProgressApplyPatch = {
+  playerXP: number;
+  playerLevel: number;
+};
+
 export type EconomyV2DebugBridge = {
   getSnapshot: () => EconomyV2DebugSnapshot;
   onEnergyApplied: (patch: EconomyV2EnergyApplyPatch) => void;
@@ -55,6 +60,11 @@ export type EconomyV2DebugBridge = {
   onExcessApplied: (patch: EconomyV2ExcessApplyPatch) => void;
   /** Apply fresh Economy v3 roots snapshot from debug mutate (no F5). */
   onV3RootsApplied: (v3Roots: import("@/lib/api").EconomyV3RootsState) => void;
+  /**
+   * Soft-apply debug +XP so GamePage can play LevelUpAnimation.
+   * Must NOT full-reload — remount resets prevLevelRef to the new level.
+   */
+  onPlayerProgressApplied: (patch: EconomyV2PlayerProgressApplyPatch) => void;
 };
 
 const EMPTY_SNAPSHOT: EconomyV2DebugSnapshot = Object.freeze({

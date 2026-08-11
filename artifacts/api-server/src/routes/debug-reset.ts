@@ -51,11 +51,24 @@ export function registerDebugResetRoutes(router: Router) {
 
     try {
       // Production: tutorialDone true = finished; false → UI starts at "welcome".
+      // Also re-park starting capital in the vault and clear the plant flag.
       const result = await pool.query(
-        `UPDATE game_state SET tutorial_done = FALSE, updated_at = NOW() WHERE user_id = $1`,
+        `UPDATE game_state
+         SET tutorial_done = FALSE,
+             sprout_planted = FALSE,
+             updated_at = NOW()
+         WHERE user_id = $1`,
         [gameUserId],
       );
       if (result.rowCount === 0) return res.status(404).json({ error: "Not found" });
+
+      await pool.query(
+        `UPDATE accounts
+         SET vault_balance = COALESCE(NULLIF(starting_capital, 0), 100000),
+             active_balance = 0
+         WHERE user_id = $1`,
+        [gameUserId],
+      );
 
       if (process.env.NODE_ENV !== "production") {
         req.log.info({ userId }, "debug reset-tutorial");

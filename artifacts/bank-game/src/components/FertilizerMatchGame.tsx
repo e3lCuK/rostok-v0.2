@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import GameTimer from "./GameTimer";
 import FertilizerIcon from "./FertilizerIcon";
-import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
+import FertilizerGranuleIcon from "./FertilizerGranuleIcon";
+import {
+  V3_ACTIVITY_ACCENT_COLORS,
+  V3_ACTIVITY_FILL_WASH_COLORS,
+} from "@/lib/v3ActivityColors";
 
 /**
  * Match-3 fertilizer activity (former leaf collector).
- * Gameplay unchanged — only user-facing name/icons are fertilizer-themed.
+ * Tiles: solid chestnut-shaped granules in distinct flat colors.
  */
 
 interface Props {
@@ -26,11 +30,16 @@ type Grid = (Color | null)[][];
 
 const TILE_BG: Record<Color, string> = {
   green:  "#22c55e",
+  // Activity amber — keep identical to fertilizer button --ac.
   brown:  V3_ACTIVITY_ACCENT_COLORS.fertilizer,
-  yellow: "#eab308",
+  // Darker gold so it does not merge with fertilizer amber (#f0a020).
+  yellow: "#a16207",
   blue:   V3_ACTIVITY_ACCENT_COLORS.water,
   purple: "#a855f7",
 };
+
+const FERT_TIMER = V3_ACTIVITY_ACCENT_COLORS.fertilizer;
+const FERT_TIMER_TRACK = V3_ACTIVITY_FILL_WASH_COLORS.fertilizer;
 
 interface Result {
   matchCount: number;
@@ -282,11 +291,17 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
   }
 
   return (
-    <div className="mini-game-card" style={{ background: "rgba(240,253,244,0.97)", border: "2px solid #bbf7d0" }}>
+    <div
+      className="mini-game-card"
+      style={{
+        background: "rgba(255, 251, 235, 0.97)",
+        border: `2px solid ${FERT_TIMER}`,
+      }}
+    >
       <div className="mini-game-top-bar">
         <button
           className="mini-game-force-close"
-          style={{ color: "#16a34a" }}
+          style={{ color: FERT_TIMER }}
           onClick={() => result ? handleContinue(result.skillScore, result.matchCount) : forceClose()}
         >✕</button>
       </div>
@@ -294,11 +309,15 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
         <GameTimer
           timeLeftMs={timeLeft}
           totalMs={totalMs}
-          color="#22c55e"
-          trackColor="#dcfce7"
+          color={FERT_TIMER}
+          trackColor={FERT_TIMER_TRACK}
         />
         <div className="mini-game-counter">
-          <FertilizerIcon size={20} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} />
+          <FertilizerIcon
+            size={20}
+            filled={false}
+            color={V3_ACTIVITY_ACCENT_COLORS.fertilizer}
+          />
           <span className="mini-game-counter-val">{matchCount}</span>
         </div>
       </div>
@@ -318,8 +337,8 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
                 disabled={gameOver}
               >
                 {cell && (
-                  <div className="m3-tile" style={{ background: TILE_BG[cell] }}>
-                    <FertilizerIcon size={18} color="rgba(255,255,255,0.92)" />
+                  <div className="m3-tile m3-tile--granule">
+                    <FertilizerGranuleIcon size={34} color={TILE_BG[cell]} />
                   </div>
                 )}
               </button>
@@ -332,13 +351,17 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
       {gameOver && result && (
         <div
           className="mini-game-result"
-          style={{ background: "rgba(240,253,244,0.97)" }}
+          style={{ background: "rgba(255, 251, 235, 0.97)" }}
           onClick={() => handleContinue(result.skillScore, result.matchCount)}
         >
           <span className="mini-game-result-emoji" aria-hidden="true">
-            <FertilizerIcon size={42} color={V3_ACTIVITY_ACCENT_COLORS.fertilizer} />
+            <FertilizerIcon
+              size={42}
+              filled={false}
+              color={V3_ACTIVITY_ACCENT_COLORS.fertilizer}
+            />
           </span>
-          <p className="mini-game-result-count" style={{ color: "#166534" }}>
+          <p className="mini-game-result-count" style={{ color: FERT_TIMER }}>
             Собрано: {result.matchCount}
           </p>
           <p className="mini-game-result-label">{resultLabel(result.matchCount)}</p>

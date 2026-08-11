@@ -1,6 +1,6 @@
 /**
  * Tutorial exit ("Начать играть") must NOT start the regular Care reward queue.
- * Tutorial shovel runs a dedicated demo beat (growth → +1мм → apple+coin), then finish.
+ * Tutorial shovel runs XP flash (claimed skill XP) → growth → +1мм → apple+coin.
  * Regular Care claim (tutorialDone) must still call handleGoToRewards once.
  */
 
@@ -31,7 +31,8 @@ describe("tutorial exit vs Care reward animation", () => {
       pageSrc.match(
         /function handleTutorialFinish\(\) \{[\s\S]*?\n  \}/,
       )?.[0] ?? "";
-    expect(finishFn).toContain("clearCareRewardPresentationState({ keepSpentActivities: true })");
+    expect(finishFn).toContain("keepSpentActivities: true");
+    expect(finishFn).toContain("keepTutorialFieldChrome: true");
     expect(finishFn).not.toContain("handleGoToRewards");
     expect(finishFn).not.toContain("claimV3CareCycle");
     expect(finishFn).not.toContain("handleV3CareShovelClick");
@@ -49,13 +50,13 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(dismissFn).not.toContain("earned: 0");
   });
 
-  it("5–11. tutorial claim runs demo reward beat (no claimAll / handleGoToRewards)", () => {
+  it("5–11. tutorial claim runs XP + demo reward beat (no claimAll / handleGoToRewards)", () => {
     const claimFn = claimFnSrc();
     expect(claimFn).toContain("if (!tutorialDone)");
     expect(claimFn).toContain("Tutorial Care claim");
     expect(claimFn).not.toContain("await handleClaimAll(0)");
     expect(claimFn).not.toContain("handleClaimAll(");
-    expect(claimFn).toContain("handleTutorialCareRewards()");
+    expect(claimFn).toContain("handleTutorialCareRewards(scoresForQueue");
     // Tutorial branch returns before the regular handleGoToRewards call.
     const tutBranch =
       claimFn.match(
@@ -64,15 +65,25 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(tutBranch.length).toBeGreaterThan(40);
     expect(tutBranch).not.toContain("handleGoToRewards");
     expect(tutBranch).not.toContain("handleClaimAll");
-    expect(tutBranch).toContain("handleTutorialCareRewards()");
+    expect(tutBranch).toContain("handleTutorialCareRewards(scoresForQueue");
     // Legacy non-v3 still finishes immediately; v3 uses the demo beat.
     expect(tutBranch).toContain("if (useV3)");
-    expect(pageSrc).toContain("function handleTutorialCareRewards()");
+    expect(pageSrc).toContain("function handleTutorialCareRewards(");
     expect(pageSrc).toContain("setTutorialShowGrowthBadge(true)");
     expect(pageSrc).toContain("setTutorialShowAppleBadge(true)");
+    expect(pageSrc).toContain("setTutorialShowLevelBadge(true)");
+    expect(pageSrc).toContain("tutorialShowLevelBadge");
     expect(pageSrc).toContain("maybeFinishTutorialRewards");
     expect(pageSrc).toContain("playCoinIncomeFeedback");
-    expect(pageSrc).toContain("createIncomeChestFeedback");
+    expect(pageSrc).toContain("field-income-popup");
+    // XP flash uses claimed skill XP (preset 10 → max 40/activity, 120/cycle).
+    const tutRewards =
+      pageSrc.match(
+        /function handleTutorialCareRewards\([\s\S]*?\n  function maybeFinishTutorialRewards/,
+      )?.[0] ?? "";
+    expect(tutRewards).toContain("setShowXpPopup(true)");
+    expect(tutRewards).toContain("setXpGainAmount(xpAmt)");
+    expect(tutRewards).toContain("T=10 → max 40/activity, 120/cycle");
     // Tutorial apple/coin/mm mutate real counters (not demo-only).
     const appleClick =
       pageSrc.match(
@@ -110,13 +121,17 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(gearHost).toBeGreaterThan(gearGate);
     expect(pageSrc).toContain("tutorialDone || tutorialShowAppleBadge");
     expect(pageSrc).toContain("tutorialDone || tutorialShowGrowthBadge");
-    // Level host shares apple-badge beat (after growth anim ends).
-    const levelGate = pageSrc.indexOf(
-      "{(tutorialDone || tutorialShowAppleBadge) && (",
+    // Level widget appears with Care XP flash (tutorialShowLevelBadge), not only apples.
+    // Vault stays in field-level-host even when level is hidden.
+    expect(pageSrc).toContain("data-field-level-host=\"true\"");
+    expect(pageSrc).toContain(
+      "(tutorialDone || tutorialShowLevelBadge || tutorialShowAppleBadge) && (",
     );
-    const levelHost = pageSrc.indexOf('data-field-level-host="true"');
-    expect(levelGate).toBeGreaterThan(-1);
-    expect(levelHost).toBeGreaterThan(levelGate);
+    expect(pageSrc).toContain("<LevelWidget");
+    expect(pageSrc).toContain("VaultWidget");
+    // After collecting rewards, chrome stays through congrats (not cleared).
+    expect(pageSrc).toContain("keepTutorialFieldChrome: true");
+    expect(pageSrc).toContain("Keep level / basket / mm chrome once revealed");
   });
 
   it("12–16. regular Care claim still starts handleGoToRewards once", () => {
@@ -139,24 +154,32 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(pageSrc).toContain("handleTutorialDismiss");
     expect(pageSrc).toContain("handleV3CareShovelClick");
     expect(pageSrc).toContain("handleTutorialCareRewards");
-    // Shovel wiring: tutorial complete with v3 care action → Care shovel; else finish.
-    expect(pageSrc).toMatch(
-      /tutorialStep === "complete"\s*\n\s*\? handleTutorialFinish/,
-    );
+    // Shovel wiring: v3 always uses Care shovel handler (no silent tutorial-finish fallback).
     expect(pageSrc).toContain("void handleV3CareShovelClick()");
+    expect(pageSrc).toMatch(
+      /useV3\s*\n\s*\?\s*\(\)\s*=>\s*\{\s*\n\s*void handleV3CareShovelClick\(\)/,
+    );
   });
 
-  it("18. F5 / remount: tutorial dismiss clears presentation before tutorialDone", () => {
+  it("18. dismiss: tutorialDone before chrome clear (no level/basket blink)", () => {
     expect(pageSrc).toContain("clearCareRewardPresentationState");
     expect(pageSrc).toContain(
       "Must also idle reward presentation (no deferred XP/growth/apples replay)",
     );
-    // Auto income popup on load must not be wired into tutorial dismiss.
     const dismissFn =
       pageSrc.match(
         /function handleTutorialDismiss\(\) \{[\s\S]*?\n  \}/,
       )?.[0] ?? "";
     expect(dismissFn).not.toContain("setShowIncomePopup(true)");
     expect(dismissFn).not.toContain("setShowGrowthAnim(true)");
+    // Live gates first, then clear temporary badges — avoids unmount blink.
+    const doneIdx = dismissFn.indexOf("setTutorialDone(true)");
+    const clearIdx = dismissFn.indexOf("clearCareRewardPresentationState()");
+    expect(doneIdx).toBeGreaterThan(-1);
+    expect(clearIdx).toBeGreaterThan(-1);
+    expect(doneIdx).toBeLessThan(clearIdx);
+    expect(dismissFn).toContain(
+      "Unlock live chrome gates BEFORE clearing temporary tutorial badges",
+    );
   });
 });

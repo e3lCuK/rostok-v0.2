@@ -901,6 +901,10 @@ describe("EconomyV3RootSystem", () => {
     expect(shellBlock?.[0]).toMatch(
       /border-color:\s*var\(--v3-seg-color/,
     );
+    // Cell outline weight matches flask / activity buttons (~1.05).
+    expect(cssSrc).toMatch(
+      /\.v3-root-segment\s*\{[\s\S]*?border:\s*var\(--v3-care-rim-width/,
+    );
     expect(shellBlock?.[0]).toMatch(/color:\s*var\(--v3-seg-color/);
     // Light wash interior (timer / activity contrast) — not rim RGB.
     expect(cssSrc).toMatch(
@@ -1795,7 +1799,7 @@ describe("manual transfer animation (7E)", () => {
     );
   });
 
-  it("reduced-motion applies snapshot immediately", () => {
+  it("reduced-motion still shows +X с above activity; no particle blobs", () => {
     expect(shouldAnimateV3Transfer(true)).toBe(false);
     const plan = planV3ManualTransferSuccess({
       kind: "water",
@@ -1807,10 +1811,10 @@ describe("manual transfer animation (7E)", () => {
       mode: "immediate",
       snapshot: expect.objectContaining({ enabled: true }),
     });
-    expect(compSrc).toContain('plan.mode === "immediate"');
-    expect(cssSrc).toMatch(
-      /prefers-reduced-motion:\s*reduce[\s\S]*?v3-root-transfer-energy/,
-    );
+    expect(compSrc).toContain("setTransferring(next)");
+    expect(compSrc).toContain("V3TransferFlight");
+    expect(compSrc).not.toContain("v3-root-collect-floater");
+    expect(compSrc).not.toContain("v3-root-transfer-energy");
   });
 
   it("F5 / remount does not restore transfer animation", () => {
@@ -1826,14 +1830,12 @@ describe("manual transfer animation (7E)", () => {
     expect(html).toContain('data-v3-transferring="false"');
   });
 
-  it("transfer energy uses activity colors inside root", () => {
-    expect(cssSrc).toContain("v3-root-transfer-channel");
-    expect(cssSrc).toContain("v3-root-transfer-energy");
-    expect(cssSrc).toContain("v3-root-transfer-rise");
+  it("root segment fills use activity colors (no transfer particle blob)", () => {
     expect(compSrc).toContain("V3_ROOT_FILL_COLORS");
     expect(compSrc).toContain("V3_ROOT_WASH_COLORS");
     expect(compSrc).toContain("--v3-seg-wash");
-    expect(compSrc).toContain("v3-root-transfer-energy");
+    expect(compSrc).not.toContain("v3-root-transfer-energy");
+    expect(compSrc).not.toContain("v3-root-transfer-channel");
     expect(V3_ROOT_FILL_COLORS.water).toMatch(/#2b7fff/i);
     expect(V3_ROOT_FILL_COLORS.sun).toMatch(/#ffc107/i);
     expect(V3_ROOT_FILL_COLORS.fertilizer).toMatch(/#f0a020/i);

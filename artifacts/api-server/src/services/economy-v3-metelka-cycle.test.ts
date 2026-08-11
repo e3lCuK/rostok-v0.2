@@ -6,6 +6,7 @@ import {
   computeV3RootsFull,
   isCareBlockedByMetelka,
   isV3MetelkaCycleReadyForStart,
+  isV3RootTransferLockedByMetelka,
 } from "./economy-v3-metelka-cycle";
 import { settleEconomyV3Roots } from "./economy-v3-roots";
 import { V2_SECONDS_PER_ENERGY_AT_REFERENCE } from "./economy-v2";
@@ -67,12 +68,12 @@ describe("economy-v3-metelka-cycle", () => {
       metelkaSessionActive: false,
       metelkaPendingResult: false,
     });
-    expect(unlocked.phase).toBe("roots_full_waiting_excess");
+    expect(unlocked.phase).toBe("root_transfer_unlocked");
     expect(unlocked.transferLocked).toBe(false);
     expect(unlocked.careLocked).toBe(false);
   });
 
-  it("phase waiting_excess → metelka_available from excess alone", () => {
+  it("transfer locked from roots-full / Metelka available until finish", () => {
     const waiting = buildV3MetelkaCyclePublic({
       rootsFull: true,
       required: true,
@@ -82,7 +83,7 @@ describe("economy-v3-metelka-cycle", () => {
       metelkaPendingResult: false,
     });
     expect(waiting.phase).toBe("roots_full_waiting_excess");
-    expect(waiting.transferLocked).toBe(false);
+    expect(waiting.transferLocked).toBe(true);
     expect(waiting.careLocked).toBe(false);
 
     const available = buildV3MetelkaCyclePublic({
@@ -94,7 +95,7 @@ describe("economy-v3-metelka-cycle", () => {
       metelkaPendingResult: false,
     });
     expect(available.phase).toBe("metelka_available");
-    expect(available.transferLocked).toBe(false);
+    expect(available.transferLocked).toBe(true);
     expect(available.careLocked).toBe(true);
     expect(
       isV3MetelkaCycleReadyForStart({
@@ -106,7 +107,7 @@ describe("economy-v3-metelka-cycle", () => {
     ).toBe(true);
   });
 
-  it("active Metelka locks Care; pending coin alone does not", () => {
+  it("active Metelka locks transfer; pending coin after finish does not", () => {
     const active = buildV3MetelkaCyclePublic({
       rootsFull: true,
       required: true,
@@ -128,9 +129,44 @@ describe("economy-v3-metelka-cycle", () => {
       metelkaPendingResult: true,
     });
     expect(pending.phase).toBe("metelka_pending_result");
-    expect(pending.transferLocked).toBe(true);
-    // Coin pending after excess cleared — Care unlocked.
+    // Finish already completed the cycle — transfer unlocked; Care unlocked.
+    expect(pending.transferLocked).toBe(false);
     expect(pending.careLocked).toBe(false);
+  });
+
+  it("isV3RootTransferLockedByMetelka matches product order", () => {
+    expect(
+      isV3RootTransferLockedByMetelka({
+        required: true,
+        completedForCycle: false,
+        excessAvailable: false,
+        metelkaSessionActive: false,
+      }),
+    ).toBe(true);
+    expect(
+      isV3RootTransferLockedByMetelka({
+        required: false,
+        completedForCycle: false,
+        excessAvailable: true,
+        metelkaSessionActive: false,
+      }),
+    ).toBe(true);
+    expect(
+      isV3RootTransferLockedByMetelka({
+        required: false,
+        completedForCycle: true,
+        excessAvailable: false,
+        metelkaSessionActive: false,
+      }),
+    ).toBe(false);
+    expect(
+      isV3RootTransferLockedByMetelka({
+        required: false,
+        completedForCycle: true,
+        excessAvailable: false,
+        metelkaSessionActive: true,
+      }),
+    ).toBe(true);
   });
 
   it("isCareBlockedByMetelka: excess or active session only", () => {

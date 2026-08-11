@@ -1,5 +1,5 @@
 /**
- * Interactive apple basket on the play field (left of the left bush).
+ * Interactive apple basket on the play field (right of the left bush).
  * Replaces the former topbar apple row; click opens the shop.
  */
 
@@ -10,9 +10,16 @@ type Props = {
   onClick: () => void;
   /** Optional reward popup (+N ябл) anchored above the basket. */
   popup?: ReactNode;
+  /** Pulse while a Care apple is being dragged (same language as activity cards). */
+  dropHighlight?: boolean;
 };
 
-export default function AppleBasket({ apples, onClick, popup }: Props) {
+export default function AppleBasket({
+  apples,
+  onClick,
+  popup,
+  dropHighlight = false,
+}: Props) {
   const label = Math.max(0, Math.floor(apples)).toLocaleString("ru-RU");
 
   return (
@@ -20,84 +27,107 @@ export default function AppleBasket({ apples, onClick, popup }: Props) {
       {popup}
       <button
         type="button"
-        className="apple-basket"
+        className={`apple-basket${dropHighlight ? " apple-basket--receiving" : ""}`}
         data-apple-basket="true"
         aria-label={`Яблоки: ${label}. Открыть магазин`}
-        onClick={onClick}
+        onClick={dropHighlight ? undefined : onClick}
       >
-        <span className="apple-basket-art-wrap" aria-hidden="true">
+        {/* Pulse only the basket art — never the count pill below. */}
+        <span
+          className={`apple-basket-art-wrap${dropHighlight ? " apple-basket-art-wrap--drop-target" : ""}`}
+          data-apple-basket-drop-target={dropHighlight ? "true" : undefined}
+          aria-hidden="true"
+        >
           <svg
             className="apple-basket-art"
             viewBox="0 0 56 48"
             width="56"
             height="48"
           >
-            {/* Body — smooth shoulders, width matched to rim (no sharp ears) */}
+            {/*
+              Same paint language as field bushes: flat fills, thin uniform
+              stroke on each piece, no weave / opacity overlays.
+            */}
+            {/* Body */}
             <path
-              d="M11.5 20.5
-                 C10.2 20.5 9.6 22.5 10 27
-                 L11.5 40.5
-                 Q28 46.5 44.5 40.5
-                 L46 27
-                 C46.4 22.5 45.8 20.5 44.5 20.5
-                 Q28 24.5 11.5 20.5Z"
+              d="M12 21
+                 C10.5 21 10 23 10.5 27.5
+                 L12 40
+                 Q28 45.5 44 40
+                 L45.5 27.5
+                 C46 23 45.5 21 44 21
+                 Q28 24.5 12 21Z"
               fill="#8b623e"
+              stroke="#5c3a1a"
+              strokeWidth="1.1"
+              strokeLinejoin="round"
             />
-            <path
-              d="M13.5 22.5
-                 C12.5 22.5 12.2 24.2 12.5 28
-                 L14 39
-                 Q28 44 42 39
-                 L43.5 28
-                 C43.8 24.2 43.5 22.5 42.5 22.5
-                 Q28 26 13.5 22.5Z"
-              fill="#a67845"
-            />
-            {/* Weave lines */}
+            {/* Weave bands */}
             <path
               d="M14 29 Q28 33.5 42 29"
               fill="none"
-              stroke="#6b4423"
-              strokeWidth="1.1"
+              stroke="#5c3a1a"
+              strokeWidth="1.05"
+              strokeLinecap="round"
               opacity="0.55"
             />
             <path
               d="M14.5 34.5 Q28 38.5 41.5 34.5"
               fill="none"
-              stroke="#6b4423"
-              strokeWidth="1.1"
+              stroke="#5c3a1a"
+              strokeWidth="1.05"
+              strokeLinecap="round"
               opacity="0.45"
             />
-            {/* Rim — flat closed oval (side view, little floor visible) */}
+            {/* Rim */}
             <ellipse
               cx="28"
-              cy="19.2"
-              rx="17"
-              ry="3.6"
+              cy="19.5"
+              rx="16.5"
+              ry="3.4"
               fill="#dcc4a0"
-              stroke="#8b623e"
-              strokeWidth="2"
-            />
-            {/* Apples peeking over the front lip */}
-            <circle cx="22" cy="15.5" r="5" fill="#c0392b" />
-            <circle cx="22" cy="15.5" r="5" fill="#e74c3c" opacity="0.35" />
-            <path
-              d="M22 10.5 Q23 8.5 25 8"
-              fill="none"
-              stroke="#3d6b1a"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            />
-            <circle cx="33" cy="15" r="4.5" fill="#b83228" />
-            <circle cx="33" cy="15" r="4.5" fill="#e74c3c" opacity="0.3" />
-            <path
-              d="M33 10.5 Q34 9 35.5 8.5"
-              fill="none"
-              stroke="#3d6b1a"
+              stroke="#5c3a1a"
               strokeWidth="1.1"
+            />
+            {/* Apples — solid circles + thin rim (like bush lobes) */}
+            <circle
+              cx="22"
+              cy="15.2"
+              r="5"
+              fill="#e74c3c"
+              stroke="#5c3a1a"
+              strokeWidth="1.05"
+            />
+            <path
+              d="M22 10.2 Q23 8.4 24.8 8"
+              fill="none"
+              stroke="#2f5c0e"
+              strokeWidth="1.05"
               strokeLinecap="round"
             />
-            <circle cx="28" cy="17.5" r="3.6" fill="#d6453d" />
+            <circle
+              cx="33.5"
+              cy="14.8"
+              r="4.6"
+              fill="#d6453d"
+              stroke="#5c3a1a"
+              strokeWidth="1.05"
+            />
+            <path
+              d="M33.5 10.2 Q34.4 8.6 36 8.2"
+              fill="none"
+              stroke="#2f5c0e"
+              strokeWidth="1.05"
+              strokeLinecap="round"
+            />
+            <circle
+              cx="28"
+              cy="17.2"
+              r="3.5"
+              fill="#c0392b"
+              stroke="#5c3a1a"
+              strokeWidth="1.05"
+            />
           </svg>
         </span>
         <span

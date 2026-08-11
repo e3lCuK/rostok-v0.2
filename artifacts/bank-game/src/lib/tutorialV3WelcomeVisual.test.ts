@@ -26,14 +26,15 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     expect(pageSrc).toContain(">Ухаживайте за деревом<");
     expect(pageSrc).not.toContain("Как ухаживать за деревом");
     expect(pageSrc).not.toContain(">Уход за деревом<");
+    // Outline TreePine — same stroke language as Droplets / Sun / FertilizerIcon
     expect(pageSrc).toMatch(
-      /tutorial-welcome-icon[^>]*>🌳<\/span>/,
+      /tutorial-welcome-icon[\s\S]{0,160}<TreePine size=\{48\} strokeWidth=\{2\.25\}/,
     );
     expect(pageSrc).toMatch(
-      /tutorial-complete-icon[^>]*>🌳<\/span>/,
+      /tutorial-complete-icon[\s\S]{0,160}<TreePine size=\{48\} strokeWidth=\{2\.25\}/,
     );
     expect(pageSrc).not.toMatch(
-      /tutorial-welcome-icon[\s\S]{0,120}<TreePine/,
+      /tutorial-welcome-icon[^>]*>🌳<\/span>/,
     );
     expect(pageSrc).not.toMatch(
       /tutorial-welcome-icon[\s\S]{0,120}<Shovel/,
@@ -49,20 +50,24 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     );
   });
 
-  it("3–4. copy uses «активности»; welcome text centered; activity rows aligned", () => {
-    expect(pageSrc).toContain("Дождитесь энергии в корнях");
-    expect(pageSrc).toContain("пройдите активности");
-    expect(pageSrc).not.toContain("три активности ухода");
-    expect(pageSrc).not.toContain("мини-активности");
-    expect(pageSrc).toContain("Три вида активности");
-    expect(pageSrc).not.toContain("Три вида ухода");
-    expect(pageSrc).toContain("Полив — ловить капли");
-    expect(pageSrc).toContain("Освещение — собирать лучи");
-    expect(pageSrc).toContain("Удобрение — собирать гранулы в ряд");
-    expect(pageSrc).toContain('tutorial-welcome-game-icon');
-    expect(pageSrc).toContain("FertilizerIcon size={22} filled={false}");
+  it("3–4. welcome is icon + paragraph steps (no numbered list)", () => {
+    expect(pageSrc).toContain("tutorial-welcome-steps");
+    expect(pageSrc).toContain("tutorial-welcome-step-icon");
+    expect(pageSrc).toContain("Посадите росток");
+    expect(pageSrc).toContain("созреет энергия");
+    expect(pageSrc).toContain("Соберите энергию из корней");
+    expect(pageSrc).toContain("Пройдите активности");
+    expect(pageSrc).toContain("Завершите уход");
+    expect(pageSrc).toContain("Заберите награды");
+    expect(pageSrc).toContain("<Clock size={20}");
+    expect(pageSrc).toContain("<Zap size={20}");
+    expect(pageSrc).toContain("<Shovel size={20}");
+    expect(pageSrc).toContain("<Gift size={20}");
+    expect(pageSrc).not.toContain("Три вида активности");
+    expect(pageSrc).not.toContain("Полив — ловить капли");
+    expect(pageSrc).not.toContain("tutorial-welcome-games");
     expect(cssSrc).toMatch(
-      /\.tutorial-welcome-desc\s*\{[\s\S]*?text-align:\s*center/,
+      /\.tutorial-welcome-desc\s*\{[\s\S]*?text-align:\s*left/,
     );
     expect(cssSrc).toMatch(
       /\.tutorial-welcome-card\s*\{[\s\S]*?text-align:\s*center/,
@@ -70,15 +75,10 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     expect(cssSrc).toMatch(
       /\.tutorial-welcome-title\s*\{[\s\S]*?text-align:\s*center/,
     );
-    expect(cssSrc).toMatch(
-      /\.tutorial-welcome-game-icon\s*\{[\s\S]*?width:\s*28px/,
-    );
-    expect(cssSrc).toMatch(
-      /\.tutorial-welcome-game-row\s*\{[\s\S]*?gap:\s*10px/,
-    );
+    expect(cssSrc).toContain(".tutorial-welcome-step-icon");
   });
 
-  it("5–7. intro has wait card; root collect stays pulse-only (no outline)", () => {
+  it("5–7. intro wait card; root collect has energy card + pulse (no outline)", () => {
     expect(v3TutorialOverlayConfig("intro")?.text).toBe(
       "Дождитесь формирования энергии",
     );
@@ -87,7 +87,13 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
       "v3-root-sun",
       "v3-root-fertilizer",
     ] as const) {
-      expect(v3TutorialOverlayConfig(step)).toBeNull();
+      expect(v3TutorialOverlayConfig(step)?.icon).toBe("energy");
+      expect(v3TutorialOverlayConfig(step)?.text).toBe(
+        "Соберите энергию из корней",
+      );
+      expect(v3TutorialOverlayConfig(step)?.hint).toBe(
+        "Нажмите на корневые ячейки по очереди.",
+      );
     }
     expect(cssSrc).toMatch(
       /\.v3-root--tutorial-pulse\s*\{[\s\S]*?outline:\s*none/,
@@ -114,9 +120,13 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     );
     expect(rootSrc).toContain("collectPulseKind");
     expect(rootSrc).toContain("v3-root--tutorial-pulse");
-    // Same blink keyframes as activity recommend buttons (not soft brightness glow).
+    // Per-cell contour pulse (smaller scale than activity buttons).
+    expect(cssSrc).toContain("v3-root-collect-pulse");
     expect(cssSrc).toMatch(
-      /\.v3-root--tutorial-pulse \.v3-root-segments\s*\{[\s\S]*?tut-activity-pulse/,
+      /\.v3-root--tutorial-pulse \.v3-root-segment\s*\{[\s\S]*?v3-root-collect-pulse/,
+    );
+    expect(cssSrc).toMatch(
+      /@keyframes v3-root-collect-pulse[\s\S]*?scale\(1\.02\)/,
     );
   });
 
@@ -135,9 +145,9 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     ).toBe(false);
   });
 
-  it("12. reduced-motion uses static brighter segments", () => {
+  it("12. reduced-motion uses static per-cell contour", () => {
     expect(cssSrc).toMatch(
-      /prefers-reduced-motion:\s*reduce[\s\S]*?\.v3-root--tutorial-pulse \.v3-root-segments[\s\S]*?animation:\s*none[\s\S]*?brightness\(1\.14\)/,
+      /prefers-reduced-motion:\s*reduce[\s\S]*?\.v3-root--tutorial-pulse \.v3-root-segment[\s\S]*?animation:\s*none[\s\S]*?box-shadow:/,
     );
   });
 
@@ -154,6 +164,20 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     );
     expect(pageSrc).toContain(
       "!tutorialDone ? tutorialHighlightRoot(tutorialStep) : null",
+    );
+  });
+
+  it("14. capital + tree info are locked until tutorialDone", () => {
+    expect(pageSrc).toContain("onCapitalClick=");
+    expect(pageSrc).toMatch(
+      /onCapitalClick=\{\s*\n?\s*tutorialDone\s*&&[\s\S]*?setShowDepositInfo\(true\)[\s\S]*?:\s*undefined/,
+    );
+    expect(pageSrc).toContain("tree-wrapper--tutorial-locked");
+    expect(pageSrc).toContain("if (!tutorialDone) return;");
+    expect(pageSrc).toContain("setShowTreeInfo(true)");
+    expect(cssSrc).toContain(".tree-wrapper--tutorial-locked");
+    expect(cssSrc).toMatch(
+      /\.tree-wrapper--tutorial-locked[\s\S]*?pointer-events:\s*none/,
     );
   });
 });

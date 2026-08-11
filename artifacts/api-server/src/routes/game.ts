@@ -167,6 +167,7 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
       exists: true,
       balances: {
         balance: parseFloat(acc.active_balance),
+        vaultBalance: parseFloat(String(acc.vault_balance ?? "0")) || 0,
         earned: parseFloat(acc.active_earned),
         totalDaysEarned: acc.total_days_earned,
         startDate: parseInt(acc.start_date),
@@ -195,6 +196,9 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
           ? game.xp_history
           : (game.xp_history ? JSON.parse(game.xp_history) : []),
         tutorialDone: game.tutorial_done !== false,
+        // Only the plant flag (or finished tutorial) — do not infer from nullish tutorial_done.
+        sproutPlanted:
+          game.sprout_planted === true || game.tutorial_done === true,
         // Collected Care bank (0–60). Root maturation is in v2Roots.
         v2EnergySeconds,
         v2EnergyAnchorAt,
@@ -252,14 +256,16 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
       return res.status(409).json({ error: "Account already exists" });
     }
 
+    // Capital starts in the vault; tree chest (active_balance) is empty until
+    // the tutorial drag-to-chest transfer.
     await pool.query(
-      `INSERT INTO accounts(user_id, standard_balance, active_balance, standard_earned, active_earned, total_days_earned, start_date, starting_capital)
-       VALUES($1, 0, $2, 0, 0, 0, $3, $4)`,
+      `INSERT INTO accounts(user_id, standard_balance, active_balance, vault_balance, standard_earned, active_earned, total_days_earned, start_date, starting_capital)
+       VALUES($1, 0, 0, $2, 0, 0, 0, $3, $4)`,
       [userId, capital, now, capital],
     );
     await pool.query(
-      `INSERT INTO game_state(user_id, last_session_time, session_in_progress, current_session_water, current_session_sun, current_session_fertilizer, pending_base_reward, pending_bonus_reward, tutorial_done)
-       VALUES($1, NULL, FALSE, FALSE, FALSE, FALSE, 0, 0, FALSE)`,
+      `INSERT INTO game_state(user_id, last_session_time, session_in_progress, current_session_water, current_session_sun, current_session_fertilizer, pending_base_reward, pending_bonus_reward, tutorial_done, sprout_planted)
+       VALUES($1, NULL, FALSE, FALSE, FALSE, FALSE, 0, 0, FALSE, FALSE)`,
       [userId],
     );
 
@@ -307,6 +313,7 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
     await pool.query(
       `UPDATE accounts
        SET active_balance = COALESCE(NULLIF(starting_capital, 0), 100000) + 1,
+           vault_balance = 0,
            active_earned = 1,
            standard_earned = 0
        WHERE user_id = $1`,
@@ -320,7 +327,7 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
       [userId],
     );
 
-    // Keep tutorial collectibles (1 мм / 1 apple); wipe XP / activity / care residue.
+    // Keep tutorial collectibles (1 мм / 1 apple / claimed skill XP); clear care residue.
     // v3 generation clock continues from the tutorial wait start (not "now"),
     // so a 9:54 leftover on the tutorial capsule becomes the live wait timer.
     if (isEconomyV3RootsEnabled()) {
@@ -379,13 +386,7 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
              tree_growth_mm = 1,
              tree_growth_remainder = 0,
              total_apples = 1,
-             player_xp = 0,
-             player_level = 1,
-             xp_history = '[]'::jsonb,
              total_sessions = 0,
-             total_water_drops = 0,
-             total_sun_catches = 0,
-             total_leaf_picks = 0,
              streak_days = 0,
              last_streak_date = NULL,
              pending_base_reward = 0,
@@ -813,12 +814,22 @@ router.get("/game/leaderboard", requireAuth, async (req: any, res) => {
   }
 });
 
+/** Normalize boolean / int tutorial_done column to 0|1 for achievement counts. */
+function tutorialDoneCount(raw: unknown): number {
+  if (raw === true || raw === 1 || raw === "1" || raw === "t" || raw === "true") {
+    return 1;
+  }
+  return 0;
+}
+
 // GET /api/game/achievements — return current activity counts + claimed list
 router.get("/game/achievements", requireAuth, async (req: any, res) => {
   const userId = req.userId;
   try {
     const row = await pool.query(
-      `SELECT total_sessions, total_login_days, total_water_drops, total_sun_catches, total_leaf_picks, claimed_achievements, total_apples FROM game_state WHERE user_id = $1`,
+      `SELECT total_sessions, total_login_days, total_water_drops, total_sun_catches,
+              total_leaf_picks, claimed_achievements, total_apples, tutorial_done
+         FROM game_state WHERE user_id = $1`,
       [userId],
     );
     if (row.rows.length === 0) return res.json({ counts: {}, claimed: [], totalApples: 0 });
@@ -833,6 +844,7 @@ router.get("/game/achievements", requireAuth, async (req: any, res) => {
         total_water_drops: parseInt(g.total_water_drops) || 0,
         total_sun_catches: parseInt(g.total_sun_catches) || 0,
         total_leaf_picks: parseInt(g.total_leaf_picks) || 0,
+        tutorial_done: tutorialDoneCount(g.tutorial_done),
       },
       claimed,
       totalApples: parseInt(g.total_apples) || 0,
@@ -844,7 +856,7 @@ router.get("/game/achievements", requireAuth, async (req: any, res) => {
 });
 
 const ACHIEVEMENT_REWARDS: Record<string, number> = {
-  sessions_1: 1, sessions_10: 30, sessions_100: 100,
+  tutorial_1: 1,
   days_1: 1, days_10: 30, days_100: 100,
   water_100: 1, water_1000: 30, water_10000: 100,
   sun_100: 1, sun_1000: 30, sun_10000: 100,
@@ -852,9 +864,7 @@ const ACHIEVEMENT_REWARDS: Record<string, number> = {
 };
 
 const ACHIEVEMENT_THRESHOLDS: Record<string, { field: string; threshold: number }> = {
-  sessions_1:   { field: "total_sessions",    threshold: 1 },
-  sessions_10:  { field: "total_sessions",    threshold: 10 },
-  sessions_100: { field: "total_sessions",    threshold: 100 },
+  tutorial_1:   { field: "tutorial_done",     threshold: 1 },
   days_1:       { field: "total_login_days",  threshold: 1 },
   days_10:      { field: "total_login_days",  threshold: 10 },
   days_100:     { field: "total_login_days",  threshold: 100 },
@@ -874,13 +884,15 @@ router.post("/game/achievements/claim", requireAuth, async (req: any, res) => {
   const userId = req.userId;
   const { id } = req.body;
 
-  if (!ACHIEVEMENT_REWARDS[id] || !ACHIEVEMENT_THRESHOLDS[id]) {
+  if (!(id in ACHIEVEMENT_REWARDS) || !ACHIEVEMENT_THRESHOLDS[id]) {
     return res.status(400).json({ error: "Invalid achievement id" });
   }
 
   try {
     const row = await pool.query(
-      `SELECT total_sessions, total_login_days, total_water_drops, total_sun_catches, total_leaf_picks, claimed_achievements, total_apples FROM game_state WHERE user_id = $1`,
+      `SELECT total_sessions, total_login_days, total_water_drops, total_sun_catches,
+              total_leaf_picks, claimed_achievements, total_apples, tutorial_done
+         FROM game_state WHERE user_id = $1`,
       [userId],
     );
     if (row.rows.length === 0) return res.status(404).json({ error: "Not found" });
@@ -893,7 +905,15 @@ router.post("/game/achievements/claim", requireAuth, async (req: any, res) => {
     if (claimed.includes(id)) return res.status(409).json({ error: "Already claimed" });
 
     const { field, threshold } = ACHIEVEMENT_THRESHOLDS[id];
-    const currentVal = parseInt(g[field]) || 0;
+    const values: Record<string, number> = {
+      total_sessions: parseInt(g.total_sessions) || 0,
+      total_login_days: parseInt(g.total_login_days) || 0,
+      total_water_drops: parseInt(g.total_water_drops) || 0,
+      total_sun_catches: parseInt(g.total_sun_catches) || 0,
+      total_leaf_picks: parseInt(g.total_leaf_picks) || 0,
+      tutorial_done: tutorialDoneCount(g.tutorial_done),
+    };
+    const currentVal = values[field] ?? 0;
     if (currentVal < threshold) return res.status(409).json({ error: "Not yet reached" });
 
     const applesAwarded = ACHIEVEMENT_REWARDS[id];

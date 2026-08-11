@@ -1,5 +1,5 @@
 /**
- * Tutorial must not persist real economy awards.
+ * Tutorial claim persists skill XP only (not income/growth/anchors).
  * Trusted gate: game_state.tutorial_done === false (isEconomyV2TutorialActive).
  */
 
@@ -232,7 +232,7 @@ describe("tutorial does not persist real economy awards", () => {
     expect(result.balances.balance).toBe(100000);
   });
 
-  it("5. tutorial claim-cycle does not award XP", async () => {
+  it("5. tutorial claim-cycle awards skill XP but not income/growth", async () => {
     const state = baseCareState({
       tutorial_done: false,
       player_xp: 100,
@@ -266,7 +266,8 @@ describe("tutorial does not persist real economy awards", () => {
     });
 
     let xpUpdates = 0;
-    clientQueryMock.mockImplementation(async (text: string) => {
+    let claimedXp = 0;
+    clientQueryMock.mockImplementation(async (text: string, params?: unknown[]) => {
       if (text === "BEGIN" || text === "COMMIT" || text === "ROLLBACK") {
         return { rows: [] };
       }
@@ -282,10 +283,13 @@ describe("tutorial does not persist real economy awards", () => {
       if (String(text).includes("UPDATE game_state")) {
         if (String(text).includes("player_xp")) {
           xpUpdates += 1;
+          state.player_xp = Number(params?.[1]);
+          state.player_level = Number(params?.[2]);
+          claimedXp = Number(params?.[4]);
         }
         if (String(text).includes("v3_care_cycle_claimed_at")) {
           state.v3_care_cycle_claimed_at = new Date(NOW + 2);
-          state.v3_care_cycle_claimed_xp = 0;
+          state.v3_care_cycle_claimed_xp = claimedXp;
         }
         return { rows: [] };
       }
@@ -294,20 +298,25 @@ describe("tutorial does not persist real economy awards", () => {
 
     const claimed = await claimEconomyV3CareCycle("42", NOW + 2);
     expect(claimed.claimed).toBe(true);
-    expect(claimed.xp).toBe(0);
-    expect(claimed.playerXp).toBe(100);
-    expect(claimed.playerLevel).toBe(1);
+    expect(claimed.xp).toBeGreaterThan(0);
+    expect(claimed.playerXp).toBe(100 + claimed.xp);
+    expect(claimed.treeGrowth).toBe(0);
+    expect(claimed.income.total).toBe(0);
     expect(claimed.treeGrowthMm).toBe(40);
     expect(claimed.totalApples).toBe(7);
     expect(claimed.pendingBaseReward).toBe(0);
-    expect(xpUpdates).toBe(0);
+    expect(xpUpdates).toBe(1);
   });
 
-  it("tutorial/complete SQL clears pending rewards but keeps +1 мм / +1 apple", () => {
+  it("tutorial/complete SQL clears pending rewards but keeps +1 мм / +1 apple / XP / catches", () => {
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/pending_base_reward\s*=\s*0/);
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/pending_bonus_reward\s*=\s*0/);
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/tree_growth_mm\s*=\s*1/);
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/total_apples\s*=\s*1/);
-    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/player_xp\s*=\s*0/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).not.toMatch(/player_xp\s*=\s*0/);
+    // Tutorial catches count toward achievements — must not wipe.
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).not.toMatch(/total_water_drops\s*=\s*0/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).not.toMatch(/total_sun_catches\s*=\s*0/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).not.toMatch(/total_leaf_picks\s*=\s*0/);
   });
 });

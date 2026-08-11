@@ -46,16 +46,33 @@ describe("V3UndergroundWrapRoots", () => {
     expect(html).toContain(`viewBox="0 0 ${V3_WRAP_ROOTS_VIEW.width} ${V3_WRAP_ROOTS_VIEW.height}"`);
     expect(html).toContain("data-wrap-root=");
     expect(html).toContain('data-wrap-root-collar="true"');
+    expect(html).not.toContain('data-wrap-root-neck="true"');
     expect(html).toContain('data-v3-wrap-root-system="true"');
     expect(html).not.toContain("data-wrap-root-mini-shoulder");
+    // Outer silhouette rim only (not per-root strokes)
+    expect(html).toContain('data-wrap-root-edge-filter="true"');
+    expect(html).toContain('filter="url(#v3-wrap-roots-edge)"');
+    expect(html).not.toContain('stroke="#5c3a1a"');
   });
 
   it("builds the approved single-arc soft collar", () => {
     const d = buildTrunkShoulderCollarPath();
     expect(d.startsWith("M ")).toBe(true);
     expect(d.endsWith("Z")).toBe(true);
-    expect(d.startsWith("M 146.8 -12")).toBe(true);
-    expect(d).toContain("C 141.8 -7");
+    expect(d.startsWith("M 145.8 -12")).toBe(true);
+    expect(d).toContain("C 138.8 -7");
+  });
+
+  it("widens the collar neck on mighty tree (stage 4) to hide stump shoulders", () => {
+    const d = buildTrunkShoulderCollarPath(4);
+    // trunkHalf 7.2 → start x = 150 - 7.2; rounded flare (no sharp ±34 peaks).
+    expect(d.startsWith("M 142.8 -12")).toBe(true);
+    expect(d).toContain("124 10"); // rounded shoulder control
+    expect(d).not.toContain("116 11"); // old pointed outer peak
+    const html = renderToStaticMarkup(
+      createElement(V3UndergroundWrapRoots, { treeStage: 4 }),
+    );
+    expect(html).toContain('data-wrap-root-mighty="true"');
   });
 
   it("keeps collar + fan in one unclipped wrap-root system group", () => {

@@ -1,10 +1,13 @@
 /**
  * Shared capital chest under the root system (v3 primary UI).
  *
+ * Three-part flask (fill order bottom → top):
+ *   1. capital button bulb (visible, clickable)
+ *   2. mid band behind the chest (invisible, still fills)
+ *   3. upper SVG timer in the hourglass slot (children)
+ *
  * Layer order (back → front):
- *   1. continuous hourglass (+ lid-cut foot in the same SVG figure)
- *   2. chest body + lid
- *   3. capital face — lower-bulb base half (shared vertical fill)
+ *   mid → chest body → upper hourglass → capital button
  */
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -18,17 +21,15 @@ import {
   V3_HOURGLASS_CAPITAL_BULB_VIEW,
 } from "./V3WaitTimerHourglass";
 import { ROOT_ART_VIEW } from "./rootArtCatalog";
-import IncomeChestFloat from "./IncomeChestFloat";
-import type { IncomeChestFeedback } from "@/lib/incomeChestFeedback";
 
 type Props = {
   capital: number;
-  incomeChestFeedback?: IncomeChestFeedback | null;
-  onIncomeChestFeedbackComplete?: (id: string) => void;
   /** Opens accrual history — capital label is the hit target. */
   onCapitalClick?: () => void;
   /** Tall hourglass (timer / tutorial) — lid-cut foot is inside that SVG. */
   children?: ReactNode;
+  /** Pulse only the chest lock while a Care coin is dragged. */
+  dropHighlight?: boolean;
 };
 
 /**
@@ -51,10 +52,9 @@ function splitCapitalLabel(label: string): { value: string; unit: string } {
 
 export default function CapitalChestUnderRoots({
   capital,
-  incomeChestFeedback = null,
-  onIncomeChestFeedbackComplete,
   onCapitalClick,
   children,
+  dropHighlight = false,
 }: Props) {
   const viewBox = `${CHEST_VIEW.x} ${CHEST_VIEW.y} ${CHEST_VIEW.width} ${CHEST_VIEW.height}`;
   const label = formatV2ChestCapital(capital);
@@ -116,6 +116,8 @@ export default function CapitalChestUnderRoots({
             <div
               className="v3-capital-badge__fill"
               data-capital-badge-fill="true"
+              data-v3-hourglass-fill="button"
+              data-v3-hourglass-part="button"
             />
           </div>
         </foreignObject>
@@ -134,10 +136,28 @@ export default function CapitalChestUnderRoots({
 
   return (
     <>
+      {/*
+        Invisible mid flask segment — sits behind the chest wood so it never
+        paints on screen, but still consumes sequential fill progress.
+      */}
+      <div
+        className="v3-hourglass-mid"
+        data-v3-hourglass-part="mid"
+        data-v3-hourglass-mid="true"
+        aria-hidden="true"
+      >
+        <div
+          className="v3-hourglass-mid__fill"
+          data-v3-hourglass-fill="mid"
+          data-v3-hourglass-mid-fill="true"
+        />
+      </div>
+
       <div
         className="v3-capital-hourglass-slot"
         data-v3-root-wait-timer-host="true"
         data-v3-capital-hourglass-slot="true"
+        data-v3-hourglass-part="upper-slot"
       >
         {children}
       </div>
@@ -152,7 +172,11 @@ export default function CapitalChestUnderRoots({
         overflow="visible"
         aria-hidden="true"
       >
-        <V2CapitalChest capital={capital} layer="body" />
+        <V2CapitalChest
+          capital={capital}
+          layer="body"
+          dropHighlight={dropHighlight}
+        />
       </svg>
 
       <div
@@ -182,10 +206,6 @@ export default function CapitalChestUnderRoots({
             {badgeInner}
           </span>
         )}
-        <IncomeChestFloat
-          feedback={incomeChestFeedback}
-          onComplete={(id) => onIncomeChestFeedbackComplete?.(id)}
-        />
       </div>
     </>
   );

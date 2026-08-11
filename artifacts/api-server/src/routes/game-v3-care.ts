@@ -64,7 +64,12 @@ router.post("/game/v3/care/start-activity", requireAuth, async (req: any, res) =
 /**
  * POST /api/game/v3/care/finish-activity
  *
- * Body: { activity: "water" | "sun" | "fertilizer", skill: number }
+ * Body: {
+ *   activity: "water" | "sun" | "fertilizer",
+ *   skill: number,
+ *   count?: number,      // items caught (achievements; also accepted as collected)
+ *   collected?: number
+ * }
  *
  * Errors:
  * - 400 unknown_activity / invalid_skill
@@ -74,10 +79,14 @@ router.post("/game/v3/care/start-activity", requireAuth, async (req: any, res) =
  */
 router.post("/game/v3/care/finish-activity", requireAuth, async (req: any, res) => {
   try {
+    const collected =
+      req.body?.collected ?? req.body?.count ?? 0;
     const result = await finishEconomyV3CareActivity(
       req.userId,
       req.body?.activity,
       req.body?.skill,
+      Date.now(),
+      collected,
     );
     return res.json(result);
   } catch (err) {

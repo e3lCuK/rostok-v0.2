@@ -13,7 +13,8 @@ describe("Care converge animation — Framer Motion merge into «Уход»", ()
   it("1. GamePage drives trio/shovel via careConvergeMotion helpers", () => {
     expect(page).toContain("careTrioConvergeAnimate");
     expect(page).toContain("careShovelConvergeAnimate");
-    expect(page).toContain("careShovelFillPercent");
+    expect(page).toContain("resolveCareShovelFillPercent");
+    expect(page).toContain("hydrateCareResultFillsFromV3Cycle");
     // Tutorial «Уход» uses the same quality fill as live — not forced empty.
     expect(page).not.toContain(
       '!tutorialDone && tutorialStep === "complete" ? null',

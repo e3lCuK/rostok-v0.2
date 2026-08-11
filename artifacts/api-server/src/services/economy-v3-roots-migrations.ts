@@ -49,6 +49,10 @@ export const ECONOMY_V3_ROOT_MIGRATION_SQL: readonly string[] = [
   /** Roots-full → Metelka-before-transfer cycle markers. */
   `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_metelka_required BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_metelka_completed_for_cycle BOOLEAN NOT NULL DEFAULT FALSE`,
+  /** Tutorial: tree + underground unlock after tap-to-plant. */
+  `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS sprout_planted BOOLEAN NOT NULL DEFAULT FALSE`,
+  /** Starting capital parked in vault until drag-to-chest (accounts). */
+  `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vault_balance NUMERIC(15,2) NOT NULL DEFAULT 0`,
 ];
 
 export type EconomyV3MigrationClient = {

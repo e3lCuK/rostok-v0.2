@@ -12,7 +12,6 @@ import { describe, expect, it } from "vitest";
 import CapitalChestUnderRoots from "@/components/v2/CapitalChestUnderRoots";
 import { formatV2ChestCapital } from "@/components/v2/V2CapitalChest";
 import V3WaitTimerHourglass from "@/components/v2/V3WaitTimerHourglass";
-import { createIncomeChestFeedback } from "@/lib/incomeChestFeedback";
 const here = dirname(fileURLToPath(import.meta.url));
 const pageSrc = readFileSync(join(here, "../pages/GamePage.tsx"), "utf8");
 const cssSrc = readFileSync(join(here, "../bank.css"), "utf8");
@@ -82,7 +81,10 @@ describe("Capital chest under Economy v3 roots", () => {
     );
     expect(html.match(/data-capital-chest="true"/g)?.length).toBe(1);
     expect(html).toContain('data-v3-capital-hourglass-slot="true"');
-    // Lid-cut foot is part of the hourglass SVG (one figure).
+    expect(html).toContain('data-v3-hourglass-part="mid"');
+    expect(html).toContain('data-v3-hourglass-fill="mid"');
+    expect(html).toContain('data-v3-hourglass-fill="button"');
+    // Lid-cut foot is part of the upper hourglass SVG.
     expect(html).toContain('data-v3-hourglass-lid-cut="true"');
     expect(html).toContain('data-hourglass-lid-cut="true"');
     expect(html).not.toContain("v3-hourglass-lid-cut-slot");
@@ -97,7 +99,9 @@ describe("Capital chest under Economy v3 roots", () => {
   });
 
   it("capital hit target opens accrual history (wired from GamePage)", () => {
-    expect(pageSrc).toContain("onCapitalClick={() => setShowDepositInfo(true)}");
+    // Guarded while Care coin is dragged onto the chest (no accidental history open).
+    expect(pageSrc).toContain("tutorialDone && !coinDropTargetActive");
+    expect(pageSrc).toContain("setShowDepositInfo(true)");
     expect(pageSrc).toContain("sessionHistory");
     expect(pageSrc).toContain("Начисления появятся после первой сессии");
     expect(pageSrc).not.toContain("incomeByPreset");
@@ -117,21 +121,22 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(html).toMatch(/<button[^>]*data-capital-chest-hit="true"/);
   });
 
-  it("IncomeChestFloat stays inside chest-overlay", () => {
+  it("income flash is beige field-income-popup beside chest host", () => {
     expect(underRootsSrc).toContain('data-v3-capital-chest-overlay="true"');
-    expect(underRootsSrc).toContain("IncomeChestFloat");
-    const overlayIdx = underRootsSrc.indexOf("v3-capital-chest-overlay");
-    const floatIdx = underRootsSrc.indexOf("<IncomeChestFloat");
-    expect(overlayIdx).toBeGreaterThan(-1);
-    expect(floatIdx).toBeGreaterThan(overlayIdx);
+    expect(underRootsSrc).not.toContain("IncomeChestFloat");
+    expect(pageSrc).toContain('data-field-income-popup="true"');
+    expect(pageSrc).toContain("playCoinIncomeFeedback");
+    // Level with capital sum (chest face), not mid-hourglass.
+    expect(cssSrc).toMatch(
+      /\.game-area--v3-roots \.field-income-popup\s*\{[\s\S]*?--v3-chest-face-height/,
+    );
     const html = renderToStaticMarkup(
       createElement(CapitalChestUnderRoots, {
         capital: 50,
-        incomeChestFeedback: createIncomeChestFeedback(0.25),
       }),
     );
-    expect(html).toContain('data-income-chest-float="true"');
     expect(html).toContain('data-capital-chest="true"');
+    expect(html).not.toContain("data-income-chest-float");
   });
 
   it("v2 fallback → chest still only via RootEnergyLayer", () => {
@@ -144,7 +149,7 @@ describe("Capital chest under Economy v3 roots", () => {
     const fallback = rootsBlock.slice(fallbackStart);
     expect(fallback).toContain("<RootEnergyLayer");
     expect(fallback).toContain("capital={balances.balance}");
-    expect(fallback).toContain("incomeChestFeedback={incomeChestFeedback}");
+    expect(fallback).not.toContain("incomeChestFeedback");
     expect(fallback).not.toContain("CapitalChestUnderRoots");
     expect(pageSrc.match(/<CapitalChestUnderRoots/g)?.length).toBe(1);
     expect(pageSrc.match(/<RootEnergyLayer/g)?.length).toBe(1);
@@ -177,6 +182,15 @@ describe("Capital chest under Economy v3 roots", () => {
       /\.game-area--v3-roots\s*\{[\s\S]*?--v3-root-crown-bury:\s*8px/,
     );
     expect(cssSrc).toContain("--v3-hourglass-height");
+  });
+
+  it("excess phase greys flask + capital (same freeze as Metelka)", () => {
+    expect(pageSrc).toContain("excessUiGrey");
+    expect(pageSrc).toContain("generatingExcess");
+    expect(pageSrc).toContain("v3-capital-chest-host--metelka-frozen");
+    expect(pageSrc).toContain("frozen={excessUiGrey}");
+    expect(cssSrc).toContain(".v3-capital-chest-host--metelka-frozen");
+    expect(cssSrc).toContain("--v3-flask-capital: #c9920a");
   });
 
   it("chest SVG viewBox is cropped flush to lid; fills host (no letterbox gap)", () => {

@@ -223,13 +223,13 @@ describe("tutorial v3: all roots then all activities", () => {
     expect(
       shouldThemeV3ActivityButton(resolveV3ActivityCard("water", afterWater)),
     ).toBe(true); // reserve exists…
-    // …but tutorial lock still greys all icons during root steps
+    // Same as live rootsCollectionLocked: bright --ac, clicks gated separately
     expect(
       isV3ActivityButtonVisuallyLocked(
         resolveV3ActivityCard("water", afterWater),
         true,
       ),
-    ).toBe(true);
+    ).toBe(false);
 
     const afterSun = sampleV3(transferredRoot("sun", ["water", "sun"]));
     expect(areV3TutorialAllReservesReady(afterSun)).toBe(false);
@@ -343,8 +343,13 @@ describe("tutorial v3: all roots then all activities", () => {
     ).toBe("v3-activities-intro");
   });
 
-  it("activity-phase overlay remains; root-phase has no card", () => {
-    expect(v3TutorialOverlayConfig("v3-root-water")).toBeNull();
+  it("activity-phase overlay remains; root-phase has collect-energy card", () => {
+    expect(v3TutorialOverlayConfig("v3-root-water")).toEqual({
+      icon: "energy",
+      text: "Соберите энергию из корней",
+      hint: "Нажмите на корневые ячейки по очереди.",
+      accent: "#c9920a",
+    });
     expect(
       v3TutorialOverlayConfig("v3-activities-intro", {
         recommendedActivity: "water",
@@ -353,6 +358,7 @@ describe("tutorial v3: all roots then all activities", () => {
       icon: "water",
       text: "Пройдите активность",
       hint: "Ловите капли воды.",
+      accent: "#2b7fff",
     });
     expect(
       v3TutorialOverlayConfig("v3-activities-intro", {
@@ -362,6 +368,7 @@ describe("tutorial v3: all roots then all activities", () => {
       icon: "sun",
       text: "Пройдите активность",
       hint: "Собирайте солнечные лучи.",
+      accent: "#ffc107",
     });
     expect(
       v3TutorialOverlayConfig("v3-activities-intro", {
@@ -371,6 +378,7 @@ describe("tutorial v3: all roots then all activities", () => {
       icon: "fertilizer",
       text: "Пройдите активность",
       hint: "Собирайте гранулы в ряд.",
+      accent: "#f0a020",
     });
     expect(pageSrc).toContain(
       "after roots, all playable activities stay clickable",

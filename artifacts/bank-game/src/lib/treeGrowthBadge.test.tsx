@@ -45,10 +45,12 @@ describe("TreeGrowthBadge on play field", () => {
     expect(cssSrc).toContain(".tree-growth-badge-host");
     expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*left:\s*100%/s);
     expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*top:\s*42%/s);
+    expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*margin-left:\s*-10px/s);
     expect(cssSrc).toContain(".tree-growth-badge");
     expect(cssSrc).toContain(".tree-wrapper--hit");
     expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*right:\s*100%/s);
     expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*top:\s*42%/s);
+    expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*margin-right:\s*-10px/s);
     expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*transform:\s*translateY\(-50%\)/s);
     expect(cssSrc).toMatch(/\.growth-timer-row\s*\{[^}]*padding:\s*1px 6px 2px/s);
     expect(cssSrc).toContain(".growth-mm-accrual");
@@ -61,6 +63,19 @@ describe("TreeGrowthBadge on play field", () => {
     // Same pill class for timer and accrual; no separate positioned accrual host.
     expect(pageSrc).toContain('className="growth-timer-row growth-mm-accrual"');
     expect(pageSrc).not.toContain("tree-growth-badge-popup");
+    // Same counter type as capital sum (flask tokens on :root).
+    expect(cssSrc).toMatch(
+      /:root\s*\{[\s\S]*?--v3-flask-font-size:\s*11px/,
+    );
+    expect(cssSrc).toMatch(
+      /\.field-caption-value,\s*\.field-caption-unit\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
+    );
+    expect(cssSrc).toMatch(
+      /\.growth-timer-time\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
+    );
+    expect(cssSrc).toMatch(
+      /\.growth-mm-accrual-label\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
+    );
   });
 
   it("badge renders formatted growth and a11y label for rating", () => {

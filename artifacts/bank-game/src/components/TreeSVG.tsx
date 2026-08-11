@@ -31,87 +31,287 @@ export function getTreeTrunkColor(stage: number): string {
   return TREE_TRUNK_COLORS[i] ?? TREE_TRUNK_COLORS[0];
 }
 
+/** Flat-fill + thin outline — same language as bushes / basket / flowers. */
+const LEAF = "#5aab1a";
+const LEAF_DEEP = "#458f12";
+const LEAF_LIGHT = "#6dbf3a";
+const LEAF_EDGE = "#2f5c0e";
+const WOOD_EDGE = "#5c3a1a";
+const BRANCH = "#9a6b40";
+/** Hairline; non-scaling so scale(0.75) stages match bush weight. */
+const STROKE = 1.05;
+
+function LeafLobe({
+  cx,
+  cy,
+  r,
+  fill = LEAF,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  fill?: string;
+}) {
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r}
+      fill={fill}
+      stroke={LEAF_EDGE}
+      strokeWidth={STROKE}
+      vectorEffect="non-scaling-stroke"
+    />
+  );
+}
+
+function BranchStub({
+  x,
+  y,
+  w,
+  h,
+  rotate,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotate: number;
+}) {
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={w}
+      height={h}
+      rx={h / 2}
+      fill={BRANCH}
+      stroke={WOOD_EDGE}
+      strokeWidth={STROKE}
+      vectorEffect="non-scaling-stroke"
+      transform={`rotate(${rotate} ${x} ${y})`}
+    />
+  );
+}
+
+/**
+ * Flat trunk fill + side-only wood strokes.
+ * Open top (into canopy) and open bottom (into wrap-root collar) —
+ * no end caps / “nozzle” plates.
+ * `.tree-trunk` size stays exact for anchor measurement.
+ */
+function Trunk({
+  x,
+  y,
+  width,
+  height,
+  fill,
+  scaled = false,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fill: string;
+  scaled?: boolean;
+}) {
+  const x2 = x + width;
+  const y2 = y + height;
+  const ve = scaled ? ("non-scaling-stroke" as const) : undefined;
+  const strokeProps = {
+    fill: "none" as const,
+    stroke: WOOD_EDGE,
+    strokeWidth: STROKE,
+    strokeLinecap: "butt" as const,
+    vectorEffect: ve,
+  };
+  return (
+    <g data-tree-trunk-join="open-ends">
+      {/* Fill extends into canopy so sides continue under the leaves */}
+      <rect
+        x={x}
+        y={y - 8}
+        width={width}
+        height={8}
+        fill={fill}
+      />
+      <rect
+        className="tree-trunk"
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+      />
+      {/*
+        Left / right only — stop at trunk bottom (no overdraw into soil).
+        Collar sits under the stump via layering; do not extend past the join.
+      */}
+      <path d={`M ${x} ${y2} L ${x} ${y - 8}`} {...strokeProps} />
+      <path d={`M ${x2} ${y2} L ${x2} ${y - 8}`} {...strokeProps} />
+    </g>
+  );
+}
+
 export default function TreeSVG({ stage, size = 160 }: TreeSVGProps) {
   const [w, h] = size === 110 ? STAGE_DIMS[stage] : [size, size];
 
   const trees = [
     // Stage 0 — tiny sprout (viewBox bottom = trunk bottom 228)
-    <svg key={0} viewBox="55 153 90 75" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
-      <rect className="tree-trunk" x="97" y="188" width="6" height="40" fill="#9B7A52" />
-      <ellipse cx="100" cy="180" rx="18" ry="18" fill="#6dbf67" />
-      <ellipse cx="90" cy="188" rx="11" ry="11" fill="#5aac54" />
-      <ellipse cx="110" cy="185" rx="9" ry="9" fill="#7acc74" />
-      <ellipse cx="100" cy="172" rx="10" ry="10" fill="#83c97d" />
+    <svg
+      key={0}
+      viewBox="55 153 90 75"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMax meet"
+      width={w}
+      height={h}
+      style={{ overflow: "visible" }}
+    >
+      <Trunk x={97} y={188} width={6} height={40} fill={TREE_TRUNK_COLORS[0]} />
+      <LeafLobe cx={90} cy={188} r={11} fill={LEAF_DEEP} />
+      <LeafLobe cx={110} cy={185} r={9} fill={LEAF_LIGHT} />
+      <LeafLobe cx={100} cy={180} r={18} fill={LEAF} />
+      <LeafLobe cx={100} cy={172} r={10} fill={LEAF_LIGHT} />
     </svg>,
+
     // Stage 1 — small tree
-    <svg key={1} viewBox="52 115 96 116" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
+    <svg
+      key={1}
+      viewBox="52 115 96 116"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMax meet"
+      width={w}
+      height={h}
+      style={{ overflow: "visible" }}
+    >
       <g transform="translate(25, 56) scale(0.75)">
-        <rect className="tree-trunk" x="95" y="165" width="10" height="68" fill="#8B6340" />
-        <ellipse cx="100" cy="150" rx="34" ry="34" fill="#5aac54" />
-        <ellipse cx="78" cy="162" rx="22" ry="22" fill="#4d9c47" />
-        <ellipse cx="122" cy="158" rx="20" ry="20" fill="#62b95c" />
-        <ellipse cx="100" cy="132" rx="26" ry="26" fill="#6dbf67" />
-        <ellipse cx="86" cy="144" rx="16" ry="16" fill="#5aac54" />
+        {/*
+          After translate(25,56) scale(0.75): trunk bottom must hit viewBox
+          bottom 231 (56 + 0.75×233.333). Height 68 left a visible float gap.
+        */}
+        <Trunk
+          x={95}
+          y={165}
+          width={10}
+          height={68.35}
+          fill={TREE_TRUNK_COLORS[1]}
+          scaled
+        />
+        <LeafLobe cx={78} cy={162} r={22} fill={LEAF_DEEP} />
+        <LeafLobe cx={122} cy={158} r={20} fill={LEAF} />
+        <LeafLobe cx={100} cy={150} r={34} fill={LEAF} />
+        <LeafLobe cx={86} cy={144} r={16} fill={LEAF_DEEP} />
+        <LeafLobe cx={100} cy={132} r={26} fill={LEAF_LIGHT} />
       </g>
     </svg>,
+
     // Stage 2 — medium tree
-    <svg key={2} viewBox="28 65 144 168" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
+    <svg
+      key={2}
+      viewBox="28 65 144 168"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMax meet"
+      width={w}
+      height={h}
+      style={{ overflow: "visible" }}
+    >
       <g transform="translate(25, 56) scale(0.75)">
-        <rect className="tree-trunk" x="92" y="130" width="16" height="106" fill="#7a5330" />
-        <rect x="92" y="168" width="9" height="5" rx="2" fill="#9a6b40" transform="rotate(-22 92 168)" />
-        <rect x="108" y="178" width="9" height="5" rx="2" fill="#9a6b40" transform="rotate(22 108 178)" />
-        <ellipse cx="100" cy="112" rx="52" ry="44" fill="#4d9c47" />
-        <ellipse cx="68" cy="128" rx="36" ry="32" fill="#449040" />
-        <ellipse cx="132" cy="124" rx="32" ry="30" fill="#56a850" />
-        <ellipse cx="100" cy="94" rx="40" ry="36" fill="#5aac54" />
-        <ellipse cx="80" cy="108" rx="24" ry="22" fill="#4d9c47" />
-        <ellipse cx="120" cy="102" rx="22" ry="20" fill="#6dbf67" />
-        <ellipse cx="100" cy="82" rx="26" ry="23" fill="#7acc74" />
+        <Trunk
+          x={92}
+          y={130}
+          width={16}
+          height={106}
+          fill={TREE_TRUNK_COLORS[2]}
+          scaled
+        />
+        <BranchStub x={92} y={168} w={9} h={5} rotate={-22} />
+        <BranchStub x={108} y={178} w={9} h={5} rotate={22} />
+        <LeafLobe cx={68} cy={128} r={34} fill={LEAF_DEEP} />
+        <LeafLobe cx={132} cy={124} r={30} fill={LEAF} />
+        <LeafLobe cx={100} cy={112} r={48} fill={LEAF} />
+        <LeafLobe cx={80} cy={108} r={22} fill={LEAF_DEEP} />
+        <LeafLobe cx={120} cy={102} r={20} fill={LEAF_LIGHT} />
+        <LeafLobe cx={100} cy={94} r={36} fill={LEAF} />
+        <LeafLobe cx={100} cy={82} r={24} fill={LEAF_LIGHT} />
       </g>
     </svg>,
+
     // Stage 3 — tall tree
-    <svg key={3} viewBox="18 30 164 205" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
+    <svg
+      key={3}
+      viewBox="18 30 164 205"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMax meet"
+      width={w}
+      height={h}
+      style={{ overflow: "visible" }}
+    >
       <g transform="translate(25, 56) scale(0.75)">
-        <rect className="tree-trunk" x="89" y="98" width="22" height="140" fill="#6b4423" />
-        <rect x="89" y="140" width="11" height="7" rx="3" fill="#8a5a2e" transform="rotate(-26 89 140)" />
-        <rect x="111" y="154" width="13" height="7" rx="3" fill="#8a5a2e" transform="rotate(26 111 154)" />
-        <rect x="89" y="182" width="9" height="6" rx="3" fill="#8a5a2e" transform="rotate(-16 89 182)" />
-        <ellipse cx="100" cy="78" rx="64" ry="54" fill="#3d8c38" />
-        <ellipse cx="58" cy="98" rx="44" ry="40" fill="#368030" />
-        <ellipse cx="144" cy="92" rx="40" ry="36" fill="#449040" />
-        <ellipse cx="100" cy="60" rx="50" ry="44" fill="#4d9c47" />
-        <ellipse cx="72" cy="76" rx="32" ry="28" fill="#3d8c38" />
-        <ellipse cx="130" cy="70" rx="28" ry="26" fill="#56a850" />
-        <ellipse cx="100" cy="46" rx="34" ry="30" fill="#5aac54" />
-        <ellipse cx="85" cy="58" rx="20" ry="18" fill="#4d9c47" />
-        <ellipse cx="116" cy="52" rx="18" ry="16" fill="#6dbf67" />
-        <ellipse cx="100" cy="34" rx="20" ry="18" fill="#7acc74" />
+        <Trunk
+          x={89}
+          y={98}
+          width={22}
+          height={140}
+          fill={TREE_TRUNK_COLORS[3]}
+          scaled
+        />
+        <BranchStub x={89} y={140} w={11} h={7} rotate={-26} />
+        <BranchStub x={111} y={154} w={13} h={7} rotate={26} />
+        <BranchStub x={89} y={182} w={9} h={6} rotate={-16} />
+        <LeafLobe cx={58} cy={98} r={42} fill={LEAF_DEEP} />
+        <LeafLobe cx={144} cy={92} r={38} fill={LEAF} />
+        <LeafLobe cx={100} cy={78} r={58} fill={LEAF} />
+        <LeafLobe cx={72} cy={76} r={30} fill={LEAF_DEEP} />
+        <LeafLobe cx={130} cy={70} r={26} fill={LEAF} />
+        <LeafLobe cx={100} cy={60} r={46} fill={LEAF} />
+        <LeafLobe cx={85} cy={58} r={18} fill={LEAF_DEEP} />
+        <LeafLobe cx={116} cy={52} r={16} fill={LEAF_LIGHT} />
+        <LeafLobe cx={100} cy={46} r={32} fill={LEAF_LIGHT} />
+        <LeafLobe cx={100} cy={34} r={18} fill={LEAF_LIGHT} />
       </g>
     </svg>,
-    // Stage 4 — mighty tree (surface strokes end at trunk base; viewBox flush)
-    <svg key={4} viewBox="8 13 184 217" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" width={w} height={h} style={{ overflow: "visible" }}>
+
+    // Stage 4 — mighty tree (viewBox flush; base roots are underground wrap art)
+    <svg
+      key={4}
+      viewBox="8 13 184 217"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMax meet"
+      width={w}
+      height={h}
+      style={{ overflow: "visible" }}
+    >
       <g transform="translate(25, 56) scale(0.75)">
-        <path d="M90 226 Q76 230 56 232" stroke="#5a3a1a" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
-        <path d="M110 226 Q124 230 144 232" stroke="#5a3a1a" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
-        <path d="M95 228 Q88 230 80 232" stroke="#5a3a1a" strokeWidth="3" strokeLinecap="round" fill="none"/>
-        <rect className="tree-trunk" x="85" y="72" width="30" height="160" fill="#5a3a1a" />
-        <rect x="85" y="96" width="14" height="9" rx="3" fill="#7a5330" transform="rotate(-28 85 96)" />
-        <rect x="115" y="112" width="16" height="9" rx="3" fill="#7a5330" transform="rotate(28 115 112)" />
-        <rect x="85" y="144" width="13" height="7" rx="3" fill="#7a5330" transform="rotate(-18 85 144)" />
-        <rect x="115" y="158" width="13" height="7" rx="3" fill="#7a5330" transform="rotate(18 115 158)" />
-        <rect x="89" y="186" width="9" height="6" rx="3" fill="#7a5330" transform="rotate(-12 89 186)" />
-        <ellipse cx="100" cy="52" rx="80" ry="66" fill="#2d7028" />
-        <ellipse cx="50" cy="76" rx="50" ry="46" fill="#286623" />
-        <ellipse cx="152" cy="70" rx="46" ry="42" fill="#307a2b" />
-        <ellipse cx="100" cy="34" rx="62" ry="54" fill="#3d8c38" />
-        <ellipse cx="62" cy="54" rx="40" ry="36" fill="#2d7028" />
-        <ellipse cx="140" cy="48" rx="36" ry="32" fill="#368030" />
-        <ellipse cx="100" cy="18" rx="48" ry="40" fill="#449040" />
-        <ellipse cx="76" cy="32" rx="28" ry="26" fill="#3d8c38" />
-        <ellipse cx="126" cy="26" rx="26" ry="24" fill="#4d9c47" />
-        <ellipse cx="100" cy="6" rx="30" ry="24" fill="#5aac54" />
+        <Trunk
+          x={85}
+          y={72}
+          width={30}
+          height={160}
+          fill={TREE_TRUNK_COLORS[4]}
+          scaled
+        />
+        <BranchStub x={85} y={96} w={14} h={9} rotate={-28} />
+        <BranchStub x={115} y={112} w={16} h={9} rotate={28} />
+        <BranchStub x={85} y={144} w={13} h={7} rotate={-18} />
+        <BranchStub x={115} y={158} w={13} h={7} rotate={18} />
+        <BranchStub x={89} y={186} w={9} h={6} rotate={-12} />
+        <LeafLobe cx={50} cy={76} r={48} fill={LEAF_DEEP} />
+        <LeafLobe cx={152} cy={70} r={44} fill={LEAF} />
+        <LeafLobe cx={100} cy={52} r={72} fill={LEAF} />
+        <LeafLobe cx={62} cy={54} r={38} fill={LEAF_DEEP} />
+        <LeafLobe cx={140} cy={48} r={34} fill={LEAF} />
+        <LeafLobe cx={100} cy={34} r={56} fill={LEAF} />
+        <LeafLobe cx={76} cy={32} r={26} fill={LEAF_DEEP} />
+        <LeafLobe cx={126} cy={26} r={24} fill={LEAF_LIGHT} />
+        <LeafLobe cx={100} cy={18} r={42} fill={LEAF_LIGHT} />
+        <LeafLobe cx={100} cy={6} r={26} fill={LEAF_LIGHT} />
       </g>
-    </svg>
+    </svg>,
   ];
 
   return (

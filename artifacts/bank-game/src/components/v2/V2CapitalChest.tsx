@@ -12,6 +12,8 @@ export type V2CapitalChestProps = {
   className?: string;
   /** `body` behind roots; `label` above roots for readable capital text. */
   layer?: V2CapitalChestLayer;
+  /** Pulse only the lock/clasp while a Care coin is dragged. */
+  dropHighlight?: boolean;
 };
 
 /** Same display rule as the top-left HUD capital row. */
@@ -39,7 +41,7 @@ function fitCapitalFontSize(label: string, maxWidth: number): number {
 
 const CX = 100;
 /**
- * Flat wooden chest — same palette / stroke language as AppleBasket.
+ * Flat wooden chest — same paint language as AppleBasket / field bushes.
  * Compact vertical span so the v3 host crop stays tight under the timer.
  */
 const BODY_X = 52;
@@ -71,13 +73,19 @@ export const V2_CHEST_PAINT = {
   right: BODY_X + BODY_W + LID_OVERHANG,
 } as const;
 
-/** Basket palette — flat fills, no gradients / ground shadow */
+/**
+ * Same paint language as AppleBasket / field bushes:
+ * flat fills, thin uniform stroke, soft weave bands.
+ */
 const WOOD = "#8b623e";
 const WOOD_FACE = "#a67845";
-const WOOD_BAND = "#6b4423";
+const WOOD_BAND = "#5c3a1a";
 /** Cavity between lid seam and concave body top */
 const WOOD_INTERIOR = "#A67845";
-function ChestBodyGeometry() {
+const EDGE = "#5c3a1a";
+const EDGE_W = 1.1;
+
+function ChestBodyGeometry({ dropHighlight = false }: { dropHighlight?: boolean }) {
   const x0 = BODY_X;
   const y0 = BODY_Y;
   const x1 = BODY_X + BODY_W;
@@ -86,37 +94,26 @@ function ChestBodyGeometry() {
   const lidX1 = x1 + LID_OVERHANG;
   /** Body top / lid seam */
   const lidSeamY = y0 + 1;
-
-  /**
-   * Side ears — outer edges of the lid silhouette.
-   * No wood past the ears (overhang tips used to stick out into soil).
-   */
-  const earW = 6.5;
-  /** Flush with seam strip bottom — no stub below the lid bar. */
-  const earBot = lidSeamY + 2;
-  const earLX = lidX0 + 8.9;
-  const earRX = lidX1 - 15.4;
-  const earLInner = earLX + earW;
-  const earROuter = earRX + earW;
+  const earInset = 10;
+  const earL = lidX0 + earInset;
+  const earR = lidX1 - earInset;
 
   return (
     <g className="v2-chest-body-geo" data-chest-part="geometry">
-      {/*
-        Interior cavity + seam — only between the ears; outside the ears
-        the real soil shows (no painted wedges, no lid overhang).
-      */}
+      {/* Interior cavity under the lid */}
       <path
         data-chest-part="interior"
         d={[
-          `M ${earLInner} ${lidSeamY - 2}`,
-          `L ${earRX} ${lidSeamY - 2}`,
-          `L ${earRX} ${lidSeamY}`,
-          `Q ${mid} ${y0 + 5} ${earLInner} ${lidSeamY}`,
+          `M ${earL} ${lidSeamY - 1.5}`,
+          `L ${earR} ${lidSeamY - 1.5}`,
+          `L ${earR} ${lidSeamY + 1}`,
+          `Q ${mid} ${y0 + 5} ${earL} ${lidSeamY + 1}`,
           `Z`,
         ].join(" ")}
         fill={WOOD_INTERIOR}
       />
-      {/* Body — smooth rounded crate */}
+
+      {/* Body — single flat crate + thin rim */}
       <path
         data-chest-part="body"
         d={[
@@ -127,86 +124,86 @@ function ChestBodyGeometry() {
           `Q ${mid} ${y0 + 5} ${x0 + 5} ${lidSeamY}Z`,
         ].join(" ")}
         fill={WOOD}
-      />
-      <path
-        d={[
-          `M ${x0 + 10} ${y0 + 6}`,
-          `L ${x0 + 7} ${y0 + BODY_H - 9}`,
-          `Q ${mid} ${y0 + BODY_H - 2.5} ${x1 - 7} ${y0 + BODY_H - 9}`,
-          `L ${x1 - 10} ${y0 + 6}`,
-          `Q ${mid} ${y0 + 9.5} ${x0 + 10} ${y0 + 6}Z`,
-        ].join(" ")}
-        fill={WOOD_FACE}
+        stroke={EDGE}
+        strokeWidth={EDGE_W}
+        strokeLinejoin="round"
       />
 
-      {/* Board bands */}
+      {/* Weave bands — same read as basket stripes */}
       <g
         data-chest-part="panels"
         stroke={WOOD_BAND}
-        strokeWidth="1.2"
+        strokeWidth="1.05"
         fill="none"
+        strokeLinecap="round"
         opacity="0.55"
       >
-        <path d={`M ${x0 + 11} ${y0 + 18} Q ${mid} ${y0 + 22} ${x1 - 11} ${y0 + 18}`} />
-        <path d={`M ${x0 + 12} ${y0 + 29} Q ${mid} ${y0 + 33} ${x1 - 12} ${y0 + 29}`} />
+        <path
+          d={`M ${x0 + 12} ${y0 + 18} Q ${mid} ${y0 + 22} ${x1 - 12} ${y0 + 18}`}
+        />
+        <path
+          d={`M ${x0 + 13} ${y0 + 29} Q ${mid} ${y0 + 33} ${x1 - 13} ${y0 + 29}`}
+        />
       </g>
 
-      {/* Seam strip between ears only */}
+      {/* Seam strip */}
       <rect
         data-chest-part="seam"
-        x={earLInner}
-        y={lidSeamY - 1.5}
-        width={earRX - earLInner}
-        height={3.5}
+        x={earL}
+        y={lidSeamY - 1.2}
+        width={earR - earL}
+        height={2.8}
+        rx="1"
         fill={WOOD_INTERIOR}
+        stroke={EDGE}
+        strokeWidth="0.85"
       />
 
-      {/*
-        Lid + ears as one wood path. Bottom corners sit on ear outers —
-        no protruding lid tips left/right of the ears.
-      */}
+      {/* Lid — simple arched plank + thin outline (no ornate ears) */}
       <path
         data-chest-part="lid"
         data-lid-state="closed"
         d={[
-          `M ${earLX} ${lidSeamY}`,
-          `L ${lidX0 + 7} ${LID_PEAK + 3}`,
-          `Q ${mid} ${LID_PEAK} ${lidX1 - 7} ${LID_PEAK + 3}`,
-          `L ${earROuter} ${lidSeamY}`,
-          `L ${earROuter} ${earBot - 0.8}`,
-          `Q ${earROuter} ${earBot} ${earROuter - 0.8} ${earBot}`,
-          `L ${earRX + 0.8} ${earBot}`,
-          `Q ${earRX} ${earBot} ${earRX} ${earBot - 0.8}`,
-          `L ${earRX} ${lidSeamY}`,
-          `Q ${mid} ${lidSeamY + 0.5} ${earLInner} ${lidSeamY}`,
-          `L ${earLInner} ${earBot - 0.8}`,
-          `Q ${earLInner} ${earBot} ${earLInner - 0.8} ${earBot}`,
-          `L ${earLX + 0.8} ${earBot}`,
-          `Q ${earLX} ${earBot} ${earLX} ${earBot - 0.8}`,
-          `Z`,
+          `M ${earL} ${lidSeamY + 1.2}`,
+          `L ${lidX0 + 6} ${LID_PEAK + 3}`,
+          `Q ${mid} ${LID_PEAK} ${lidX1 - 6} ${LID_PEAK + 3}`,
+          `L ${earR} ${lidSeamY + 1.2}`,
+          `Q ${mid} ${lidSeamY + 3.5} ${earL} ${lidSeamY + 1.2}Z`,
         ].join(" ")}
         fill={WOOD}
+        stroke={EDGE}
+        strokeWidth={EDGE_W}
+        strokeLinejoin="round"
       />
 
-      {/* Clasp on the seam — plate + vertical key slit (lid wood color) */}
-      <rect
-        data-chest-part="clasp"
-        x={mid - 5.5}
-        y={lidSeamY - 4}
-        width="11"
-        height="10"
-        rx="2.2"
-        fill={WOOD_FACE}
-      />
-      <rect
-        data-chest-part="clasp-slot"
-        x={mid - 0.75}
-        y={lidSeamY - 1.8}
-        width="1.5"
-        height="5.2"
-        rx="0.6"
-        fill={WOOD}
-      />
+      {/* Lock / clasp — Care coin drop target (pulse only this, not the whole chest). */}
+      <g
+        className={`v2-chest-clasp${dropHighlight ? " v2-chest-clasp--drop-target" : ""}`}
+        data-chest-part="clasp-group"
+        data-chest-clasp="true"
+        data-chest-clasp-drop-target={dropHighlight ? "true" : undefined}
+      >
+        <rect
+          data-chest-part="clasp"
+          x={mid - 5.5}
+          y={lidSeamY - 4}
+          width="11"
+          height="10"
+          rx="2.2"
+          fill={WOOD_FACE}
+          stroke={EDGE}
+          strokeWidth="1.05"
+        />
+        <rect
+          data-chest-part="clasp-slot"
+          x={mid - 0.75}
+          y={lidSeamY - 1.8}
+          width="1.5"
+          height="5.2"
+          rx="0.6"
+          fill={WOOD}
+        />
+      </g>
     </g>
   );
 }
@@ -278,6 +275,7 @@ export function V2CapitalChest({
   animateValueChange = true,
   className,
   layer = "all",
+  dropHighlight = false,
 }: V2CapitalChestProps) {
   const label =
     formattedCapital != null && formattedCapital !== ""
@@ -328,7 +326,7 @@ export function V2CapitalChest({
             transformOrigin: `${CX}px ${BODY_Y + BODY_H * 0.55}px`,
           }}
         >
-          <ChestBodyGeometry />
+          <ChestBodyGeometry dropHighlight={dropHighlight} />
         </g>
       )}
       {showLabel && label != null && (

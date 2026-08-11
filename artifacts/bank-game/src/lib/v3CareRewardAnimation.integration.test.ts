@@ -148,7 +148,7 @@ describe("v3 Care final reward animation queue", () => {
     // Tutorial branch uses dedicated demo beat — not the regular spectacle queue.
     expect(claimFn).toContain("if (!tutorialDone)");
     expect(claimFn).toContain("Tutorial Care claim");
-    expect(claimFn).toContain("handleTutorialCareRewards()");
+    expect(claimFn).toContain("handleTutorialCareRewards(scoresForQueue");
     expect(claimFn).not.toMatch(/setShowXpPopup\(true\)[\s\S]*?await acknowledgeV3CareCycleOnce\(\)/);
 
     expect(pageSrc).toContain("setShowXpPopup(true)");
