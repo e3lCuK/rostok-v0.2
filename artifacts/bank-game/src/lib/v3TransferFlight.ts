@@ -35,13 +35,19 @@ function centerOf(rect: DOMRect): { x: number; y: number } {
 }
 
 /**
- * Point just above the activity card top edge (not center, not bottom reserve fill).
- * Offset keeps the `+X с` cue clearly over the button, not under it.
+ * Landing: pill top edge this many px above the activity button top.
+ * ~20px ≈ pill height (~16) + small soil gap (~4) — under grass, not on the button.
+ */
+export const V3_TRANSFER_LABEL_TOP_OFFSET_PX = 20;
+
+/**
+ * Top-left Y of the `+X с` pill when settled above the activity card.
+ * (Fixed + translate uses the element’s top edge, not its center.)
  */
 export function activityCardTopAnchor(rect: DOMRect): { x: number; y: number } {
   return {
     x: rect.left + rect.width / 2,
-    y: rect.top - 14,
+    y: rect.top - V3_TRANSFER_LABEL_TOP_OFFSET_PX,
   };
 }
 

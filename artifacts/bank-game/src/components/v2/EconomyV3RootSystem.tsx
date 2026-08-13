@@ -394,6 +394,9 @@ type Props = {
 /** Neutral fill while Metelka blocks Care / root interaction. */
 export const V3_ROOT_METELKA_LOCKED_FILL = "#8a847c";
 
+const V3_ROOT_METELKA_TRANSFER_HINT =
+  "Сначала пройдите Метёлку — потом собирайте энергию из корней";
+
 function EconomyV3RootColumn({
   kind,
   root,
@@ -408,6 +411,7 @@ function EconomyV3RootColumn({
   tutorialPulse = false,
   metelkaLocked = false,
   onTransfer,
+  onLockedClick,
 }: {
   kind: EconomyV3RootKind;
   root: EconomyV3RootState;
@@ -423,6 +427,7 @@ function EconomyV3RootColumn({
   tutorialPulse?: boolean;
   metelkaLocked?: boolean;
   onTransfer: (kind: EconomyV3RootKind) => void;
+  onLockedClick?: () => void;
 }) {
   const visual = transferring
     ? "transferring"
@@ -469,10 +474,13 @@ function EconomyV3RootColumn({
       data-v3-root-metelka-locked={metelkaLocked ? "true" : "false"}
       aria-label={v3RootAriaLabel(kind, root.seconds)}
       aria-disabled={!clickable}
-      disabled={!clickable}
+      disabled={false}
       style={{ ["--ac" as string]: fillColor } as CSSProperties}
       onClick={() => {
-        if (!clickable || metelkaLocked) return;
+        if (!clickable || metelkaLocked) {
+          onLockedClick?.();
+          return;
+        }
         onTransfer(kind);
       }}
     >
@@ -577,13 +585,12 @@ export default function EconomyV3RootSystem({
   useEffect(() => {
     transferringRef.current = transferring;
     if (!transferring) return;
-    // Commit server snapshot only after the visual flight finishes.
-    // Pending snapshot is never merged into display earlier (reserves stay live).
+    // Flight end: clear visual hold. SoT was already committed on POST success
+    // (idempotent re-commit if early path was skipped).
     const timer = window.setTimeout(() => {
       const pending = transferringRef.current;
       transferringRef.current = null;
       if (pending) {
-        // Apply-then-unlock: parent gets SoT before clicks reopen.
         commitPendingTransfer(pending);
       }
       busyRef.current = null;
@@ -664,6 +671,10 @@ export default function EconomyV3RootSystem({
     };
     transferringRef.current = next;
     setTransferring(next);
+    // Commit SoT immediately so Care gates (frozenAt / transferredRoots) unlock
+    // after the 3rd collect without waiting for the flight animation. Visual
+    // hold still uses holdRoot; post-flight commit is idempotent.
+    commitPendingTransfer(next);
   }
 
   return (
@@ -732,6 +743,11 @@ export default function EconomyV3RootSystem({
               metelkaLocked={metelkaLocked}
               onTransfer={(k) => {
                 void handleTransfer(k);
+              }}
+              onLockedClick={() => {
+                if (transferLocked || metelkaLocked) {
+                  setError(V3_ROOT_METELKA_TRANSFER_HINT);
+                }
               }}
             />
           );

@@ -130,10 +130,28 @@ describe("economy v3 excess gate (8A) — ordinaryFull", () => {
       rootSunSeconds: 2,
       rootFertilizerSeconds: 2,
     });
-    expect(r.rootWaterSeconds).toBe(2);
-    expect(r.rootSunSeconds).toBe(3);
+    // Shared pool: reserve at cap ⇒ root trimmed to 0 on normalize.
+    // Water's RR slot reroutes to sun/fert (no void).
+    expect(r.rootWaterSeconds).toBe(0);
+    expect(r.rootSunSeconds).toBe(4);
     expect(r.rootFertilizerSeconds).toBe(3);
     expect(r.excessGenerated).toBe(0);
+  });
+
+  it("6b. shared pool: partial reserve blocks root from exceeding cap", () => {
+    const settled = settleBase({
+      reserveWaterSeconds: CAP - 1,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      generationAnchorAt: NOW - 30 * T * 1000,
+    });
+    expect(settled.rootWaterSeconds).toBeLessThanOrEqual(1);
+    expect(
+      settled.rootWaterSeconds + settled.reserveWaterSeconds,
+    ).toBeLessThanOrEqual(CAP);
   });
 
   it("7. other roots continue to grow while one reserve is full", () => {
@@ -147,8 +165,9 @@ describe("economy v3 excess gate (8A) — ordinaryFull", () => {
     });
     expect(r.reservesFull.water).toBe(true);
     expect(r.reservesFull.sun).toBe(false);
-    expect(r.rootWaterSeconds).toBe(10);
-    expect(r.rootSunSeconds).toBe(2);
+    // Shared pool trims water root against full reserve; water slot reroutes.
+    expect(r.rootWaterSeconds).toBe(0);
+    expect(r.rootSunSeconds).toBe(3);
     expect(r.rootFertilizerSeconds).toBe(2);
   });
 
@@ -170,7 +189,8 @@ describe("economy v3 excess gate (8A) — ordinaryFull", () => {
     expect(afterSpend.ordinaryFull).toBe(false);
     expect(afterSpend.excessGenerated).toBe(0);
     expect(afterSpend.generatingExcess).toBe(false);
-    expect(afterSpend.rootWaterSeconds).toBe(1);
+    // Only water has room; sun/fert slots reroute into water.
+    expect(afterSpend.rootWaterSeconds).toBe(3);
     expect(afterSpend.rootSunSeconds).toBe(0);
     expect(afterSpend.rootFertilizerSeconds).toBe(0);
   });
@@ -191,6 +211,7 @@ describe("economy v3 excess gate (8A) — ordinaryFull", () => {
   it("10. Tutorial does not generate ordinary or excess", () => {
     const r = settleBase({
       tutorialActive: true,
+      generationAnchorAt: NOW,
       reserveWaterSeconds: CAP,
       reserveSunSeconds: CAP,
       reserveFertilizerSeconds: CAP,

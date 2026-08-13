@@ -157,7 +157,15 @@ describe("debugMutateEconomyV3Roots", () => {
   });
 
   it("set roots clamps to effective capacity", async () => {
-    mockTxn(baseLockedRow({ v3_daily_cap_seconds: 25, streak_days: 0 }));
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 25,
+        streak_days: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+      }),
+    );
     const result = await debugMutateEconomyV3Roots(
       9,
       { action: "set", roots: { water: -3, sun: 40, fertilizer: 7 } },
@@ -183,7 +191,18 @@ describe("debugMutateEconomyV3Roots", () => {
   });
 
   it("set root/reserve = 100 clamps to Day1 effective 21", async () => {
-    mockTxn(baseLockedRow({ v3_daily_cap_seconds: 20, streak_days: 1 }));
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+      }),
+    );
     const result = await debugMutateEconomyV3Roots(
       9,
       {
@@ -210,6 +229,7 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_daily_cap_seconds: 20,
         streak_days: 1,
         v3_root_water_seconds: 0,
+        v3_reserve_water_seconds: 0,
       }),
     );
     const result = await debugMutateEconomyV3Roots(
@@ -230,6 +250,9 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_root_water_seconds: 0,
         v3_root_sun_seconds: 0,
         v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
       }),
     );
     const result = await debugMutateEconomyV3Roots(
@@ -244,7 +267,7 @@ describe("debugMutateEconomyV3Roots", () => {
     expect(result.v3Roots.roots.water.seconds).toBe(22);
     expect(result.v3Roots.roots.sun.seconds).toBe(22);
     expect(result.v3Roots.roots.fertilizer.seconds).toBe(22);
-    expect(result.v3Roots.reserves.water.seconds).toBe(3);
+    expect(result.v3Roots.reserves.water.seconds).toBe(0);
     // Stale transfer / Care journal must clear so roots are clickable again.
     expect(result.v3Roots.roots.water.transferred).toBe(false);
     expect(result.v3Roots.roots.sun.transferred).toBe(false);
@@ -255,20 +278,56 @@ describe("debugMutateEconomyV3Roots", () => {
     expect(result.v3Roots.careSession.status).toBeNull();
   });
 
-  it("fillToCapacity can still fill roots and reserves via API (UI removed)", async () => {
-    mockTxn(baseLockedRow({ v3_daily_cap_seconds: 20, streak_days: 1 }));
+  it("fillToCapacity respects shared pool (cannot fill roots+reserves both to cap)", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+      }),
+    );
     const result = await debugMutateEconomyV3Roots(
       9,
       { action: "fillToCapacity" },
       NOW,
     );
     expect(result.capacitySeconds).toBe(21);
+    // Roots fill first → roots=21, then reserves fill to remaining room → 0.
     expect(result.v3Roots.roots.water.seconds).toBe(21);
     expect(result.v3Roots.roots.sun.seconds).toBe(21);
     expect(result.v3Roots.roots.fertilizer.seconds).toBe(21);
+    expect(result.v3Roots.reserves.water.seconds).toBe(0);
+    expect(result.v3Roots.reserves.sun.seconds).toBe(0);
+    expect(result.v3Roots.reserves.fertilizer.seconds).toBe(0);
+  });
+
+  it("fillToCapacity roots-only after full reserves leaves roots at 0", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 21,
+        v3_reserve_sun_seconds: 21,
+        v3_reserve_fertilizer_seconds: 21,
+      }),
+    );
+    const result = await debugMutateEconomyV3Roots(
+      9,
+      { action: "fillToCapacity", roots: true, reserves: false },
+      NOW,
+    );
+    expect(result.v3Roots.roots.water.seconds).toBe(0);
+    expect(result.v3Roots.roots.sun.seconds).toBe(0);
+    expect(result.v3Roots.roots.fertilizer.seconds).toBe(0);
     expect(result.v3Roots.reserves.water.seconds).toBe(21);
-    expect(result.v3Roots.reserves.sun.seconds).toBe(21);
-    expect(result.v3Roots.reserves.fertilizer.seconds).toBe(21);
   });
 
   it("parses fillToCapacity body", () => {
@@ -291,7 +350,15 @@ describe("debugMutateEconomyV3Roots", () => {
   });
 
   it("set reserves clamps to effective capacity", async () => {
-    mockTxn(baseLockedRow({ v3_daily_cap_seconds: 20, streak_days: 0 }));
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 0,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+      }),
+    );
     const result = await debugMutateEconomyV3Roots(
       9,
       {
@@ -338,6 +405,7 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_daily_cap_seconds: 20,
         streak_days: 1,
         v3_root_water_seconds: 18,
+        v3_reserve_water_seconds: 0,
       }),
     );
     const result = await debugMutateEconomyV3Roots(
@@ -363,6 +431,7 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_daily_cap_seconds: 20,
         streak_days: 1,
         v3_root_water_seconds: 25,
+        v3_reserve_water_seconds: 0,
         v2_excess_seconds: 1,
       }),
     );

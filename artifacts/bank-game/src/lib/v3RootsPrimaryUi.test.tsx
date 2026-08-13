@@ -341,7 +341,7 @@ describe("Economy v3 primary roots UI (8C)", () => {
     );
     expect(pageSrc).not.toContain("hideEnergyTimer={false}");
     expect(pageSrc).toContain("<V3RootWaitTimer");
-    expect(pageSrc).toContain("frozen={excessUiGrey}");
+    expect(pageSrc).toContain("frozen={excessCleaning}");
     expect(pageSrc).toContain(
       "useUndergroundRootsScene && tutorialDone && !excessCleaning",
     );

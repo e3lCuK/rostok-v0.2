@@ -41,17 +41,31 @@ describe("TreeGrowthBadge on play field", () => {
     expect(pageSrc).not.toContain("<Trophy");
   });
 
-  it("CSS places badge to the right; timer + мм share one left host (same spot)", () => {
+  it("CSS places badge to the right; timer + мм share one above-canopy host", () => {
     expect(cssSrc).toContain(".tree-growth-badge-host");
+    // Growth pulse must not scale the whole wrap (that blinked the mm badge).
+    expect(cssSrc).not.toMatch(
+      /\.game-tree-wrap\.tree-growing\s*\{\s*animation:\s*tree-growth-pulse/,
+    );
+    expect(cssSrc).toContain(
+      ".game-tree-wrap.tree-growing .tree-wrapper",
+    );
+    expect(cssSrc).toContain(
+      ".game-tree-wrap.tree-growing .growth-side-host",
+    );
     expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*left:\s*100%/s);
     expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*top:\s*42%/s);
-    expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*margin-left:\s*-10px/s);
+    expect(cssSrc).toMatch(/\.tree-growth-badge-host\s*\{[^}]*margin-left:\s*4px/s);
     expect(cssSrc).toContain(".tree-growth-badge");
     expect(cssSrc).toContain(".tree-wrapper--hit");
-    expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*right:\s*100%/s);
-    expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*top:\s*42%/s);
-    expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*margin-right:\s*-10px/s);
-    expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*transform:\s*translateY\(-50%\)/s);
+    expect(cssSrc).toMatch(/\.growth-side-host\s*\{[^}]*left:\s*50%/s);
+    expect(cssSrc).toMatch(
+      /\.growth-side-host\s*\{[^}]*bottom:\s*var\(--growth-above-bottom/s,
+    );
+    expect(cssSrc).toMatch(
+      /\.growth-side-host\s*\{[^}]*transform:\s*translateX\(-50%\)/s,
+    );
+    expect(pageSrc).toContain("growthAboveHostBottomPx");
     expect(cssSrc).toMatch(/\.growth-timer-row\s*\{[^}]*padding:\s*1px 6px 2px/s);
     expect(cssSrc).toContain(".growth-mm-accrual");
     expect(pageSrc).toContain('data-growth-side-host="true"');

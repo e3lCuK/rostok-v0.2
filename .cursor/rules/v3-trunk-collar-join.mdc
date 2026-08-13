@@ -1,0 +1,36 @@
+---
+description: Approved v3 trunk↔wrap-root collar join (do not regress)
+globs: artifacts/bank-game/src/components/v2/V3UndergroundWrapRoots.*
+alwaysApply: false
+---
+
+# Approved trunk / wrap-root collar join (2026-08-08)
+
+User-approved visual state. **Do not “improve” unless the user asks.**
+
+## What looks right
+- Soft collar under wrap roots, **one cubic per side** from thin trunk → outer peak.
+- Collar + fan are one SVG group (not a separate overlay).
+- No flat 90° shelf at the grass line.
+- No mid-slope kink / step / sawtooth on the flare.
+- No overlay triangles (`TreeTrunkNeckFillets`, `TrunkBaseCornerTriangles`, mini-shoulders on wrap SVG).
+- Tree trunk base is a **flat rectangle** (no `rx` on `.tree-trunk`); stump sits on the grass lip (`--v3-horizon-drop: 13px`, approved).
+- Whole wrap drawing lowered slightly via `--v3-wrap-roots-nudge-y: 6px`.
+
+## Locked geometry (`buildTrunkShoulderCollarPath`)
+- Default: `trunkHalf = 4.2`, peaks `cx ± 28`, outPull `7`
+- Stage 4 (могучее): `trunkHalf = 7.2`, rounded soft shoulders (no pointed ±34 peaks); fan `widthScale = 1.22`
+- `peakY = 11`, `valleyY = 9.5`, `top = -12` (approved neck into the stump)
+- Left arc: `C (cx-th-outPull) (top+5), (cx-midPull) (peakY-4), leftPeak`
+- Mirror on the right; soft valley under the stump.
+- Lead root `MAJOR_A = 13` at stump (×1.32 on mighty).
+- Collar + fan = **one** group; collar paints **under** root fills (never an overlay blob).
+- No y=0 clip on the wrap SVG (it deleted the approved collar).
+- Lower the whole drawing with `--v3-wrap-roots-nudge-y: 6px` (simple translate).
+
+## Do not reintroduce
+- Collar chamfer with two cubics joined at grass (`joinY` / `cut` polyline)
+- Large neck overlays translated down onto the collar
+- `trunkHalf ≈ 6.5` flat shelf collar
+- `clip-path` wipe on `.v3-underground-wrap-wipe` (crops collar after eye toggle; use `undergroundWrapRootsWipeAnimate` opacity-only)
+- Soil curtain overlay for eye toggle (looks like covering, not disappearing)

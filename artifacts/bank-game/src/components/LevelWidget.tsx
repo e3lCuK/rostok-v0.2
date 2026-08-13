@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 
 interface Props {
   totalXP: number;
   level: number;
+  /** Triggers diamond pulse; +XP label lives in field-level-xp-popup (cream pill). */
   xpGain?: number | null;
   /** Claimable achievements — green dot on the diamond. */
   pendingAchievements?: boolean;
@@ -48,7 +49,6 @@ export default function LevelWidget({
   onClick,
 }: Props) {
   const [showGain, setShowGain] = useState(false);
-  const [gainVal, setGainVal] = useState(0);
 
   const progress = getLevelProgress(totalXP, level);
   const fillH = progress * DIAMOND_H;
@@ -64,9 +64,8 @@ export default function LevelWidget({
 
   useEffect(() => {
     if (xpGain != null && xpGain > 0) {
-      setGainVal(xpGain);
       setShowGain(true);
-      const t = setTimeout(() => setShowGain(false), 1400);
+      const t = setTimeout(() => setShowGain(false), 550);
       return () => clearTimeout(t);
     }
     return undefined;
@@ -124,35 +123,12 @@ export default function LevelWidget({
           >
             {level}
           </text>
-
-          {/* УРОВЕНЬ */}
-          <text
-            x="30" y="57"
-            textAnchor="middle" dominantBaseline="central"
-            fontSize="8" fontWeight="700"
-            fill={COLOR}
-            letterSpacing="1.8"
-            style={{ fontFamily: "inherit" }}
-          >
-            УРОВЕНЬ
-          </text>
         </svg>
+        {/* Same type as apple / mm field captions (--v3-flask-*). */}
+        <span className="field-caption-value lvl-badge-caption" data-level-caption="true">
+          УРОВЕНЬ
+        </span>
       </motion.div>
-
-      <AnimatePresence>
-        {showGain && (
-          <motion.div
-            key={gainVal}
-            className="lvl-gain-popup"
-            initial={{ opacity: 1, y: 0, x: "-50%" }}
-            animate={{ opacity: 0, y: -26, x: "-50%" }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-          >
-            +{gainVal} оп.
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -67,7 +67,7 @@ export default function MetelkaRewardCoin({
             style={tokenStyle}
             aria-hidden="true"
           >
-            <TreeRewardToken kind="coin" />
+            <TreeRewardToken kind="coin" tone="stone" />
           </div>
         ) : null}
         <motion.div
@@ -76,7 +76,7 @@ export default function MetelkaRewardCoin({
           aria-label="Забрать награду Метёлки — перетащите к замку сундука"
           aria-busy={claiming || undefined}
           data-metelka-reward-coin-btn="true"
-          className={`tree-apple tree-apple-pending tree-apple-coin${dragging ? " tree-apple--dragging" : ""}`}
+          className={`tree-apple tree-apple-pending tree-apple-coin tree-apple-coin--stone${dragging ? " tree-apple--dragging" : ""}`}
           drag={!busy}
           dragMomentum={false}
           dragElastic={0}
@@ -124,7 +124,7 @@ export default function MetelkaRewardCoin({
             pointerEvents: busy ? "none" : "all",
           }}
         >
-          <TreeRewardToken kind="coin" />
+          <TreeRewardToken kind="coin" tone="stone" />
         </motion.div>
       </div>
       {error ? (

@@ -491,7 +491,7 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
         />
 
         {/* Bushes — far left / far right; basket sits right of the left bush */}
-        <BgBush cx={36} className="bg-bush-left" />
+        <BgBush cx={30} className="bg-bush-left" />
         <BgBush cx={375} className="bg-bush-right" />
 
         {/* Flowers (purchased) — left toward trunk, right of left bush / left of right bush */}

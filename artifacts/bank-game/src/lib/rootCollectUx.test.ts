@@ -179,8 +179,10 @@ describe("RootEnergyLayer source contracts", () => {
     expect(layerSrc).not.toContain("v2-root-timer-side__bar");
     expect(layerSrc).not.toContain("v2-root-timer-side__bar-fill");
     expect(layerSrc).not.toContain("до +1 сек");
-    // collect floater still uses +1 сек after success
+    // collect floater still uses +1 сек after success (cream pill + clock)
     expect(layerSrc).toContain("+1 сек");
+    expect(layerSrc).toContain("v2-root-collect-floater-icon");
+    expect(layerSrc).toContain("Clock");
   });
 
   it("shows outline Zap energy icon inside the capsule, left of time", () => {
@@ -235,6 +237,10 @@ describe("collect floater animation CSS", () => {
     expect(css).toContain("v2-root-collect-float");
     expect(css).toContain("pointer-events: none");
     expect(css).toMatch(/translate\(-50%, -16px\)/);
+    expect(css).toContain(".v2-root-collect-floater-icon");
+    expect(css).toMatch(
+      /\.v2-root-collect-floater\s*\{[\s\S]*?background:\s*rgba\(255,\s*248,\s*236/,
+    );
   });
 
   it("shows capsule timer styles matching growth-timer pattern", () => {

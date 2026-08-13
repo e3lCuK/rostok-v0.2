@@ -18,8 +18,9 @@ export type EconomyV2DebugSnapshot = {
   /** Financial wall-clock t_excess (ms) — server snapshot. */
   excessElapsedMs: number;
   /**
-   * Financial / generation anchor (ms). When excess > 0, UI may show
-   * excessElapsedMs + (now − anchor) between polls.
+   * Financial live-projection anchor (ms). Set only while generatingExcess —
+   * never the ordinary root wait-clock. Debug may show
+   * excessElapsedMs + (now − anchor) between polls when this is non-null.
    */
   excessFinancialAnchorAt: number | null;
   /** Player capital used for Metelka money preview. */

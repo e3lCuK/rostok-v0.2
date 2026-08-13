@@ -642,17 +642,19 @@ describe("Economy v3 Tutorial flow (8E)", () => {
   });
 
   it("clears stale post-tutorial Care checkmarks so activity seconds return", () => {
+    const emptyReserves = {
+      water: { seconds: 0, capacitySeconds: 20, playable: false },
+      sun: { seconds: 0, capacitySeconds: 20, playable: false },
+      fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
+    };
+    // Orphan ticks only — no live session/cycle status.
     const stale = sampleV3({
-      reserves: {
-        water: { seconds: 0, capacitySeconds: 20, playable: false },
-        sun: { seconds: 0, capacitySeconds: 20, playable: false },
-        fertilizer: { seconds: 0, capacitySeconds: 20, playable: false },
-      },
+      reserves: emptyReserves,
       careCycle: {
         ...sampleV3().careCycle,
-        status: "ready",
-        readyToFinish: true,
-        allCompleted: true,
+        status: null,
+        readyToFinish: false,
+        allCompleted: false,
         activities: {
           water: { completed: true, presetSeconds: 5, skill: 1 },
           sun: { completed: true, presetSeconds: 5, skill: 1 },
@@ -666,6 +668,47 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(cleared?.careCycle.readyToFinish).toBe(false);
     expect(cleared?.careCycle.status).toBeNull();
     expect(shouldClearStaleV3CareUiAfterTutorial(cleared)).toBe(false);
+
+    // Live: third activity pending ack (reserves spent) — must not wipe.
+    const pendingAck = sampleV3({
+      reserves: emptyReserves,
+      careSession: {
+        ...sampleV3().careSession,
+        activity: "fertilizer",
+        status: "completed",
+        active: false,
+        skill: 0.8,
+      },
+      careCycle: {
+        ...sampleV3().careCycle,
+        status: "ready",
+        readyToFinish: false,
+        allCompleted: true,
+        activities: {
+          water: { completed: true, presetSeconds: 5, skill: 1 },
+          sun: { completed: true, presetSeconds: 5, skill: 1 },
+          fertilizer: { completed: true, presetSeconds: 5, skill: 0.8 },
+        },
+      },
+    });
+    expect(shouldClearStaleV3CareUiAfterTutorial(pendingAck)).toBe(false);
+
+    // Live: shovel-ready after ack — must not wipe.
+    const shovelReady = sampleV3({
+      reserves: emptyReserves,
+      careCycle: {
+        ...sampleV3().careCycle,
+        status: "ready",
+        readyToFinish: true,
+        allCompleted: true,
+        activities: {
+          water: { completed: true, presetSeconds: 5, skill: 1 },
+          sun: { completed: true, presetSeconds: 5, skill: 1 },
+          fertilizer: { completed: true, presetSeconds: 5, skill: 1 },
+        },
+      },
+    });
+    expect(shouldClearStaleV3CareUiAfterTutorial(shovelReady)).toBe(false);
 
     const midCare = sampleV3({
       reserves: {

@@ -109,7 +109,13 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(pageSrc).not.toContain("<Wallet");
     expect(underRootsSrc).toContain("data-capital-chest-hit");
     expect(underRootsSrc).toContain("v3-capital-badge--in-bulb");
+    expect(underRootsSrc).toContain('bump ? "v3-capital-badge--bump" : ""');
+    // Tutorial: badge is a span (no capital click) — bump attr still present.
+    expect(underRootsSrc).toContain('data-value-bump={bump ? "true" : "false"}');
     expect(cssSrc).toContain("v3-capital-badge--in-bulb");
+    expect(cssSrc).toContain(".v3-capital-badge--bump");
+    expect(cssSrc).toContain("v3-capital-chest-host--income-flash");
+    expect(pageSrc).toContain("v3-capital-chest-host--income-flash");
     const html = renderToStaticMarkup(
       createElement(CapitalChestUnderRoots, {
         capital: 100_012,
@@ -126,9 +132,14 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(underRootsSrc).not.toContain("IncomeChestFloat");
     expect(pageSrc).toContain('data-field-income-popup="true"');
     expect(pageSrc).toContain("playCoinIncomeFeedback");
+    // Outside roots wipe-layer so Framer clip-path cannot hide +₽.
+    expect(pageSrc).toContain("data-income-popup-ported");
+    expect(pageSrc).toContain("field-income-popup--ported");
+    expect(cssSrc).toContain("field-income-popup--ported");
+    expect(pageSrc).toContain("bumpToken={capitalBumpToken}");
     // Level with capital sum (chest face), not mid-hourglass.
     expect(cssSrc).toMatch(
-      /\.game-area--v3-roots \.field-income-popup\s*\{[\s\S]*?--v3-chest-face-height/,
+      /\.game-area--v3-roots \.field-income-popup:not\(\.field-income-popup--ported\)\s*\{[\s\S]*?--v3-chest-face-height/,
     );
     const html = renderToStaticMarkup(
       createElement(CapitalChestUnderRoots, {
@@ -184,12 +195,20 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(cssSrc).toContain("--v3-hourglass-height");
   });
 
-  it("excess phase greys flask + capital (same freeze as Metelka)", () => {
+  it("excess greys flask + capital; clock freezes only during cleaning", () => {
     expect(pageSrc).toContain("excessUiGrey");
+    expect(pageSrc).toContain("ordinaryFull");
+    expect(pageSrc).toContain("excessAvailable");
     expect(pageSrc).toContain("generatingExcess");
     expect(pageSrc).toContain("v3-capital-chest-host--metelka-frozen");
-    expect(pageSrc).toContain("frozen={excessUiGrey}");
-    expect(cssSrc).toContain(".v3-capital-chest-host--metelka-frozen");
+    expect(pageSrc).toContain("frozen={excessCleaning}");
+    expect(pageSrc).not.toContain("frozen={excessUiGrey}");
+    expect(cssSrc).toContain(
+      ".game-area--v3-roots .v3-capital-chest-host--metelka-frozen",
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-capital-chest-host--metelka-frozen\s*\{[\s\S]*?--v3-flask-fill:\s*rgba\(138,\s*132,\s*124/,
+    );
     expect(cssSrc).toContain("--v3-flask-capital: #c9920a");
   });
 

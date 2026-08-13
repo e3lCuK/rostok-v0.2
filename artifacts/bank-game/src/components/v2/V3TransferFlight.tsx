@@ -1,10 +1,12 @@
 /**
- * Transfer cue: `+X с` flies from the root to above its activity card.
- * No colored particle blobs — only the seconds label (tutorial + live).
+ * Transfer cue: cream `+X с` pill (clock + label) flies from the root to
+ * above its activity card — same family as XP / apple / income flashes.
+ * No colored particle blobs (tutorial + live).
  */
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { Clock } from "lucide-react";
 import type { EconomyV3RootKind } from "@/lib/api";
 import {
   formatV3TransferSecondsLabel,
@@ -106,7 +108,13 @@ export default function V3TransferFlight({
         data-v3-transfer-flight-label="true"
         style={style}
       >
-        {label}
+        <span
+          className="v3-transfer-flight-icon"
+          data-v3-transfer-flight-clock="true"
+        >
+          <Clock size={13} strokeWidth={2.2} aria-hidden="true" />
+        </span>
+        <span className="v3-transfer-flight-text">{label}</span>
       </span>
     </div>,
     document.body,

@@ -4,10 +4,16 @@
  * Metelka / ordinaryFull opens only when all three activity reserves are at
  * effectivePreset. Roots alone never open that product gate.
  *
- * Separately: when no ordinary root can accept another unit (at effective cap,
- * transferred, or matching reserve already full), generated seconds must not
- * be discarded — they route to the excess ledger. That does not set
- * ordinaryFull.
+ * Excess financial time / ledger minting:
+ * - all reserves full (ordinaryFull), OR
+ * - shared pool full on every activity (root + reserve ≥ cap) — energy on a
+ *   root OR on its activity button counts the same, OR
+ * - shared pool full on every still-eligible root (no ordinary room left).
+ *
+ * After the transfer trio is complete (all roots transferred) and reserves are
+ * not full, generation pauses — do NOT mint excess. That matched
+ * `generation.accumulating === false` and stops the “jumps to ~5s then resets
+ * when roots form again” flicker.
  *
  * Reuses v2 split / elapsed-share helpers without changing the v2 cap-60 path.
  */
@@ -21,6 +27,7 @@ import {
   clampV3CapacitySeconds,
   V3_BASE_PRESET_DEFAULT,
   V3_EFFECTIVE_CAPACITY_MAX,
+  v3SharedPoolRootFreeRoom,
 } from "./economy-v3-effective-capacity";
 import {
   type RootKind,
@@ -88,13 +95,99 @@ export function computeV3OrdinaryFullState(input: {
 }
 
 /**
- * True when at least one ordinary-eligible root still has free capacity.
- * When false, settle must not discard generated seconds into the void.
+ * True when every root kind is in `transferredRoots` (post-trio, pre-cycle reset).
+ * Generation must not mint excess in this state unless reserves are also full.
+ */
+export function areAllV3RootsTransferred(
+  transferredRoots: ReadonlySet<RootKind> | readonly RootKind[],
+): boolean {
+  const transferred =
+    transferredRoots instanceof Set
+      ? transferredRoots
+      : new Set(transferredRoots);
+  return V3_ROOT_KINDS.every((k) => transferred.has(k));
+}
+
+/**
+ * True when every activity holds max energy in its shared pool
+ * (root + matching reserve ≥ effectivePreset). Location does not matter —
+ * energy on the root or on the activity button both count.
+ */
+export function isV3SharedPoolEnergyAtMaximum(input: {
+  rootWaterSeconds: unknown;
+  rootSunSeconds: unknown;
+  rootFertilizerSeconds: unknown;
+  reserveWaterSeconds?: unknown;
+  reserveSunSeconds?: unknown;
+  reserveFertilizerSeconds?: unknown;
+  effectivePresetSeconds?: unknown;
+  rootCapacitySeconds?: unknown;
+}): boolean {
+  const cap = resolveEffectiveCapacity(
+    input.rootCapacitySeconds ??
+      input.effectivePresetSeconds ??
+      V3_EFFECTIVE_CAPACITY_MAX,
+  );
+  for (const kind of V3_ROOT_KINDS) {
+    const root =
+      kind === "water"
+        ? input.rootWaterSeconds
+        : kind === "sun"
+          ? input.rootSunSeconds
+          : input.rootFertilizerSeconds;
+    const reserve =
+      kind === "water"
+        ? input.reserveWaterSeconds
+        : kind === "sun"
+          ? input.reserveSunSeconds
+          : input.reserveFertilizerSeconds;
+    if (
+      v3SharedPoolRootFreeRoom({
+        rootSeconds: root,
+        reserveSeconds: reserve ?? 0,
+        capacitySeconds: cap,
+      }) > 0
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * True when this settle window should mint excess (ledger + financial elapsed).
+ *
+ * - ordinaryFull → yes (reserves at cap)
+ * - shared-pool full on every activity (roots and/or buttons) → yes
+ * - shared-pool full on eligible roots → yes
+ * - all roots transferred and reserves not full → no (pause; wait for cycle)
+ */
+export function shouldRouteV3GeneratedToExcess(input: {
+  ordinaryFull: boolean;
+  ordinaryAcceptBlocked: boolean;
+  allRootsTransferred: boolean;
+  /** root+reserve ≥ cap on every activity (buttons count). */
+  sharedPoolEnergyAtMaximum?: boolean;
+}): boolean {
+  if (input.ordinaryFull === true) return true;
+  if (input.allRootsTransferred === true) return false;
+  if (input.sharedPoolEnergyAtMaximum === true) return true;
+  return input.ordinaryAcceptBlocked === true;
+}
+
+/**
+ * True when at least one ordinary-eligible root still has shared-pool room
+ * (root + matching reserve < effectivePreset).
+ * When false, settle must not discard generated seconds into the void
+ * (unless all roots are already transferred — then pause instead of excess).
  */
 export function canAcceptV3OrdinaryRootUnit(input: {
   rootWaterSeconds: unknown;
   rootSunSeconds: unknown;
   rootFertilizerSeconds: unknown;
+  reserveWaterSeconds?: unknown;
+  reserveSunSeconds?: unknown;
+  reserveFertilizerSeconds?: unknown;
   reservesFull: V3ReservesFullMap;
   transferredRoots: ReadonlySet<RootKind> | readonly RootKind[];
   /** Effective root capacity (default absolute max 30). */
@@ -106,9 +199,6 @@ export function canAcceptV3OrdinaryRootUnit(input: {
       input.effectivePresetSeconds ??
       V3_EFFECTIVE_CAPACITY_MAX,
   );
-  const water = clampV3CapacitySeconds(input.rootWaterSeconds, cap);
-  const sun = clampV3CapacitySeconds(input.rootSunSeconds, cap);
-  const fertilizer = clampV3CapacitySeconds(input.rootFertilizerSeconds, cap);
   for (const kind of V3_ROOT_KINDS) {
     if (
       !isV3RootOrdinaryEligible({
@@ -119,9 +209,27 @@ export function canAcceptV3OrdinaryRootUnit(input: {
     ) {
       continue;
     }
-    const seconds =
-      kind === "water" ? water : kind === "sun" ? sun : fertilizer;
-    if (seconds < cap) return true;
+    const root =
+      kind === "water"
+        ? input.rootWaterSeconds
+        : kind === "sun"
+          ? input.rootSunSeconds
+          : input.rootFertilizerSeconds;
+    const reserve =
+      kind === "water"
+        ? input.reserveWaterSeconds
+        : kind === "sun"
+          ? input.reserveSunSeconds
+          : input.reserveFertilizerSeconds;
+    if (
+      v3SharedPoolRootFreeRoom({
+        rootSeconds: root,
+        reserveSeconds: reserve ?? 0,
+        capacitySeconds: cap,
+      }) > 0
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -129,6 +237,7 @@ export function canAcceptV3OrdinaryRootUnit(input: {
 /**
  * A root receives ordinary generation only when its matching reserve is not
  * yet full and the root has not been transferred.
+ * (Shared-pool free room is checked by callers via v3SharedPoolRootFreeRoom.)
  */
 export function isV3RootOrdinaryEligible(input: {
   kind: RootKind;

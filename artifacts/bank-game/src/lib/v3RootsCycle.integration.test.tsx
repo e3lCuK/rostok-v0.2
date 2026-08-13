@@ -491,7 +491,8 @@ describe("Economy v3 full user cycle (integration)", () => {
     expect(pageSrc).toContain("syncRootsFromServer");
     expect(rootSysSrc).toContain("commitV3TransferPendingOnce");
     expect(rootSysSrc).toContain("Unmount mid-flight");
-    expect(rootSysSrc).toContain("Apply-then-unlock");
+    expect(rootSysSrc).toContain("Commit SoT immediately");
+    expect(rootSysSrc).toContain("idempotent");
     expect(V3_TRANSFER_ANIM_MS).toBeGreaterThanOrEqual(500);
   });
 

@@ -116,8 +116,10 @@ export function clearV3CareUiAfterTutorial(
 }
 
 /**
- * Stale post-tutorial Care chrome: empty reserves + leftover completed/shovel
- * flags (server poll can re-apply them and hide "0 с" behind checkmarks).
+ * Orphan post-tutorial Care checkmarks: empty reserves + leftover activity
+ * ticks with no live session/cycle. Must NOT run for a real Care trio
+ * (reserves spent → pending ack / «Уход» / claim) — a poll wipe there
+ * blocked acknowledge and the reward queue.
  */
 export function shouldClearStaleV3CareUiAfterTutorial(
   v3Roots: EconomyV3RootsState | null | undefined,
@@ -128,21 +130,27 @@ export function shouldClearStaleV3CareUiAfterTutorial(
     (k) => Math.max(0, Math.floor(Number(v3Roots.reserves?.[k]?.seconds) || 0)) === 0,
   );
   if (!reservesEmpty) return false;
-  if (v3Roots.careSession?.active === true) return false;
+
+  // Live Care — never wipe on poll.
+  const sessionStatus = v3Roots.careSession?.status;
   if (
-    v3Roots.careSession?.status === "active" ||
-    v3Roots.careSession?.status === "completed"
+    v3Roots.careSession?.active === true ||
+    sessionStatus === "active" ||
+    sessionStatus === "completed"
   ) {
-    return true;
+    return false;
   }
+  const cycleStatus = v3Roots.careCycle?.status;
   if (
-    v3Roots.careCycle?.readyToFinish === true ||
-    v3Roots.careCycle?.status === "ready" ||
-    v3Roots.careCycle?.status === "finished" ||
-    v3Roots.careCycle?.allCompleted === true
+    cycleStatus === "in_progress" ||
+    cycleStatus === "ready" ||
+    cycleStatus === "finished" ||
+    v3Roots.careCycle?.readyToFinish === true
   ) {
-    return true;
+    return false;
   }
+
+  // Orphan checkmarks only (no live session / cycle status).
   return kinds.some(
     (k) => v3Roots.careCycle?.activities?.[k]?.completed === true,
   );

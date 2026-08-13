@@ -102,6 +102,11 @@ describe("care reward drag collect wiring", () => {
     expect(pageSrc).toContain("drag={draggingAppleIdx === null || isDragging}");
     expect(pageSrc).toContain("setCoinDropTargetActive(true)");
     expect(pageSrc).toContain("dropHighlight={coinDropTargetActive}");
+    // Defer collected unmount so AnimatePresence exit sees custom.manual (fly).
+    expect(pageSrc).toContain("requestAnimationFrame");
+    expect(pageSrc).toContain(
+      "setCollectedAppleIndices([...collectedAppleIndicesRef.current])",
+    );
     // Care coin no longer click-to-collect in the apples overlay.
     expect(pageSrc).not.toMatch(
       /onClick=\{\s*isCoin\s*\?\s*\([\s\S]*?handleAppleClick\(i\)/,
@@ -137,6 +142,8 @@ describe("care reward drag collect wiring", () => {
     expect(basketPulse).not.toContain("scale(");
     expect(cssSrc).toContain("v2-chest-clasp--drop-target");
     expect(cssSrc).toContain("v2-chest-clasp-drop-pulse");
+    expect(cssSrc).toContain("v2-chest-clasp--drop-target-stone");
+    expect(cssSrc).toContain("v2-chest-clasp-drop-pulse-stone");
     // Soft glow only — no scale (scale made the clasp jump off the lid).
     const claspPulse =
       cssSrc.match(
@@ -151,6 +158,8 @@ describe("care reward drag collect wiring", () => {
     );
     expect(chestSrc).toContain('data-chest-clasp="true"');
     expect(chestSrc).toContain("v2-chest-clasp--drop-target");
+    expect(chestSrc).toContain("drop-target-stone");
+    expect(pageSrc).toContain('draggingMetelkaCoin ? "stone"');
   });
 
   it("idle pulse on token; drag raises tree layer + ghost for apple and coin", () => {

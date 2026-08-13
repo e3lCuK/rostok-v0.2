@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { EconomyV2ExcessState } from "@/lib/api";
 import {
@@ -114,6 +115,42 @@ describe("careSessionActionsUi — Care shovel vs activities vs Metelka", () => 
         showRewards: true,
       }),
     ).toBe(true);
+
+    // Hold muted cubes while capital +₽ flash plays (no active blink).
+    expect(
+      shouldExitPostCareUi({
+        tutorialDone: true,
+        pendingBase: 0,
+        pendingBonus: 0,
+        showCompletionStage: true,
+        showActivityGhost: true,
+        showCareButton: true,
+        showRewards: true,
+        showIncomePopup: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("5b. GamePage holds muted cubes for income flash + tail (no double hide race)", () => {
+    const page = readFileSync(
+      new URL("../pages/GamePage.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(page).toContain("incomeUiHold");
+    expect(page).toContain("scheduleIncomePopupHide");
+    expect(page).toContain("showIncomePopup: showIncomePopup || incomeUiHold");
+    expect(page).toContain(
+      "showActivityGhost || tutorialActivitiesExhausted || incomeUiHold",
+    );
+    // Ghost stays mounted while showRewards (covers incomeUiHold→exit gap).
+    expect(page).toContain(
+      "(showSpentActivityGhost || showRewards) && !careDiverging",
+    );
+    expect(page).not.toContain("showRewards ? null");
+    // Competing setTimeout that cleared +₽ early (flashed active cubes) must stay gone.
+    expect(page).not.toContain(
+      "setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500)",
+    );
   });
 
   it("6. after Care chrome cleared, excess may show Metelka", () => {

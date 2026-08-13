@@ -6,6 +6,9 @@
  * dailyBonusSeconds     = min(5, currentVisitDay)  → day1=+1 … day5+=+5
  * effectivePresetSeconds = base + bonus (max 30)
  *
+ * Shared pool per activity (Water / Sun / Fertilizer):
+ *   rootSeconds + matching reserveSeconds ≤ effectivePresetSeconds
+ *
  * Persistence note on `streak_days`:
  * - When set by session completion it is already 1-based (first session → 1).
  * - Legacy / never-completed accounts may still store 0.
@@ -127,6 +130,100 @@ export function clampV3CapacitySeconds(
 }
 
 /**
+ * Shared pool per activity: root + matching reserve ≤ effectivePreset.
+ * Free room left for the root given current reserve + root fill.
+ */
+export function v3SharedPoolRootFreeRoom(input: {
+  rootSeconds: unknown;
+  reserveSeconds: unknown;
+  capacitySeconds: unknown;
+}): number {
+  const cap = Math.min(
+    V3_EFFECTIVE_CAPACITY_MAX,
+    Math.max(0, floorNonNeg(input.capacitySeconds) || V3_BASE_PRESET_DEFAULT),
+  );
+  const reserve = clampV3CapacitySeconds(input.reserveSeconds, cap);
+  const root = clampV3CapacitySeconds(input.rootSeconds, cap);
+  return Math.max(0, cap - reserve - root);
+}
+
+/**
+ * Max root seconds allowed while keeping root + reserve ≤ capacity.
+ */
+export function v3SharedPoolRootCap(input: {
+  reserveSeconds: unknown;
+  capacitySeconds: unknown;
+}): number {
+  const cap = Math.min(
+    V3_EFFECTIVE_CAPACITY_MAX,
+    Math.max(0, floorNonNeg(input.capacitySeconds) || V3_BASE_PRESET_DEFAULT),
+  );
+  const reserve = clampV3CapacitySeconds(input.reserveSeconds, cap);
+  return Math.max(0, cap - reserve);
+}
+
+/**
+ * Max reserve seconds allowed while keeping root + reserve ≤ capacity.
+ */
+export function v3SharedPoolReserveCap(input: {
+  rootSeconds: unknown;
+  capacitySeconds: unknown;
+}): number {
+  const cap = Math.min(
+    V3_EFFECTIVE_CAPACITY_MAX,
+    Math.max(0, floorNonNeg(input.capacitySeconds) || V3_BASE_PRESET_DEFAULT),
+  );
+  const root = clampV3CapacitySeconds(input.rootSeconds, cap);
+  return Math.max(0, cap - root);
+}
+
+/**
+ * Enforce shared pool for one activity. Prefer keeping reserve (already
+ * collected); trim root; leftover becomes overflow (→ excess).
+ */
+export function splitV3SharedPoolOverflow(input: {
+  rootSeconds: unknown;
+  reserveSeconds: unknown;
+  capacitySeconds: unknown;
+}): {
+  rootSeconds: number;
+  reserveSeconds: number;
+  overflowSeconds: number;
+} {
+  const cap = Math.min(
+    V3_EFFECTIVE_CAPACITY_MAX,
+    Math.max(0, floorNonNeg(input.capacitySeconds) || V3_BASE_PRESET_DEFAULT),
+  );
+  const reserveSplit = splitV3CapacityOverflow({
+    seconds: input.reserveSeconds,
+    capacitySeconds: cap,
+  });
+  const rootSplit = splitV3CapacityOverflow({
+    seconds: input.rootSeconds,
+    capacitySeconds: cap,
+  });
+  let reserve = reserveSplit.keptSeconds;
+  let root = rootSplit.keptSeconds;
+  let overflow =
+    reserveSplit.overflowSeconds + rootSplit.overflowSeconds;
+
+  const total = root + reserve;
+  if (total > cap) {
+    const trim = total - cap;
+    const fromRoot = Math.min(root, trim);
+    root -= fromRoot;
+    overflow += fromRoot;
+    const still = trim - fromRoot;
+    if (still > 0) {
+      reserve = Math.max(0, reserve - still);
+      overflow += still;
+    }
+  }
+
+  return { rootSeconds: root, reserveSeconds: reserve, overflowSeconds: overflow };
+}
+
+/**
  * Split value against a new capacity: keep ≤ cap, overflow = rest.
  * Pure — caller adds overflow to excess ledger.
  */
@@ -171,44 +268,30 @@ export function normalizeV3StorageToEffectiveCapacity(input: {
     ),
   );
 
-  const rw = splitV3CapacityOverflow({
-    seconds: input.rootWaterSeconds,
+  const water = splitV3SharedPoolOverflow({
+    rootSeconds: input.rootWaterSeconds,
+    reserveSeconds: input.reserveWaterSeconds,
     capacitySeconds: capacity,
   });
-  const rs = splitV3CapacityOverflow({
-    seconds: input.rootSunSeconds,
+  const sun = splitV3SharedPoolOverflow({
+    rootSeconds: input.rootSunSeconds,
+    reserveSeconds: input.reserveSunSeconds,
     capacitySeconds: capacity,
   });
-  const rf = splitV3CapacityOverflow({
-    seconds: input.rootFertilizerSeconds,
-    capacitySeconds: capacity,
-  });
-  const vw = splitV3CapacityOverflow({
-    seconds: input.reserveWaterSeconds,
-    capacitySeconds: capacity,
-  });
-  const vs = splitV3CapacityOverflow({
-    seconds: input.reserveSunSeconds,
-    capacitySeconds: capacity,
-  });
-  const vf = splitV3CapacityOverflow({
-    seconds: input.reserveFertilizerSeconds,
+  const fertilizer = splitV3SharedPoolOverflow({
+    rootSeconds: input.rootFertilizerSeconds,
+    reserveSeconds: input.reserveFertilizerSeconds,
     capacitySeconds: capacity,
   });
 
   return {
-    rootWaterSeconds: rw.keptSeconds,
-    rootSunSeconds: rs.keptSeconds,
-    rootFertilizerSeconds: rf.keptSeconds,
-    reserveWaterSeconds: vw.keptSeconds,
-    reserveSunSeconds: vs.keptSeconds,
-    reserveFertilizerSeconds: vf.keptSeconds,
+    rootWaterSeconds: water.rootSeconds,
+    rootSunSeconds: sun.rootSeconds,
+    rootFertilizerSeconds: fertilizer.rootSeconds,
+    reserveWaterSeconds: water.reserveSeconds,
+    reserveSunSeconds: sun.reserveSeconds,
+    reserveFertilizerSeconds: fertilizer.reserveSeconds,
     overflowSeconds:
-      rw.overflowSeconds +
-      rs.overflowSeconds +
-      rf.overflowSeconds +
-      vw.overflowSeconds +
-      vs.overflowSeconds +
-      vf.overflowSeconds,
+      water.overflowSeconds + sun.overflowSeconds + fertilizer.overflowSeconds,
   };
 }

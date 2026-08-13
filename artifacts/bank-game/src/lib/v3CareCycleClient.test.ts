@@ -330,6 +330,15 @@ describe("v3 Care cycle — shovel / preview / claim helpers", () => {
         pendingBonusReward: 1,
       }),
     ).toMatchObject({ mm: 4, xp: 15 });
+    expect(
+      sessionScoresFromV3Claim({
+        xp: 15,
+        treeGrowth: 0,
+        income: { base: 10, bonus: 9, total: 19 },
+        pendingBaseReward: 20,
+        pendingBonusReward: 18,
+      }),
+    ).toMatchObject({ mm: 19 });
   });
 
   it("v2 flow remains when v3 snapshot is absent", () => {

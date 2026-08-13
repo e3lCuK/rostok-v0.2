@@ -131,6 +131,8 @@ describe("MetelkaRewardCoin", () => {
     expect(html).toContain("tree-apple");
     expect(html).toContain("tree-apple-pending");
     expect(html).toContain("tree-apple-coin");
+    expect(html).toContain("tree-apple-coin--stone");
+    expect(html).toContain('data-reward-tone="stone"');
     expect(html).toContain('data-metelka-reward-claiming="true"');
     expect(html).not.toMatch(/₽|base|bonus|\+1/);
     expect(html).not.toContain("metelka-reward-coin-amount");
@@ -204,6 +206,8 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
     expect(apiSrc).toContain("/game/v2/excess/metelka/claim");
     expect(apiSrc).toContain("claimMetelkaPendingReward");
     expect(css).toContain(".tree-apple-coin");
+    expect(css).toContain(".tree-apple-coin--stone");
+    expect(css).toContain("coin-collect-idle-pulse-stone");
     expect(css).toContain(".metelka-reward-coin-error");
     expect(css).not.toContain(".metelka-reward-coin-face");
     expect(css).not.toContain(".metelka-reward-coin-amount");
@@ -212,6 +216,7 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
       "utf8",
     );
     expect(coinSrc).toContain("tree-apple-coin");
+    expect(coinSrc).toContain('tone="stone"');
     expect(coinSrc).toContain("tree-apple-pending");
     expect(coinSrc).toContain("onDragStart");
     expect(coinSrc).toContain("onDragEnd");

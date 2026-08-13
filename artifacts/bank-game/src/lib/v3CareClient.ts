@@ -345,14 +345,19 @@ export function sessionScoresFromV3Claim(claim: {
   pendingBaseReward?: number;
   pendingBonusReward?: number;
 }): V3CareSessionScoreUi {
-  // Preview treeGrowth is currently always 0 — live mm comes with money (claimAll).
-  // Drive the growth-timer / +N мм beat from pending income when treeGrowth is empty.
+  // Preview treeGrowth is currently always 0 — drive growth-timer / +N мм from
+  // THIS cycle's income.total. Do not use cumulative pending_* (stacks across
+  // Care cycles until claimAll) or two sessions become one 38s timer.
   const fromTree = Math.max(0, Math.floor(Number(claim.treeGrowth) || 0));
-  const pendingTotal =
-    Math.max(0, Number(claim.pendingBaseReward) || 0) +
-    Math.max(0, Number(claim.pendingBonusReward) || 0);
-  const incomeTotal = Math.max(0, Number(claim.income?.total) || 0);
-  const fromMoney = Math.max(0, Math.floor(pendingTotal || incomeTotal));
+  const incomeTotal = Math.max(0, Math.floor(Number(claim.income?.total) || 0));
+  const pendingTotal = Math.max(
+    0,
+    Math.floor(
+      (Math.max(0, Number(claim.pendingBaseReward) || 0) +
+        Math.max(0, Number(claim.pendingBonusReward) || 0)),
+    ),
+  );
+  const fromMoney = incomeTotal > 0 ? incomeTotal : pendingTotal;
   return {
     water: 0,
     sun: 0,

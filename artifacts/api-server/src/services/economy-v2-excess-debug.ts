@@ -3,8 +3,8 @@
  * Does NOT change bank, Care, XP, or income formulas.
  *
  * Primary UI action: addPresetSeconds — add N game-seconds to the excess
- * ledger, fill all three v3 roots to effective capacity (SoT), recompute live
- * Metelka preset from the ledger (clamp 5…25). Financial elapsed uses the
+ * ledger, fill all three v3 roots to shared-pool max (effectiveCap − reserve),
+ * recompute live Metelka preset from the ledger (clamp 5…25). Financial elapsed uses the
  * accumulative generation model:
  *   nextElapsed = currentElapsed + N × secondsPerGameSecondForCapital(K) × 1000
  * (simulates natural formation of N excess seconds; does not rewrite history
@@ -35,7 +35,7 @@ import {
 } from "./economy-v2-excess-income";
 import { clearExcessSessionSqlParams } from "./economy-v2-excess-session";
 import { V3_CARE_SESSION_AND_CYCLE_SELECT_COLUMNS } from "./economy-v3-care-columns";
-import { buildV3EffectiveCapacityBreakdown } from "./economy-v3-effective-capacity";
+import { buildV3EffectiveCapacityBreakdown, v3SharedPoolRootCap } from "./economy-v3-effective-capacity";
 import { isEconomyV3RootsEnabled } from "./economy-v3-feature";
 import { loadCapitalForUser } from "./economy-v2-energy-settle";
 import {
@@ -347,8 +347,9 @@ const ADD_PRESET_SELECT = `
 `;
 
 /**
- * Primary debug UI: add N excess game-seconds and fill roots to capacity.
- * Invariant: after success, excess > 0 ⇒ all three roots are at effectiveCap.
+ * Primary debug UI: add N excess game-seconds and fill roots to shared-pool max.
+ * Invariant: after success, each root = effectiveCap − matching reserve
+ * (root + reserve ≤ effectiveCap).
  */
 async function debugAddPresetSecondsFillRoots(
   userId: string | number,
@@ -390,6 +391,19 @@ async function debugAddPresetSecondsFillRoots(
       streakDays: locked.streak_days,
     }).effectivePresetSeconds;
 
+    const rootWater = v3SharedPoolRootCap({
+      reserveSeconds: locked.v3_reserve_water_seconds,
+      capacitySeconds: capacity,
+    });
+    const rootSun = v3SharedPoolRootCap({
+      reserveSeconds: locked.v3_reserve_sun_seconds,
+      capacitySeconds: capacity,
+    });
+    const rootFertilizer = v3SharedPoolRootCap({
+      reserveSeconds: locked.v3_reserve_fertilizer_seconds,
+      capacitySeconds: capacity,
+    });
+
     const currentLedger = normalizeExcessSeconds(locked.v2_excess_seconds);
     const currentElapsed = normalizeExcessElapsedMs(locked.v2_excess_elapsed_ms);
     const currentBase = normalizeExcessBaseIncome(locked.v2_excess_base_income);
@@ -430,9 +444,9 @@ async function debugAddPresetSecondsFillRoots(
        WHERE user_id = $1`,
       [
         String(userId),
-        capacity,
-        capacity,
-        capacity,
+        rootWater,
+        rootSun,
+        rootFertilizer,
         nextSeconds,
         nextElapsed,
         nextBaseIncome,
@@ -445,9 +459,9 @@ async function debugAddPresetSecondsFillRoots(
 
     await client.query("COMMIT");
 
-    locked.v3_root_water_seconds = capacity;
-    locked.v3_root_sun_seconds = capacity;
-    locked.v3_root_fertilizer_seconds = capacity;
+    locked.v3_root_water_seconds = rootWater;
+    locked.v3_root_sun_seconds = rootSun;
+    locked.v3_root_fertilizer_seconds = rootFertilizer;
     locked.v2_excess_seconds = nextSeconds;
     locked.v2_excess_elapsed_ms = nextElapsed;
     locked.v2_excess_base_income = nextBaseIncome;

@@ -594,16 +594,37 @@ body {
   margin-block: auto;
 }
 
+/* Metelka / excess claim — same flash, stone grey ink. */
+.field-income-popup--stone {
+  color: #6b6560;
+  background: rgba(245, 243, 240, 0.92);
+  box-shadow: 0 1px 3px rgba(68, 64, 60, 0.12);
+}
+
 /*
  * v3 host is tall (hourglass + chest). Pin the flash to the capital-face
  * midline so +₽ sits level with the capital sum, not mid-flask.
  * Use `translate` (not `transform`) so Framer scale still works.
  */
-.game-area--v3-roots .field-income-popup {
+.game-area--v3-roots .field-income-popup:not(.field-income-popup--ported) {
   top: auto;
   bottom: calc(var(--v3-chest-face-height, 56px) / 2);
   margin-block: 0;
   translate: 0 50%;
+}
+
+/*
+ * Portaled into `.game-area` so roots wipe clip-path cannot hide +₽.
+ * Anchor vars are chest-host left edge + capital-face midline.
+ */
+.game-area .field-income-popup--ported {
+  top: var(--income-popup-y, auto);
+  left: var(--income-popup-x, 50%);
+  right: auto;
+  bottom: auto;
+  margin: 0;
+  translate: calc(-100% - 6px) -50%;
+  z-index: 30;
 }
 
 .game-beta-badge {
@@ -717,8 +738,16 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  /* Room so XP cream pill under «УРОВЕНЬ» clears the vault lid. */
+  gap: 18px;
   pointer-events: none;
+}
+.field-level-badge-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
 }
 .field-level-host .lvl-badge-wrap {
   pointer-events: auto;
@@ -738,45 +767,73 @@ body {
   pointer-events: none;
   visibility: hidden;
 }
+/* XP reward float — under «УРОВЕНЬ», cream pill like apple / income. */
 .field-level-xp-popup {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
-  padding-top: 0;
-  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
   z-index: 13;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 248, 236, 0.92);
+  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.16);
+  color: #4d7c0f;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-/* Vault (safe) under level diamond — permanent capital parking. */
+/* Vault under level — same footprint as lvl-badge (64×68). */
 .vault-badge-wrap {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
-  margin-top: 2px;
+  margin-top: 0;
+}
+.field-level-host .vault-badge-svg,
+.vault-badge .vault-badge-svg {
+  /*
+   * Flush-cropped safe (viewBox 41×33.3) at matching aspect — no letterbox.
+   * Bottom of paint ≈ y=52 in the 68px host, same as the diamond tip →
+   * caption at bottom:5px sits against the visible shell like «УРОВЕНЬ».
+   */
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 45px;
+  display: block;
+  overflow: visible;
 }
 .vault-badge {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 64px;
+  height: 68px;
+  display: block;
+  padding: 0;
+  box-sizing: border-box;
 }
 .vault-badge-amount {
   position: absolute;
   left: 50%;
-  bottom: 3px;
+  /* Match .lvl-badge-caption — same gap under the icon. */
+  bottom: 5px;
   transform: translateX(-50%);
-  font-size: 9px;
-  font-weight: 800;
-  /* Same gold ink as flask timer / capital sum. */
-  color: #c9920a;
-  line-height: 1;
+  display: block;
+  overflow: visible;
   pointer-events: none;
-  text-shadow: 0 0 3px rgba(255, 248, 236, 0.95);
+  color: #c9920a;
+  white-space: nowrap;
+  font-size: 10px;
 }
 .vault-badge-wrap--draggable {
   z-index: 14;
@@ -786,39 +843,45 @@ body {
 .vault-badge-wrap--dragging {
   z-index: 40;
 }
+/* Pulse wraps safe + capital label (same box as level badge). */
 .vault-badge-wrap--draggable .vault-badge {
   border-radius: 12px;
   animation: vault-capital-pulse 1.35s ease-in-out infinite;
 }
-/* Pulse in flask/capital gold — not activity green. */
 @keyframes vault-capital-pulse {
   0%, 100% {
     box-shadow:
-      0 0 0 0 rgba(201, 146, 10, 0.55),
-      0 2px 8px rgba(0, 0, 0, 0.10);
-    transform: scale(1);
+      0 0 0 1.5px rgba(201, 146, 10, 0.7),
+      0 0 3px rgba(201, 146, 10, 0.28);
+    transform: none;
   }
   50% {
     box-shadow:
-      0 0 0 8px transparent,
-      0 4px 16px rgba(201, 146, 10, 0.35);
-    transform: scale(1.06);
+      0 0 0 3px rgba(201, 146, 10, 0.95),
+      0 0 6px rgba(201, 146, 10, 0.4);
+    transform: none;
   }
 }
 .vault-drag-token {
   position: absolute;
-  inset: 0;
+  /* Match safe SVG seat (padding-top 4 + 56×50) so wallet centers on the dial. */
+  top: 4px;
+  left: 50%;
+  width: 56px;
+  height: 50px;
+  margin-left: -28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Glyph viewBox is slightly top-heavy — nudge down into the safe center. */
+  padding-top: 3px;
+  box-sizing: border-box;
   cursor: grab;
   touch-action: none;
   z-index: 2;
-  /* Wallet sits on top of the safe — readable grab affordance. */
   filter: drop-shadow(0 1px 2px rgba(80, 50, 10, 0.35));
 }
 .vault-drag-token--dragging {
-  /* Keep the wallet visible while dragging (was opacity:0 — looked empty). */
   z-index: 80;
   cursor: grabbing;
   filter: drop-shadow(0 4px 10px rgba(80, 50, 10, 0.45));
@@ -826,10 +889,16 @@ body {
 }
 .vault-drag-ghost {
   position: absolute;
-  inset: 0;
+  top: 4px;
+  left: 50%;
+  width: 56px;
+  height: 50px;
+  margin-left: -28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-top: 3px;
+  box-sizing: border-box;
   pointer-events: none;
   opacity: 0.28;
   z-index: 1;
@@ -883,8 +952,8 @@ body {
 /* Apple basket — right of left bush; replaces topbar apple row */
 .apple-basket-host {
   position: absolute;
-  /* Just right of the left bush (~cx 36 in 430 viewBox → ~15% + gap). */
-  left: 15%;
+  /* Just right of the left bush (~cx 30 in 430 viewBox → ~13% + gap). */
+  left: 13%;
   right: auto;
   bottom: 18px;
   z-index: 8;
@@ -892,15 +961,16 @@ body {
   display: block;
   width: max-content;
   pointer-events: none;
+  transition: opacity 0.45s ease;
 }
 .game-area--v2-mocks .apple-basket-host {
   bottom: calc(var(--v2-scene-lift) + 16px);
-  left: 15%;
+  left: 13%;
   right: auto;
 }
 .game-area--v3-roots .apple-basket-host {
   bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury) + 14px);
-  left: 15%;
+  left: 13%;
   right: auto;
 }
 
@@ -1037,6 +1107,10 @@ body {
   transform-origin: center;
   animation: coin-collect-idle-pulse 0.9s ease-in-out infinite;
 }
+/* Excess / Metelka coin — stone grey pulse (not Care gold). */
+.tree-apple-coin--stone:not(.tree-apple--dragging) .tree-reward-token {
+  animation: coin-collect-idle-pulse-stone 0.9s ease-in-out infinite;
+}
 @keyframes coin-collect-idle-pulse {
   0%,
   100% {
@@ -1046,6 +1120,17 @@ body {
   50% {
     transform: scale(1.22);
     filter: drop-shadow(0 0 8px rgba(240, 180, 41, 0.75));
+  }
+}
+@keyframes coin-collect-idle-pulse-stone {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.22);
+    filter: drop-shadow(0 0 8px rgba(138, 132, 124, 0.7));
   }
 }
 .tree-apple--dragging {
@@ -1074,10 +1159,13 @@ body {
 }
 /*
  * Coin / vault capital drop target — pulse ONLY the lock/clasp.
- * Strong gold blink (tutorial vault + Care/Metelka coins). No scale.
+ * Care = gold; Metelka / excess = stone grey. No scale.
  */
 .v2-chest-clasp--drop-target {
   animation: v2-chest-clasp-drop-pulse 1.05s ease-in-out infinite;
+}
+.v2-chest-clasp--drop-target-stone {
+  animation: v2-chest-clasp-drop-pulse-stone 1.05s ease-in-out infinite;
 }
 @keyframes v2-chest-clasp-drop-pulse {
   0%,
@@ -1092,6 +1180,22 @@ body {
       drop-shadow(0 0 4px rgba(240, 180, 41, 1))
       drop-shadow(0 0 12px rgba(201, 146, 10, 0.95))
       drop-shadow(0 0 22px rgba(201, 146, 10, 0.55));
+    opacity: 1;
+  }
+}
+@keyframes v2-chest-clasp-drop-pulse-stone {
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 1px rgba(138, 132, 124, 0.55))
+      drop-shadow(0 0 4px rgba(138, 132, 124, 0.28));
+    opacity: 1;
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 4px rgba(205, 199, 191, 1))
+      drop-shadow(0 0 12px rgba(138, 132, 124, 0.95))
+      drop-shadow(0 0 22px rgba(107, 101, 96, 0.55));
     opacity: 1;
   }
 }
@@ -1446,7 +1550,18 @@ body {
   overflow: visible;
 }
 
+/* Pulse the tree (and timer) only — not the permanent мм badge host. */
 @keyframes tree-growth-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px rgba(100, 200, 60, 0));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(100, 200, 60, 0.5));
+    transform: scale(1.04);
+  }
+}
+@keyframes tree-growth-above-pulse {
   0%, 100% {
     filter: drop-shadow(0 0 0px rgba(100, 200, 60, 0));
     transform: translateX(-50%) scale(1);
@@ -1456,8 +1571,12 @@ body {
     transform: translateX(-50%) scale(1.04);
   }
 }
-.game-tree-wrap.tree-growing {
+.game-tree-wrap.tree-growing .tree-wrapper {
   animation: tree-growth-pulse 1.2s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.game-tree-wrap.tree-growing .growth-side-host {
+  animation: tree-growth-above-pulse 1.2s ease-in-out infinite;
 }
 
 /* Permanent growth readout — right of tree; opens rating */
@@ -1466,12 +1585,20 @@ body {
   left: 100%;
   top: 42%;
   transform: translateY(-50%);
-  /* Nudge toward trunk (wrap is canopy-wide; 100% sits at outer foliage). */
-  margin-left: -10px;
+  /* Small gap past canopy edge (right of tree). */
+  margin-left: 4px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+
+/* Metelka cleaning: hide apple + growth counters; fade back in when done. */
+.game-area--metelka-cleaning .apple-basket-host,
+.game-area--metelka-cleaning .tree-growth-badge-host {
+  opacity: 0;
   pointer-events: none;
 }
 .tree-growth-badge {
@@ -1487,25 +1614,24 @@ body {
   background: rgba(255, 248, 236, 1);
 }
 /*
- * Fixed left-of-tree anchor for growth countdown AND +N мм accrual.
- * Position lives only here — Framer must not set transform on this host
- * (that would override translateY(-50%) and shift the accrual up/down).
+ * Above-canopy anchor for growth countdown AND +N мм accrual.
+ * `bottom` = canopy height + gap (set via --growth-above-bottom per stage).
+ * Framer must not set transform on this host (would fight translateX(-50%)).
  */
 .growth-side-host {
   position: absolute;
-  right: 100%;
-  left: auto;
-  top: 42%;
-  transform: translateY(-50%);
-  /* Match growth badge: closer to trunk than the canopy edge. */
-  margin-right: -10px;
-  margin-left: 0;
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: var(--growth-above-bottom, 91px);
+  transform: translateX(-50%);
+  margin: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   pointer-events: none;
-  z-index: 10;
+  z-index: 11;
 }
 
 /* Shared chrome: timer row and мм accrual are the same pill in the same host. */
@@ -1843,24 +1969,26 @@ body.modal-open {
   -webkit-tap-highlight-color: transparent;
 }
 
-.tree-wrapper.transitioning {
-  transform: scale(0.82);
-  opacity: 0;
+/* Stage swap: stacked layers crossfade — field never shows an empty trunk. */
+.tree-stage-swap {
+  position: relative;
+  display: block;
+  width: 110px;
+  height: 110px;
+  line-height: 0;
+  font-size: 0;
 }
-
-.tree-cloud {
+.tree-stage-layer {
   position: absolute;
-  inset: -20px;
-  background: radial-gradient(circle, rgba(255,255,255,0.85), transparent 70%);
-  animation: cloudFade 0.6s ease forwards;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  line-height: 0;
   pointer-events: none;
-  z-index: 10;
-}
-
-@keyframes cloudFade {
-  0%   { opacity: 0; transform: scale(0.8); }
-  50%  { opacity: 1; transform: scale(1.1); }
-  100% { opacity: 0; transform: scale(1.2); }
 }
 
 @keyframes growBounce {
@@ -1898,21 +2026,21 @@ body.modal-open {
 }
 
 .lvl-badge {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.lvl-gain-popup {
+/* Under the diamond — same flask type as apple / mm counters. */
+.lvl-badge-caption {
   position: absolute;
-  bottom: calc(100% + 2px);
   left: 50%;
-  font-size: 10px;
-  font-weight: 700;
-  /* Same leaf-edge ink as LevelWidget rim. */
+  bottom: 5px;
+  transform: translateX(-50%);
   color: #2f5c0e;
-  white-space: nowrap;
   pointer-events: none;
+  white-space: nowrap;
+  font-size: 10px;
 }
 
 .reward-popup {
@@ -1962,11 +2090,6 @@ body.modal-open {
 }
 .topbar-reward-popup-xp {
   color: #4d7c0f;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
 }
 .xp-popup-icon {
   display: flex;
@@ -1975,9 +2098,12 @@ body.modal-open {
   filter: drop-shadow(0 1px 3px rgba(77,124,15,0.35));
 }
 .xp-popup-label {
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 .topbar-reward-popup-apple {
   color: #c0392b;
@@ -6811,13 +6937,31 @@ canvas {
   position: absolute;
   z-index: 12;
   pointer-events: none;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 248, 236, 0.92);
+  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.16);
   color: #3d5c38;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
   animation: v2-root-collect-float 650ms ease-out forwards;
   white-space: nowrap;
+}
+.v2-root-collect-floater-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.v2-root-collect-floater-text {
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .v2-care-sync-error {
@@ -7671,6 +7815,16 @@ button.v3-capital-badge:focus-visible {
   overflow: visible;
 }
 
+/*
+ * +₽ flash lives inside the chest host (z-index 4 under the tree). Lift the
+ * host while the flash is up so tutorial / Care income is not covered.
+ */
+.game-area--v3-roots
+  .v3-underground-stack
+  .v3-capital-chest-host--income-flash {
+  z-index: 16;
+}
+
 .game-area--v3-roots .v3-underground-stack .v3-capital-chest-host .v3-capital-chest-layer {
   overflow: visible;
 }
@@ -7895,30 +8049,85 @@ button.v3-capital-badge:focus-visible {
 }
 
 /*
+ * Excess / Metelka host: flip flask tokens immediately (higher specificity
+ * than `.game-area--v3-roots` gold defaults). Clock hold stays on
+ * `.v3-root-wait-timer--frozen` (cleaning only).
+ */
+.game-area--v3-roots .v3-capital-chest-host--metelka-frozen {
+  --v3-flask-capital: #8a847c;
+  --v3-flask-rim: #8a847c;
+  --v3-flask-ink: #6b6560;
+  --v3-flask-fill: rgba(138, 132, 124, 0.4);
+}
+
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-root-wait-timer-hourglass__shell {
+  fill: #cdc7bf;
+}
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-root-wait-timer-hourglass__rim,
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-root-wait-timer-hourglass__lid-foot {
+  stroke: var(--v3-flask-rim);
+}
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-root-wait-timer-icon,
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-root-wait-timer-capsule__time {
+  color: var(--v3-flask-ink);
+  filter: none;
+  text-shadow: none;
+}
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-root-wait-timer-capsule__fill {
+  fill: var(--v3-flask-fill);
+}
+
+/*
  * Capital badge is a sibling of the timer (not inside --frozen).
  * Host flag greys capital ink / bulb to match the flask during Metelka.
  */
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge {
-  color: #6b6560;
+.game-area--v3-roots .v3-capital-chest-host--metelka-frozen .v3-capital-badge {
+  color: var(--v3-flask-ink);
   cursor: default;
   pointer-events: none;
 }
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge__shell {
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-capital-badge__shell {
   fill: #cdc7bf;
 }
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge__rim {
-  stroke: #8a847c;
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-capital-badge__rim {
+  stroke: var(--v3-flask-rim);
 }
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge__fill {
-  background: rgba(138, 132, 124, 0.4);
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-capital-badge__fill {
+  background: var(--v3-flask-fill);
   transition: none !important;
 }
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge .field-caption-value,
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge .field-caption-unit {
-  color: #6b6560;
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-capital-badge
+  .field-caption-value,
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-capital-badge
+  .field-caption-unit {
+  color: var(--v3-flask-ink);
   text-shadow: none;
 }
-.v3-capital-chest-host--metelka-frozen .v3-capital-badge--bump {
+.game-area--v3-roots
+  .v3-capital-chest-host--metelka-frozen
+  .v3-capital-badge--bump {
   animation: none !important;
 }
 
@@ -8567,8 +8776,8 @@ button.v3-capital-badge:focus-visible {
 }
 
 /*
- * `+X с` lands ABOVE the activity button (toY = card.top - 14).
- * Hold readable near the end so it reads as “added on top”, not under the row.
+ * `+X с` cream pill (clock + label) — same family as XP / apple / income.
+ * Lands tight above the activity button (soil band under the grass line).
  */
 .v3-transfer-flight-label {
   position: fixed;
@@ -8576,21 +8785,38 @@ button.v3-capital-badge:focus-visible {
   top: 0;
   transform: translate(
     calc(var(--v3-flight-x1) - 50%),
-    calc(var(--v3-flight-y1) - 8px)
+    var(--v3-flight-y1)
   );
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 248, 236, 0.92);
+  box-shadow: 0 1px 3px rgba(80, 40, 20, 0.16);
   pointer-events: none;
   white-space: nowrap;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
   color: var(--v3-flight-color, #5f93c9);
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.85),
-    0 0 10px color-mix(in srgb, var(--v3-flight-color, #5f93c9) 40%, transparent);
   animation: v3-transfer-flight-label-above var(--v3-flight-ms, 520ms) ease-out forwards;
   will-change: transform, opacity;
   z-index: 1;
+}
+.v3-transfer-flight-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--v3-flight-color, #5f93c9) 35%, transparent));
+}
+.v3-transfer-flight-text {
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--v3-flask-font-size, 11px);
+  font-weight: var(--v3-flask-font-weight, 700);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 @keyframes v3-transfer-flight-move {
@@ -8620,21 +8846,30 @@ button.v3-capital-badge:focus-visible {
       scale(0.88);
     opacity: 0;
   }
-  35% {
+  18% {
     opacity: 1;
   }
-  70% {
+  /* Reach the soil landing early — don’t linger up near the grass line. */
+  42% {
     transform: translate(
         calc(var(--v3-flight-x1) - 50%),
-        calc(var(--v3-flight-y1) - 10px)
+        var(--v3-flight-y1)
       )
-      scale(1.08);
+      scale(1.05);
+    opacity: 1;
+  }
+  72% {
+    transform: translate(
+        calc(var(--v3-flight-x1) - 50%),
+        var(--v3-flight-y1)
+      )
+      scale(1);
     opacity: 1;
   }
   100% {
     transform: translate(
         calc(var(--v3-flight-x1) - 50%),
-        calc(var(--v3-flight-y1) - 22px)
+        var(--v3-flight-y1)
       )
       scale(1);
     opacity: 0;
@@ -8652,7 +8887,7 @@ button.v3-capital-badge:focus-visible {
     opacity: 1;
     transform: translate(
       calc(var(--v3-flight-x1) - 50%),
-      calc(var(--v3-flight-y1) - 14px)
+      var(--v3-flight-y1)
     );
   }
 }

@@ -128,15 +128,27 @@ function finishedUnclaimed(): EconomyV3RootsState {
 }
 
 describe("v3 Care final reward animation queue", () => {
-  it("1–2. shovel claim path wires finish→claim→ack(skipUiExit)→handleGoToRewards", () => {
+  it("1–2. shovel claim path wires finish→claim→ack→handleGoToRewards (no ack gate)", () => {
     expect(resolveV3CareShovelAction(finishedUnclaimed())).toBe("claim-cycle");
     expect(shouldShowV3RewardPreview(finishedUnclaimed())).toBe(true);
     expect(pageSrc).toContain("await claimV3CareCycleOnce()");
     expect(pageSrc).toContain(
-      "acknowledgeV3CareCycleOnce({ skipUiExit: true })",
+      "await acknowledgeV3CareCycleOnce({ skipUiExit: true })",
     );
     expect(pageSrc).toContain("handleGoToRewards(scoresForQueue)");
+    // Rewards must not be gated on acknowledge success.
+    expect(pageSrc).not.toContain("if (!acked)");
     expect(pageSrc).toContain("Existing project sequence:");
+    // Ack settles before the queue so pending income remains for the capital coin.
+    const claimFn = pageSrc.match(
+      /async function claimV3CareCycleOnce\([\s\S]*?\n  async function handleV3CareShovelClick/,
+    )?.[0] ?? "";
+    const ackIdx = claimFn.indexOf(
+      "await acknowledgeV3CareCycleOnce({ skipUiExit: true })",
+    );
+    const rewardsIdx = claimFn.indexOf("handleGoToRewards(scoresForQueue)");
+    expect(ackIdx).toBeGreaterThan(-1);
+    expect(rewardsIdx).toBeGreaterThan(ackIdx);
   });
 
   it("3–6. reward queue still contains XP / growth / apples / income steps", () => {
@@ -186,7 +198,7 @@ describe("v3 Care final reward animation queue", () => {
       bonus: 1,
       mm: 3,
     });
-    // v3 preview treeGrowth is 0 — mm must come from pending / income for the spectacle.
+    // v3 preview treeGrowth is 0 — mm from THIS cycle income (not cumulative pending).
     expect(
       sessionScoresFromV3Claim({
         xp: 45,
@@ -196,6 +208,16 @@ describe("v3 Care final reward animation queue", () => {
         pendingBonusReward: 0.7,
       }),
     ).toMatchObject({ mm: 3, xp: 45, base: 2.4, bonus: 0.7 });
+    // Stacked pending from a prior unclaimed cycle must not inflate the timer.
+    expect(
+      sessionScoresFromV3Claim({
+        xp: 45,
+        treeGrowth: 0,
+        income: { base: 10, bonus: 9, total: 19 },
+        pendingBaseReward: 20,
+        pendingBonusReward: 18,
+      }),
+    ).toMatchObject({ mm: 19 });
     expect(pageSrc).toContain("setCareClicked(true)");
     expect(pageSrc).toMatch(
       /if \(\(!tutorialDone && !liveTutorial\) \|\| careClicked\) return/,
@@ -228,6 +250,21 @@ describe("v3 Care final reward animation queue", () => {
         showRewards: true,
       }),
     ).toBe(true);
+    expect(
+      shouldExitPostCareUi({
+        tutorialDone: true,
+        pendingBase: 0,
+        pendingBonus: 0,
+        showCompletionStage: true,
+        showActivityGhost: true,
+        showCareButton: true,
+        showRewards: true,
+        showIncomePopup: true,
+      }),
+    ).toBe(false);
+    expect(pageSrc).toContain("showIncomePopup");
+    expect(pageSrc).toContain("incomeUiHold");
+    expect(pageSrc).toContain("showIncomePopup: showIncomePopup || incomeUiHold");
     // skipUiExit must not wipe chrome before the queue
     expect(pageSrc).toContain("Keep sessionScores / fills for handleGoToRewards");
     expect(shouldAcknowledgeV3CareCycle(finishedUnclaimed())).toBe(false);

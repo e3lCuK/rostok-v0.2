@@ -73,7 +73,7 @@ describe("economy-v3-metelka-cycle", () => {
     expect(unlocked.careLocked).toBe(false);
   });
 
-  it("transfer locked from roots-full / Metelka available until finish", () => {
+  it("transfer locked from Metelka available until finish (not while waiting excess)", () => {
     const waiting = buildV3MetelkaCyclePublic({
       rootsFull: true,
       required: true,
@@ -83,7 +83,8 @@ describe("economy-v3-metelka-cycle", () => {
       metelkaPendingResult: false,
     });
     expect(waiting.phase).toBe("roots_full_waiting_excess");
-    expect(waiting.transferLocked).toBe(true);
+    // Roots stay clickable until Metelka CTA exists — otherwise dead-end UX.
+    expect(waiting.transferLocked).toBe(false);
     expect(waiting.careLocked).toBe(false);
 
     const available = buildV3MetelkaCyclePublic({
@@ -142,7 +143,7 @@ describe("economy-v3-metelka-cycle", () => {
         excessAvailable: false,
         metelkaSessionActive: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isV3RootTransferLockedByMetelka({
         required: false,

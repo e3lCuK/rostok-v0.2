@@ -394,7 +394,7 @@ describe("CareActionsRow — Metelka / cleaning / care", () => {
     expect(page).toContain("startEconomyV2ExcessSession");
     expect(page).toContain("ExcessCleaningTimer");
     expect(page).toContain("hideEnergyTimer={excessCleaning}");
-    expect(page).toContain("frozen={excessUiGrey}");
+    expect(page).toContain("frozen={excessCleaning}");
     expect(page).toContain(
       "useUndergroundRootsScene && tutorialDone && !excessCleaning",
     );

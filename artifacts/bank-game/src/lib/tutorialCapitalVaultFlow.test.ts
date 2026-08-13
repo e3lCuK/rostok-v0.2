@@ -75,6 +75,11 @@ describe("tutorial capital vault / plant sprout", () => {
 
   it("GamePage wires plant pad, vault widget, and APIs", () => {
     expect(pageSrc).toContain("VaultWidget");
+    expect(pageSrc).toContain("totalCapital=");
+    expect(pageSrc).toContain("vaultBalance + Math.max(0, Number(balances.balance)");
+    // Not on welcome / plant-sprout — only from capital-transfer onward.
+    expect(pageSrc).toContain('tutorialStep !== "welcome"');
+    expect(pageSrc).toContain('tutorialStep !== "plant-sprout"');
     expect(pageSrc).toContain("tutorial-plant-pad");
     expect(pageSrc).toContain("plantTutorialSprout");
     expect(pageSrc).toContain("transferTutorialCapitalVault");
@@ -83,4 +88,47 @@ describe("tutorial capital vault / plant sprout", () => {
     expect(flowSrc).toContain('"plant-sprout"');
     expect(flowSrc).toContain('"capital-transfer"');
   });
+
+  it("vault label is unused/total compact (100к/100к → 0/100к)", async () => {
+    const { formatVaultAmount, formatVaultChestLabel } = await import(
+      "@/components/VaultWidget"
+    );
+    expect(formatVaultAmount(0)).toBe("0");
+    expect(formatVaultAmount(100_000)).toBe("100к");
+    // Before transfer: all unused, total = chosen deposit.
+    expect(formatVaultChestLabel(100_000, 100_000)).toBe("100к/100к");
+    // After transfer: none left in vault.
+    expect(formatVaultChestLabel(0, 100_000)).toBe("0/100к");
+  });
+
+  it("vault keeps classic gold safe chrome", () => {
+    const vaultSrc = readFileSync(
+      join(here, "../components/VaultWidget.tsx"),
+      "utf8",
+    );
+    expect(vaultSrc).toContain('const FLASK_GOLD = "#c9920a"');
+    expect(vaultSrc).not.toContain('const COLOR = "#2f5c0e"');
+    expect(vaultSrc).toContain("VaultSafeSvg");
+    expect(vaultSrc).toContain("vault-badge-amount");
+    expect(vaultSrc).toContain('data-vault-amount="true"');
+    expect(vaultSrc).not.toContain("vault-safe-bottom-cut");
+    // Crop flush to painted shell — no empty SVG pad under the safe.
+    expect(vaultSrc).toContain('viewBox="7.5 11.5 41 33.3"');
+    // Same flask caption type as apple / mm counters.
+    expect(vaultSrc).toContain('className="field-caption-value vault-badge-amount"');
+    const cssSrc = readFileSync(join(here, "../bank.css"), "utf8");
+    // Same under-icon gap as «УРОВЕНЬ» (.lvl-badge-caption).
+    expect(cssSrc).toMatch(
+      /\.lvl-badge-caption\s*\{[^}]*bottom:\s*5px/s,
+    );
+    expect(cssSrc).toMatch(
+      /\.vault-badge-amount\s*\{[^}]*bottom:\s*5px/s,
+    );
+    // Aspect-matched box so letterboxing cannot reopen a gap under the safe.
+    expect(cssSrc).toMatch(
+      /\.vault-badge-svg[^{]*\{[^}]*height:\s*45px/s,
+    );
+  });
 });
+
+

@@ -92,6 +92,9 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(appleClick).toContain("tutorialRewardActiveRef.current");
     expect(appleClick).toContain("totalApples: nextApples");
     expect(appleClick).toContain("balance: cur.balances.balance + 1");
+    expect(appleClick).toContain("playCoinIncomeFeedback(1)");
+    // Exit fly needs a frame with flying before collected unmounts.
+    expect(appleClick).toContain("requestAnimationFrame");
     expect(pageSrc).toContain("treeGrowthMM: toMM");
     expect(pageSrc).toContain("setShowGrowthAnim(false)");
     expect(pageSrc).toContain("setShowXpPopup(false)");
@@ -125,7 +128,7 @@ describe("tutorial exit vs Care reward animation", () => {
     // Vault stays in field-level-host even when level is hidden.
     expect(pageSrc).toContain("data-field-level-host=\"true\"");
     expect(pageSrc).toContain(
-      "(tutorialDone || tutorialShowLevelBadge || tutorialShowAppleBadge) && (",
+      "tutorialDone || tutorialShowLevelBadge || tutorialShowAppleBadge",
     );
     expect(pageSrc).toContain("<LevelWidget");
     expect(pageSrc).toContain("VaultWidget");
@@ -137,7 +140,9 @@ describe("tutorial exit vs Care reward animation", () => {
   it("12–16. regular Care claim still starts handleGoToRewards once", () => {
     const claimFn = claimFnSrc();
     expect(claimFn).toContain("handleGoToRewards(scoresForQueue)");
-    expect(claimFn).toContain("Only after confirmed regular Care claim");
+    expect(claimFn).toContain("Existing project sequence:");
+    // Rewards must not be gated on acknowledge success.
+    expect(claimFn).not.toContain("if (!acked)");
     expect(pageSrc).toContain("if (!tutorialDone) return;");
     expect(pageSrc).toContain("setShowXpPopup(true)");
     expect(pageSrc).toContain("setShowGrowthAnim(true)");

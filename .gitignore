@@ -52,3 +52,25 @@ Thumbs.db
 artifacts/bank-game/src/debug/
 artifacts/bank-game/src/local/
 artifacts/api-server/src/routes/debug.ts
+
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Temporary Cursor / image work
+.tmp-imgs/**
+
+# Temporary screenshots and browser evidence
+artifacts/bank-game/tmp-root-shots/
+artifacts/bank-game/scripts/metelka-fill-evidence/
+
+# Generated local screenshots / previews
+artifacts/bank-game/live-*.png
+artifacts/bank-game/root-*.png
+artifacts/bank-game/svg-*.png
+artifacts/bank-game/*.html
+
+# Local audit/debug artifacts
+artifacts/api-server/tmp-live-account-audit-report.json

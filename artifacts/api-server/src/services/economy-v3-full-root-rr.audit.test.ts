@@ -86,7 +86,7 @@ function snapshot(label: string, before: {
 }
 
 describe("AUDIT: full root + one generation cycle (characterization)", () => {
-  it("1. Water=25, cursor=Water → unit discarded; Sun/Fert unchanged; cursor→Sun; not Excess", () => {
+  it("1. Water=25, cursor=Water → reroutes to Sun; not Excess", () => {
     const before = {
       water: 25,
       sun: 0,
@@ -103,41 +103,42 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
     expect(after.wholeSeconds).toBe(1);
     expect(after.generatedRaw).toBeCloseTo(1, 9);
 
-    // Unit is LOST (discard), not rerouted to Sun, not Excess.
+    // Unit reroutes to Sun (no void while room exists).
     expect(after.rootWaterSeconds).toBe(25);
-    expect(after.rootSunSeconds).toBe(0);
+    expect(after.rootSunSeconds).toBe(1);
     expect(after.rootFertilizerSeconds).toBe(0);
-    expect(report.deltas.rootSum).toBe(0);
+    expect(report.deltas.rootSum).toBe(1);
     expect(after.ordinaryFull).toBe(false);
     expect(after.excessGenerated).toBe(0);
     expect(after.excessSeconds).toBe(0);
 
-    // Cursor advances past the full root.
-    expect(after.generationRrCursor).toBe(1);
+    // Cursor advances past the root that received the unit.
+    expect(after.generationRrCursor).toBe(2);
     expect(after.generationAnchorAt).toBe(NOW);
     expect(after.generationProgress).toBe(0);
   });
 
-  it("1b. after full-Water discard, next cycle credits Sun +1; cursor→Fertilizer", () => {
-    const afterDiscard = settleOneCycle({
+  it("1b. after full-Water reroute to Sun, next cycle credits Fertilizer", () => {
+    const afterReroute = settleOneCycle({
       water: 25,
       sun: 0,
       fertilizer: 0,
       cursor: 0,
     });
-    expect(afterDiscard.generationRrCursor).toBe(1);
+    expect(afterReroute.generationRrCursor).toBe(2);
+    expect(afterReroute.rootSunSeconds).toBe(1);
 
     const second = settleEconomyV3Roots({
-      rootWaterSeconds: afterDiscard.rootWaterSeconds,
-      rootSunSeconds: afterDiscard.rootSunSeconds,
-      rootFertilizerSeconds: afterDiscard.rootFertilizerSeconds,
-      generationProgress: afterDiscard.generationProgress,
-      generationAnchorAt: afterDiscard.generationAnchorAt,
+      rootWaterSeconds: afterReroute.rootWaterSeconds,
+      rootSunSeconds: afterReroute.rootSunSeconds,
+      rootFertilizerSeconds: afterReroute.rootFertilizerSeconds,
+      generationProgress: afterReroute.generationProgress,
+      generationAnchorAt: afterReroute.generationAnchorAt,
       generationFrozenAt: null,
-      generationRrCursor: afterDiscard.generationRrCursor,
+      generationRrCursor: afterReroute.generationRrCursor,
       dayKey: "2026-07-25",
       capital: 100_000,
-      nowMs: afterDiscard.generationAnchorAt + T * 1000,
+      nowMs: afterReroute.generationAnchorAt + T * 1000,
       tutorialActive: false,
       reserveWaterSeconds: 0,
       reserveSunSeconds: 0,
@@ -152,12 +153,12 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
     expect(second.wholeSeconds).toBe(1);
     expect(second.rootWaterSeconds).toBe(25);
     expect(second.rootSunSeconds).toBe(1);
-    expect(second.rootFertilizerSeconds).toBe(0);
-    expect(second.generationRrCursor).toBe(2);
+    expect(second.rootFertilizerSeconds).toBe(1);
+    expect(second.generationRrCursor).toBe(0);
     expect(second.excessGenerated).toBe(0);
   });
 
-  it("2. Sun=25, cursor=Sun → discard; cursor→Fertilizer", () => {
+  it("2. Sun=25, cursor=Sun → reroutes to Fertilizer", () => {
     const before = {
       water: 0,
       sun: 25,
@@ -174,13 +175,13 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
     expect(after.wholeSeconds).toBe(1);
     expect(after.rootWaterSeconds).toBe(0);
     expect(after.rootSunSeconds).toBe(25);
-    expect(after.rootFertilizerSeconds).toBe(0);
-    expect(report.deltas.rootSum).toBe(0);
+    expect(after.rootFertilizerSeconds).toBe(1);
+    expect(report.deltas.rootSum).toBe(1);
     expect(after.excessGenerated).toBe(0);
-    expect(after.generationRrCursor).toBe(2);
+    expect(after.generationRrCursor).toBe(0);
   });
 
-  it("3. Fertilizer=25, cursor=Fertilizer → discard; cursor→Water", () => {
+  it("3. Fertilizer=25, cursor=Fertilizer → reroutes to Water", () => {
     const before = {
       water: 0,
       sun: 0,
@@ -195,15 +196,15 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
     console.log(JSON.stringify(report, null, 2));
 
     expect(after.wholeSeconds).toBe(1);
-    expect(after.rootWaterSeconds).toBe(0);
+    expect(after.rootWaterSeconds).toBe(1);
     expect(after.rootSunSeconds).toBe(0);
     expect(after.rootFertilizerSeconds).toBe(25);
-    expect(report.deltas.rootSum).toBe(0);
+    expect(report.deltas.rootSum).toBe(1);
     expect(after.excessGenerated).toBe(0);
-    expect(after.generationRrCursor).toBe(0);
+    expect(after.generationRrCursor).toBe(1);
   });
 
-  it("4. cursor always advances once per wholeSecond even when discarded", () => {
+  it("4. cursor advances past the root that accepted (or +1 if nobody could)", () => {
     const cases: Array<{
       kind: Kind;
       water: number;
@@ -218,7 +219,7 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
         sun: 0,
         fertilizer: 0,
         cursor: 0,
-        next: 1,
+        next: 2, // water full → sun accepts → cursor past sun
       },
       {
         kind: "sun",
@@ -226,7 +227,7 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
         sun: 25,
         fertilizer: 0,
         cursor: 1,
-        next: 2,
+        next: 0, // sun full → fert accepts → cursor past fert
       },
       {
         kind: "fertilizer",
@@ -234,7 +235,7 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
         sun: 0,
         fertilizer: 25,
         cursor: 2,
-        next: 0,
+        next: 1, // fert full → water accepts → cursor past water
       },
     ];
     for (const c of cases) {
@@ -283,8 +284,10 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
       excessSeconds: 0,
     });
     expect(allReservesFull.ordinaryFull).toBe(true);
-    expect(allReservesFull.wholeSeconds).toBe(0);
+    // Excess path may count ledger wholes; roots stay empty.
     expect(allReservesFull.rootWaterSeconds).toBe(0);
+    expect(allReservesFull.rootSunSeconds).toBe(0);
+    expect(allReservesFull.rootFertilizerSeconds).toBe(0);
     expect(allReservesFull.excessGenerated).toBeGreaterThan(0);
     // Cursor unchanged on ordinaryFull path.
     expect(allReservesFull.generationRrCursor).toBe(0);

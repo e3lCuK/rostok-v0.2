@@ -26,6 +26,11 @@ describe("AppleBasket on play field", () => {
     expect(pageSrc).toContain("dropHighlight={appleDropTargetActive}");
     expect(pageSrc).toContain("data-apple-basket-popup");
     expect(pageSrc).toContain("apple-basket-popup-slot");
+    expect(pageSrc).toContain('excessCleaning ? " game-area--metelka-cleaning"');
+    expect(cssSrc).toContain(".game-area--metelka-cleaning .apple-basket-host");
+    expect(cssSrc).toContain(
+      ".game-area--metelka-cleaning .tree-growth-badge-host",
+    );
   });
 
   it("CSS keeps apple popup out of basket flow and inside the field", () => {
@@ -50,7 +55,7 @@ describe("AppleBasket on play field", () => {
     expect(cssSrc).toContain(".apple-basket");
     expect(cssSrc).toContain(".game-area--v3-roots .apple-basket-host");
     expect(cssSrc).toContain("var(--v2-scene-lift)");
-    expect(cssSrc).toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*15%/s);
+    expect(cssSrc).toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*13%/s);
     expect(cssSrc).not.toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*0(?:px)?;/s);
   });
 

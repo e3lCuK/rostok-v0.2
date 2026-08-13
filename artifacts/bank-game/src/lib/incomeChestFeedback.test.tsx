@@ -117,8 +117,13 @@ describe("incomeChestFeedback helpers", () => {
 
   it("12. single beige field-income-popup — no second chest float", () => {
     expect(css).toContain("field-income-popup");
+    expect(css).toContain("field-income-popup--stone");
     expect(page).toContain('data-field-income-popup="true"');
     expect(page).toContain("playCoinIncomeFeedback");
+    expect(page).toContain('playCoinIncomeFeedback(moneyGained, "stone")');
+    // Ported out of roots wipe-layer (clip-path was hiding tutorial +₽).
+    expect(page).toContain("field-income-popup--ported");
+    expect(css).toContain("field-income-popup--ported");
     expect(page).not.toContain("createIncomeChestFeedback");
     expect(page).not.toContain("setIncomeChestFeedback");
     expect(page).not.toContain("<IncomeChestFloat");

@@ -4,21 +4,39 @@
  */
 
 type Kind = "apple" | "coin";
+/** Care reward = gold; Metelka / excess reward = stone grey. */
+type Tone = "gold" | "stone";
 
 type Props = {
   kind: Kind;
+  tone?: Tone;
   className?: string;
 };
 
 const WOOD = "#5c3a1a";
+const STONE_EDGE = "#57534e";
 const LEAF = "#2f5c0e";
 const STROKE = 1.05;
+const COIN_FILL: Record<Tone, string> = {
+  gold: "#f0b429",
+  stone: "#cdc7bf",
+};
 
-export default function TreeRewardToken({ kind, className }: Props) {
+export default function TreeRewardToken({
+  kind,
+  tone = "gold",
+  className,
+}: Props) {
   if (kind === "coin") {
+    const edge = tone === "stone" ? STONE_EDGE : WOOD;
     return (
       <svg
-        className={["tree-reward-token", "tree-reward-token--coin", className]
+        className={[
+          "tree-reward-token",
+          "tree-reward-token--coin",
+          tone === "stone" ? "tree-reward-token--stone" : "",
+          className,
+        ]
           .filter(Boolean)
           .join(" ")}
         viewBox="0 0 20 20"
@@ -26,13 +44,14 @@ export default function TreeRewardToken({ kind, className }: Props) {
         height="100%"
         aria-hidden="true"
         focusable="false"
+        data-reward-tone={tone}
       >
         <circle
           cx="10"
           cy="10"
           r="8"
-          fill="#f0b429"
-          stroke={WOOD}
+          fill={COIN_FILL[tone]}
+          stroke={edge}
           strokeWidth={STROKE}
         />
         <circle
@@ -40,7 +59,7 @@ export default function TreeRewardToken({ kind, className }: Props) {
           cy="10"
           r="5.2"
           fill="none"
-          stroke={WOOD}
+          stroke={edge}
           strokeWidth={STROKE}
           opacity="0.55"
         />

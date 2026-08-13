@@ -15,6 +15,7 @@ import {
   V3_ACTIVITY_RESERVE_SELECTOR,
   V3_ROOT_SELECTOR,
   V3_TRANSFER_FLIGHT_COLORS,
+  V3_TRANSFER_LABEL_TOP_OFFSET_PX,
   v3RootToActivityKind,
 } from "./v3TransferFlight";
 import { V3_ROOT_KINDS } from "./v3Roots";
@@ -45,7 +46,7 @@ describe("v3TransferFlight mapping", () => {
     expect(rootSysSrc).toContain("data-v3-root={kind}");
   });
 
-  it("measures flight ABOVE the activity card top (not bottom / center)", () => {
+  it("measures flight just above the activity card (soil gap, not grass)", () => {
     const root = {
       getBoundingClientRect: () =>
         ({
@@ -60,11 +61,12 @@ describe("v3TransferFlight mapping", () => {
           toJSON: () => ({}),
         }) as DOMRect,
     };
+    const cardTop = 40;
     const card = {
       getBoundingClientRect: () =>
         ({
           left: 20,
-          top: 40,
+          top: cardTop,
           width: 58,
           height: 72,
           right: 78,
@@ -82,6 +84,7 @@ describe("v3TransferFlight mapping", () => {
       },
     } as unknown as Document;
 
+    const expectedToY = cardTop - V3_TRANSFER_LABEL_TOP_OFFSET_PX;
     const points = measureV3TransferFlight("water", doc);
     expect(points).not.toBeNull();
     if (!points) return;
@@ -89,9 +92,14 @@ describe("v3TransferFlight mapping", () => {
     expect(points.fromX).toBe(120); // 100 + 20
     expect(points.fromY).toBe(240); // 200 + 40
     expect(points.toX).toBe(49); // 20 + 29
-    expect(points.toY).toBe(26); // top - 14 — above the button
-    expect(points.toY).toBeLessThan(40);
-    expect(activityCardTopAnchor(card.getBoundingClientRect()).y).toBe(26);
+    expect(points.toY).toBe(expectedToY);
+    // Under grass, with a small clear gap above the button (~pillH + 4px).
+    expect(points.toY).toBe(cardTop - 20);
+    expect(V3_TRANSFER_LABEL_TOP_OFFSET_PX).toBe(20);
+    expect(points.toY).toBeLessThan(cardTop);
+    expect(activityCardTopAnchor(card.getBoundingClientRect()).y).toBe(
+      expectedToY,
+    );
     expect(points.midY).toBeLessThan(points.toY);
     expect(points.midX).not.toBe(points.fromX);
     expect(points.color).toBe(V3_TRANSFER_FLIGHT_COLORS.water);
@@ -100,6 +108,10 @@ describe("v3TransferFlight mapping", () => {
     expect(flightSrc).toContain("getBoundingClientRect");
     expect(flightSrc).toContain("activityCardTopAnchor");
     expect(flightSrc).not.toMatch(/fromX:\s*\d{2,}/);
+    // End keyframe settles at toY (no extra upward float into the grass).
+    expect(cssSrc).toMatch(
+      /@keyframes v3-transfer-flight-label-above[\s\S]*?100%\s*\{[\s\S]*?var\(--v3-flight-y1\)/,
+    );
   });
 
   it("returns null only when the root is missing", () => {
@@ -178,7 +190,6 @@ describe("transfer flight wiring in root system / CSS", () => {
     expect(rootSysSrc).toContain("V3TransferFlight");
     expect(rootSysSrc).toContain("pulseV3ActivityReceive");
     expect(rootSysSrc).toContain("v3-root--press");
-    expect(rootSysSrc).toContain("Pending snapshot is never merged");
     expect(rootSysSrc).toMatch(
       /resolveV3RootsDisplaySnapshot[\s\S]*?return live/,
     );
@@ -199,16 +210,26 @@ describe("transfer flight wiring in root system / CSS", () => {
     );
   });
 
-  it("V3TransferFlight renders +X с label only (no blue particle blobs)", () => {
+  it("V3TransferFlight renders cream +X с pill with clock (no particle blobs)", () => {
     const flightSrc = readFileSync(
       join(here, "../components/v2/V3TransferFlight.tsx"),
       "utf8",
     );
     expect(flightSrc).toContain("formatV3TransferSecondsLabel");
     expect(flightSrc).toContain("data-v3-transfer-flight-label");
+    expect(flightSrc).toContain('data-v3-transfer-flight-clock="true"');
+    expect(flightSrc).toContain("v3-transfer-flight-icon");
+    expect(flightSrc).toContain("v3-transfer-flight-text");
+    expect(flightSrc).toMatch(/from ["']lucide-react["']/);
+    expect(flightSrc).toContain("Clock");
     expect(flightSrc).toContain("seconds");
     expect(flightSrc).not.toContain("v3-transfer-flight-blob");
     expect(flightSrc).not.toContain("showParticles");
+    expect(cssSrc).toMatch(
+      /\.v3-transfer-flight-label\s*\{[\s\S]*?background:\s*rgba\(255,\s*248,\s*236/,
+    );
+    expect(cssSrc).toContain(".v3-transfer-flight-icon");
+    expect(cssSrc).toContain(".v3-transfer-flight-text");
   });
 
   it("root system mounts flight without in-root energy blob", () => {

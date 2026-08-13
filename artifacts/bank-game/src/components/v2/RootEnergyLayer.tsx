@@ -6,7 +6,7 @@ import {
   useState,
   type MouseEvent,
 } from "react";
-import { Zap } from "lucide-react";
+import { Clock, Zap } from "lucide-react";
 
 import RootEnergySystem from "./RootEnergySystem";
 import { useV2TrunkAnchor } from "./useV2TrunkAnchor";
@@ -294,7 +294,10 @@ export default function RootEnergyLayer({
           style={{ left: f.x, top: f.y }}
           aria-hidden="true"
         >
-          +1 сек
+          <span className="v2-root-collect-floater-icon" aria-hidden="true">
+            <Clock size={12} strokeWidth={2.2} />
+          </span>
+          <span className="v2-root-collect-floater-text">+1 сек</span>
         </span>
       ))}
 

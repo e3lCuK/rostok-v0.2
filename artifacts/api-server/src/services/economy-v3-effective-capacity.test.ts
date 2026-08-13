@@ -5,6 +5,8 @@ import {
   computeV3VisitBonusSeconds,
   normalizeV3StorageToEffectiveCapacity,
   resolveV3CurrentVisitDay,
+  v3SharedPoolRootCap,
+  v3SharedPoolRootFreeRoom,
 } from "./economy-v3-effective-capacity";
 import { settleEconomyV3Roots } from "./economy-v3-roots";
 import { V2_SECONDS_PER_ENERGY_AT_REFERENCE } from "./economy-v2";
@@ -261,6 +263,37 @@ describe("economy-v3 effective capacity — visit day bonus SoT", () => {
     });
     expect(n.overflowSeconds).toBe(0);
     expect(n.rootWaterSeconds).toBe(20);
+  });
+
+  it("normalize trims root when root+reserve exceeds shared pool", () => {
+    const n = normalizeV3StorageToEffectiveCapacity({
+      rootWaterSeconds: 21,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      reserveWaterSeconds: 21,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      effectivePresetSeconds: 21,
+    });
+    expect(n.reserveWaterSeconds).toBe(21);
+    expect(n.rootWaterSeconds).toBe(0);
+    expect(n.overflowSeconds).toBe(21);
+  });
+
+  it("shared pool free room shrinks with reserve fill", () => {
+    expect(
+      v3SharedPoolRootFreeRoom({
+        rootSeconds: 0,
+        reserveSeconds: 21,
+        capacitySeconds: 21,
+      }),
+    ).toBe(0);
+    expect(
+      v3SharedPoolRootCap({
+        reserveSeconds: 10,
+        capacitySeconds: 21,
+      }),
+    ).toBe(11);
   });
 
   it("transfer path uses SoT effective 21 (caller passes capacity)", () => {

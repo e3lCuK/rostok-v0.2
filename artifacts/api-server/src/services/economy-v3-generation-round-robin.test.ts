@@ -49,7 +49,7 @@ describe("distributeV3WholeSecondsRoundRobin", () => {
     ).toBe(d.acceptedUnits);
   });
 
-  it("full target root discards slot without rerouting", () => {
+  it("full target root reroutes to next accepting root (no void while room exists)", () => {
     const d = distributeV3WholeSecondsRoundRobin({
       wholeSeconds: 3,
       generationRrCursor: 0,
@@ -61,11 +61,52 @@ describe("distributeV3WholeSecondsRoundRobin", () => {
       rootCapacitySeconds: 25,
     });
     expect(d.rootWaterSeconds).toBe(25);
-    expect(d.rootSunSeconds).toBe(1);
+    expect(d.rootSunSeconds).toBe(2);
     expect(d.rootFertilizerSeconds).toBe(1);
-    expect(d.acceptedUnits).toBe(2);
-    expect(d.discardedUnits).toBe(1);
-    expect(d.generationRrCursor).toBe(0);
+    expect(d.acceptedUnits).toBe(3);
+    expect(d.discardedUnits).toBe(0);
+    expect(d.generationRrCursor).toBe(2);
+  });
+
+  it("after water transfer, sun full + fert empty: unit goes to fert (not void)", () => {
+    const d = distributeV3WholeSecondsRoundRobin({
+      wholeSeconds: 1,
+      generationRrCursor: 0,
+      rootWaterSeconds: 0,
+      rootSunSeconds: 21,
+      rootFertilizerSeconds: 0,
+      reserveWaterSeconds: 21,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      reservesFull: { water: true, sun: false, fertilizer: false },
+      transferredRoots: ["water"],
+      rootCapacitySeconds: 21,
+    });
+    expect(d.rootFertilizerSeconds).toBe(1);
+    expect(d.rootSunSeconds).toBe(21);
+    expect(d.acceptedUnits).toBe(1);
+    expect(d.discardedUnits).toBe(0);
+  });
+
+  it("shared pool: partial reserve shrinks root room (root+reserve ≤ cap)", () => {
+    const d = distributeV3WholeSecondsRoundRobin({
+      wholeSeconds: 20,
+      generationRrCursor: 0,
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      reserveWaterSeconds: 15,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      reservesFull: { water: false, sun: false, fertilizer: false },
+      transferredRoots: [],
+      rootCapacitySeconds: 21,
+    });
+    // Water can take at most 21-15=6; other roots share remaining units.
+    expect(d.rootWaterSeconds).toBeLessThanOrEqual(6);
+    expect(d.rootWaterSeconds + 15).toBeLessThanOrEqual(21);
+    expect(d.rootSunSeconds + 0).toBeLessThanOrEqual(21);
+    expect(d.rootFertilizerSeconds + 0).toBeLessThanOrEqual(21);
   });
 });
 

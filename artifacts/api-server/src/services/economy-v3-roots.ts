@@ -27,10 +27,13 @@ import {
   V3_EFFECTIVE_CAPACITY_MAX,
 } from "./economy-v3-effective-capacity";
 import {
+  areAllV3RootsTransferred,
   buildV3ExcessGatePublic,
   canAcceptV3OrdinaryRootUnit,
   computeV3OrdinaryFullState,
   isV3RootOrdinaryEligible,
+  isV3SharedPoolEnergyAtMaximum,
+  shouldRouteV3GeneratedToExcess,
   splitV3ElapsedOrdinaryAndExcess,
   type V3ReservesFullMap,
 } from "./economy-v3-excess-gate";
@@ -460,8 +463,11 @@ export type DistributeV3WholeSecondsRoundRobinResult = {
 };
 
 /**
- * Assign each whole generated second to exactly one root in round-robin order.
- * Ineligible or at-cap roots discard that unit (no reroute).
+ * Assign each whole generated second in round-robin order.
+ * If the cursor root cannot accept (transferred / reserve-full / shared-pool
+ * cap), scan forward for the next accepting root — never void a unit while any
+ * eligible root still has shared-pool room. Only discard when nobody can take it.
+ * Shared pool: root[kind] + reserve[kind] ≤ effectivePreset.
  */
 export function distributeV3WholeSecondsRoundRobin(input: {
   wholeSeconds: number;
@@ -473,6 +479,10 @@ export function distributeV3WholeSecondsRoundRobin(input: {
   transferredRoots: ReadonlySet<RootKind> | readonly RootKind[];
   /** Effective root capacity (default absolute max 30). */
   rootCapacitySeconds?: number;
+  /** Matching activity reserves — shared pool with roots. */
+  reserveWaterSeconds?: number;
+  reserveSunSeconds?: number;
+  reserveFertilizerSeconds?: number;
 }): DistributeV3WholeSecondsRoundRobinResult {
   const rootCap = Math.min(
     V3_EFFECTIVE_CAPACITY_MAX,
@@ -486,9 +496,25 @@ export function distributeV3WholeSecondsRoundRobin(input: {
     ),
   );
   let cursor = normalizeGenerationRrCursor(input.generationRrCursor);
-  let water = clampRootSeconds(input.rootWaterSeconds, rootCap);
-  let sun = clampRootSeconds(input.rootSunSeconds, rootCap);
-  let fertilizer = clampRootSeconds(input.rootFertilizerSeconds, rootCap);
+  const reserveWater = clampRootSeconds(input.reserveWaterSeconds ?? 0, rootCap);
+  const reserveSun = clampRootSeconds(input.reserveSunSeconds ?? 0, rootCap);
+  const reserveFertilizer = clampRootSeconds(
+    input.reserveFertilizerSeconds ?? 0,
+    rootCap,
+  );
+  // Clamp each root to its shared-pool max against the matching reserve.
+  let water = Math.min(
+    clampRootSeconds(input.rootWaterSeconds, rootCap),
+    Math.max(0, rootCap - reserveWater),
+  );
+  let sun = Math.min(
+    clampRootSeconds(input.rootSunSeconds, rootCap),
+    Math.max(0, rootCap - reserveSun),
+  );
+  let fertilizer = Math.min(
+    clampRootSeconds(input.rootFertilizerSeconds, rootCap),
+    Math.max(0, rootCap - reserveFertilizer),
+  );
   const transferred =
     input.transferredRoots instanceof Set
       ? input.transferredRoots
@@ -497,28 +523,47 @@ export function distributeV3WholeSecondsRoundRobin(input: {
   let acceptedUnits = 0;
   let discardedUnits = 0;
 
-  for (let i = 0; i < units; i++) {
-    const kind = V3_ROOT_KINDS[cursor];
-    const seconds =
-      kind === "water" ? water : kind === "sun" ? sun : fertilizer;
-    const eligible = isV3RootOrdinaryEligible({
+  const secondsOf = (kind: RootKind): number =>
+    kind === "water" ? water : kind === "sun" ? sun : fertilizer;
+  const reserveOf = (kind: RootKind): number =>
+    kind === "water"
+      ? reserveWater
+      : kind === "sun"
+        ? reserveSun
+        : reserveFertilizer;
+  const canTake = (kind: RootKind): boolean => {
+    const kindRootCap = Math.max(0, rootCap - reserveOf(kind));
+    if (secondsOf(kind) >= kindRootCap) return false;
+    return isV3RootOrdinaryEligible({
       kind,
       reservesFull: input.reservesFull,
       transferredRoots: transferred,
     });
-    if (eligible && seconds < rootCap) {
-      if (kind === "water") {
-        water = clampRootSeconds(water + 1, rootCap);
-      } else if (kind === "sun") {
-        sun = clampRootSeconds(sun + 1, rootCap);
-      } else {
-        fertilizer = clampRootSeconds(fertilizer + 1, rootCap);
-      }
+  };
+  const addOne = (kind: RootKind): void => {
+    const kindRootCap = Math.max(0, rootCap - reserveOf(kind));
+    if (kind === "water") water = Math.min(water + 1, kindRootCap);
+    else if (kind === "sun") sun = Math.min(sun + 1, kindRootCap);
+    else fertilizer = Math.min(fertilizer + 1, kindRootCap);
+  };
+
+  for (let i = 0; i < units; i++) {
+    let placed = false;
+    for (let step = 0; step < V3_ROOT_KINDS.length; step++) {
+      const idx = ((cursor + step) % 3) as 0 | 1 | 2;
+      const kind = V3_ROOT_KINDS[idx];
+      if (!canTake(kind)) continue;
+      addOne(kind);
       acceptedUnits++;
-    } else {
-      discardedUnits++;
+      // Advance past the root that received the unit (fair RR continues).
+      cursor = ((idx + 1) % 3) as 0 | 1 | 2;
+      placed = true;
+      break;
     }
-    cursor = ((cursor + 1) % 3) as 0 | 1 | 2;
+    if (!placed) {
+      discardedUnits++;
+      cursor = ((cursor + 1) % 3) as 0 | 1 | 2;
+    }
   }
 
   return {
@@ -1961,14 +2006,15 @@ export function buildEconomyV3RootsPublicState(
  * Pure round-robin root settle. One wall-clock window → shared generation;
  * each whole second is assigned sequentially Water → Sun → Fertilizer → …
  *
- * Excess gate (reserves, not roots):
- * - while any reserve < effectivePreset → ordinary seconds into the RR queue;
+ * Excess gate (reserves + shared pool):
+ * - while any eligible root has shared-pool room → ordinary seconds into the RR queue
+ *   (RR reroutes past transferred/full slots so energy is not voided);
  * - when all three reserves ≥ effectivePreset → ordinary stops, elapsed → excess;
- * - when no eligible root can accept (all at effective cap / transferred / reserve full)
- *   → elapsed → excess ledger (does not set ordinaryFull / Metelka gate);
- * - a root whose matching reserve is full, or that is at effective cap, discards its
- *   RR slot only while another root can still accept; cursor still advances;
- * - transferred roots likewise discard their slot.
+ * - when shared pool is full on every activity (root and/or button) → excess;
+ * - when shared pool is full on every non-transferred root → excess
+ *   (does not set ordinaryFull / Metelka reserve gate);
+ * - after all three roots are transferred and reserves are not full → pause
+ *   (no excess mint; matches generation.accumulating=false);
  *
  * Before generation: roots/reserves above effective capacity are clamped and
  * overflow is added to the excess ledger (does not clear prior excess).
@@ -2082,18 +2128,57 @@ export function settleEconomyV3Roots(
   const elapsedSeconds = elapsedMs / 1000;
   const generatedRaw = generateEnergyFromElapsed(input.capital, elapsedSeconds);
 
-  // Reserves-full OR no root can accept another ordinary unit → excess ledger.
-  // ordinaryFull (Metelka gate) stays reserves-only; blocked roots must not discard.
+  // Reserves-full OR shared-pool full (roots and/or buttons) → excess ledger.
+  // After the transfer trio (all transferred) and reserves not full → pause
+  // (no excess mint) so financial time does not jump during Care / between cycles.
+  const allRootsTransferred = areAllV3RootsTransferred(transferred);
+  const sharedPoolEnergyAtMaximum = isV3SharedPoolEnergyAtMaximum({
+    rootWaterSeconds: rootWater,
+    rootSunSeconds: rootSun,
+    rootFertilizerSeconds: rootFertilizer,
+    reserveWaterSeconds,
+    reserveSunSeconds,
+    reserveFertilizerSeconds,
+    rootCapacitySeconds: effectivePresetSeconds,
+  });
   const ordinaryAcceptBlocked = !canAcceptV3OrdinaryRootUnit({
     rootWaterSeconds: rootWater,
     rootSunSeconds: rootSun,
     rootFertilizerSeconds: rootFertilizer,
+    reserveWaterSeconds,
+    reserveSunSeconds,
+    reserveFertilizerSeconds,
     reservesFull: ordinaryGate.reservesFull,
     transferredRoots: transferred,
     rootCapacitySeconds: effectivePresetSeconds,
   });
-  const routeGeneratedToExcess =
-    ordinaryGate.ordinaryFull || ordinaryAcceptBlocked;
+  const routeGeneratedToExcess = shouldRouteV3GeneratedToExcess({
+    ordinaryFull: ordinaryGate.ordinaryFull,
+    ordinaryAcceptBlocked,
+    allRootsTransferred,
+    sharedPoolEnergyAtMaximum,
+  });
+
+  // Post-trio pause: UI already sets accumulating=false; keep ledger/financial still.
+  if (allRootsTransferred && !ordinaryGate.ordinaryFull) {
+    return {
+      ...base,
+      generationAnchorAt: nowMs,
+      elapsedMs,
+      elapsedSeconds,
+      generatedRaw,
+      wholeSeconds: 0,
+      generationRrCursor: inputCursor,
+      generated: false,
+      excessSeconds: excessBefore,
+      excessGenerated: 0,
+      excessElapsedMs: excessElapsedBefore,
+      excessElapsedMsGenerated: 0,
+      ordinaryFull: false,
+      reservesFull: ordinaryGate.reservesFull,
+      generatingExcess: false,
+    };
+  }
 
   const split = splitV3ElapsedOrdinaryAndExcess({
     elapsedMs,
@@ -2101,8 +2186,7 @@ export function settleEconomyV3Roots(
     ordinaryFull: routeGeneratedToExcess,
   });
 
-  const generatingExcess =
-    routeGeneratedToExcess && split.excessGenerated > 0;
+  const generatingExcess = routeGeneratedToExcess;
 
   // When ordinary is full or roots cannot accept: do not grow roots.
   // Still advance generationProgress so the cycle clock / nextWholeSecondAt
@@ -2147,6 +2231,9 @@ export function settleEconomyV3Roots(
     rootWaterSeconds: rootWater,
     rootSunSeconds: rootSun,
     rootFertilizerSeconds: rootFertilizer,
+    reserveWaterSeconds,
+    reserveSunSeconds,
+    reserveFertilizerSeconds,
     reservesFull: ordinaryGate.reservesFull,
     transferredRoots: transferred,
     rootCapacitySeconds: effectivePresetSeconds,

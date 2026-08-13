@@ -1,7 +1,8 @@
 /**
  * Local/debug mutations for Economy v3 root seconds + activity reserves.
  *
- * Hard-capped by effectivePresetSeconds (base + visit bonus). Never writes above cap.
+ * Hard-capped by effectivePresetSeconds (base + visit bonus).
+ * Shared pool per activity: root + matching reserve ≤ effectivePreset.
  * Persisted over-capacity values are normalized into excess (production overflow path).
  * Artificial debug set/add overflow is clamped and reported — not sent to excess.
  *
@@ -18,6 +19,8 @@ import {
   computeV3EffectivePresetSeconds,
   normalizeV3StorageToEffectiveCapacity,
   splitV3CapacityOverflow,
+  v3SharedPoolReserveCap,
+  v3SharedPoolRootCap,
 } from "./economy-v3-effective-capacity";
 import { isEconomyV3RootsEnabled } from "./economy-v3-feature";
 import {
@@ -300,12 +303,27 @@ function applyKindSet(
   kind: RootKind,
   requested: number | undefined,
   current: { water: number; sun: number; fertilizer: number },
+  paired: { water: number; sun: number; fertilizer: number },
   capacity: number,
   reports: Partial<Record<RootKind, DebugV3ClampFieldReport>>,
+  side: "root" | "reserve",
 ): void {
   if (requested == null) return;
-  const report = applyDebugSecondsClamp(requested, capacity);
-  reports[kind] = report;
+  const poolCap =
+    side === "root"
+      ? v3SharedPoolRootCap({
+          reserveSeconds: paired[kind],
+          capacitySeconds: capacity,
+        })
+      : v3SharedPoolReserveCap({
+          rootSeconds: paired[kind],
+          capacitySeconds: capacity,
+        });
+  const report = applyDebugSecondsClamp(requested, poolCap);
+  reports[kind] = {
+    ...report,
+    capacitySeconds: capacity,
+  };
   current[kind] = report.appliedSeconds;
 }
 
@@ -313,12 +331,27 @@ function applyKindAdd(
   kind: RootKind,
   requested: number | undefined,
   current: { water: number; sun: number; fertilizer: number },
+  paired: { water: number; sun: number; fertilizer: number },
   capacity: number,
   reports: Partial<Record<RootKind, DebugV3AddFieldReport>>,
+  side: "root" | "reserve",
 ): void {
   if (requested == null) return;
-  const report = applyDebugSecondsAdd(current[kind], requested, capacity);
-  reports[kind] = report;
+  const poolCap =
+    side === "root"
+      ? v3SharedPoolRootCap({
+          reserveSeconds: paired[kind],
+          capacitySeconds: capacity,
+        })
+      : v3SharedPoolReserveCap({
+          rootSeconds: paired[kind],
+          capacitySeconds: capacity,
+        });
+  const report = applyDebugSecondsAdd(current[kind], requested, poolCap);
+  reports[kind] = {
+    ...report,
+    capacitySeconds: capacity,
+  };
   current[kind] = report.afterSeconds;
 }
 
@@ -562,15 +595,33 @@ export async function debugMutateEconomyV3Roots(
       if (body.action === "fillToCapacity") {
         if (body.roots !== false) {
           for (const kind of ROOT_KINDS) {
-            const report = applyDebugSecondsClamp(effectiveCap, effectiveCap);
-            rootReports[kind] = report;
+            const poolCap = v3SharedPoolRootCap({
+              reserveSeconds: reserves[kind],
+              capacitySeconds: effectiveCap,
+            });
+            const report = applyDebugSecondsClamp(poolCap, poolCap);
+            rootReports[kind] = {
+              ...report,
+              requestedSeconds: effectiveCap,
+              capacitySeconds: effectiveCap,
+              clamped: poolCap < effectiveCap,
+            };
             roots[kind] = report.appliedSeconds;
           }
         }
         if (body.reserves !== false) {
           for (const kind of ROOT_KINDS) {
-            const report = applyDebugSecondsClamp(effectiveCap, effectiveCap);
-            reserveReports[kind] = report;
+            const poolCap = v3SharedPoolReserveCap({
+              rootSeconds: roots[kind],
+              capacitySeconds: effectiveCap,
+            });
+            const report = applyDebugSecondsClamp(poolCap, poolCap);
+            reserveReports[kind] = {
+              ...report,
+              requestedSeconds: effectiveCap,
+              capacitySeconds: effectiveCap,
+              clamped: poolCap < effectiveCap,
+            };
             reserves[kind] = report.appliedSeconds;
           }
         }
@@ -580,15 +631,19 @@ export async function debugMutateEconomyV3Roots(
             kind,
             body.roots?.[kind],
             roots,
+            reserves,
             effectiveCap,
             addRootReports,
+            "root",
           );
           applyKindAdd(
             kind,
             body.reserves?.[kind],
             reserves,
+            roots,
             effectiveCap,
             addReserveReports,
+            "reserve",
           );
         }
       } else {
@@ -597,15 +652,19 @@ export async function debugMutateEconomyV3Roots(
             kind,
             body.roots?.[kind],
             roots,
+            reserves,
             effectiveCap,
             rootReports,
+            "root",
           );
           applyKindSet(
             kind,
             body.reserves?.[kind],
             reserves,
+            roots,
             effectiveCap,
             reserveReports,
+            "reserve",
           );
         }
       }

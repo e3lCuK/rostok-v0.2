@@ -91,6 +91,10 @@ describe("Economy v2 debug moved to right panel", () => {
     expect(localPanel).toContain("formatExcessElapsedReadout");
     expect(localPanel).toContain("liveExcessElapsedMs");
     expect(localPanel).toContain("excessFinancialAnchorAt");
+    expect(localPanel).toContain("mayLiveProjectFinancial");
+    expect(localPanel).toContain("snap.v3.generatingExcess === true");
+    expect(page).toContain("excessGate?.generatingExcess === true");
+    expect(page).toContain("excessFinancialAnchorAt: anchorMs");
     expect(localPanel).toContain("previewMetelkaDebugReward");
     expect(localPanel).toContain("METELKA_MAX_PRESET_STATUS");
     expect(localPanel).toContain("METELKA_MAX_PRESET_FINANCE_HINT");

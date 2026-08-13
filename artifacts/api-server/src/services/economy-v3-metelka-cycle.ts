@@ -2,7 +2,8 @@
  * Economy v3 Metelka-before-transfer cycle.
  *
  * Product order:
- * roots full (effective capacity) → excess → Metelka → then unlock root transfer → reserves → Care.
+ * roots fill → (transfer OK while waiting for excess) → excessAvailable → Metelka
+ * → then unlock root transfer again → reserves → Care.
  *
  * Persisted:
  * - v3_metelka_required — obligation active (roots-full cycle awaiting Metelka finish)
@@ -148,12 +149,15 @@ export function isCareBlockedByMetelka(input: {
 }
 
 /**
- * Root → reserve transfer stays locked until Metelka is finished for this
- * roots-full cycle (product order: roots → excess → Metelka → transfer → Care).
+ * Root → reserve transfer stays locked while Metelka is actionable or running
+ * (product order: excess → Metelka → then transfer).
  *
  * Unlocked after Metelka finish (`completedForCycle`) even if the reward coin
- * is still pending. Locked while the session is active, or while Metelka is
- * still required / excess card is up before that finish.
+ * is still pending. Locked while the session is active, or while the Metelka
+ * start card is up (`excessAvailable`).
+ *
+ * Not locked during `roots_full_waiting_excess` alone — otherwise roots stay
+ * unclickable with no Metelka CTA until excess reaches the threshold.
  */
 export function isV3RootTransferLockedByMetelka(input: {
   required: boolean;
@@ -163,7 +167,7 @@ export function isV3RootTransferLockedByMetelka(input: {
 }): boolean {
   if (input.metelkaSessionActive === true) return true;
   if (input.completedForCycle === true) return false;
-  return input.required === true || input.excessAvailable === true;
+  return input.excessAvailable === true;
 }
 
 /**

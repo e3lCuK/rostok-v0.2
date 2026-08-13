@@ -1,4 +1,10 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type CSSProperties,
+} from "react";
 import { motion, AnimatePresence, MotionConfig, useAnimation } from "framer-motion";
 import {
   UserState,
@@ -33,6 +39,11 @@ import { getLevelProgress } from "@/lib/levels";
 import GameAreaBg from "@/components/GameAreaBg";
 import AppleBasket from "@/components/AppleBasket";
 import TreeGrowthBadge from "@/components/TreeGrowthBadge";
+import {
+  resolveTreeStageSwapDelayMs,
+  TREE_STAGE_CROSSFADE_S,
+} from "@/lib/treeStageTransition";
+import { growthAboveHostBottomPx } from "@/lib/growthAboveCanopy";
 import UndergroundSoilArt from "@/components/v2/UndergroundSoilArt";
 import SettingsWidget from "@/components/SettingsWidget";
 import EconomyV2MockLayer from "@/components/v2/EconomyV2MockLayer";
@@ -413,6 +424,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   /** Live trio→«Уход» converge in progress — F5 recovery must not steal with restore_shovel. */
   const v3LiveConvergeRef = useRef(false);
   const [showGrowthAnim, setShowGrowthAnim] = useState(false);
+  /** True during growth-timer → +мм beat — defers stage graphic swap. */
+  const showGrowthAnimRef = useRef(false);
+  showGrowthAnimRef.current = showGrowthAnim;
   const [growthCountdown, setGrowthCountdown] = useState<number | null>(null);
   const [growthTimerTotal, setGrowthTimerTotal] = useState(9);
   const [showApples, setShowApples] = useState(false);
@@ -429,7 +443,28 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showApplePopup, setShowApplePopup] = useState(false);
   const [applePopupCount, setApplePopupCount] = useState(1);
   const [showIncomePopup, setShowIncomePopup] = useState(false);
+  /** Remount key so +₽ flash always replays. */
+  const [incomePopupKey, setIncomePopupKey] = useState(0);
+  /** Anchor inside `.game-area` (wipe-layer clip must not hide the flash). */
+  const [incomePopupAnchor, setIncomePopupAnchor] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  /** Care = gold; Metelka / excess claim = stone grey. */
+  const [incomePopupTone, setIncomePopupTone] = useState<"gold" | "stone">(
+    "gold",
+  );
   const [lastIncomeAmount, setLastIncomeAmount] = useState(0);
+  const capitalChestHostRef = useRef<HTMLDivElement | null>(null);
+  const incomePopupHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const incomeUiHoldClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Keep muted activity cubes mounted for the whole +₽ flash (+ short tail).
+   * Prevents post-care exit from flashing active buttons mid-income.
+   */
+  const [incomeUiHold, setIncomeUiHold] = useState(false);
+  /** Forces capital badge bump when coin credits (tutorial + live). */
+  const [capitalBumpToken, setCapitalBumpToken] = useState(0);
   const [totalApples, setTotalApples] = useState(state.game.totalApples ?? 0);
   const [tutorialDone, setTutorialDone] = useState(state.game.tutorialDone ?? true);
   /** Sync for async achievement checks (setState is not visible yet inside dismiss). */
@@ -574,9 +609,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           Number.isFinite(Number(sessionPresetRaw))
             ? Math.round(Number(sessionPresetRaw))
             : null;
+        // generation.anchorAt is the root wait-clock. Only expose it as the
+        // financial live-projection anchor while excess is actually minting —
+        // otherwise debug "Финансовое время" climbs/resets with ordinary fill.
+        const generatingExcess =
+          g.v3Roots?.excessGate?.generatingExcess === true;
         const anchorRaw = g.v3Roots?.generation?.anchorAt;
         const anchorMs =
-          anchorRaw == null || anchorRaw === ""
+          !generatingExcess || anchorRaw == null || anchorRaw === ""
             ? null
             : (() => {
                 const asNum = Number(anchorRaw);
@@ -837,7 +877,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const growthTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const displayGrowthMMRef = useRef(state.game.treeGrowthMM ?? 0);
   const [displayGrowthMM, setDisplayGrowthMM] = useState(state.game.treeGrowthMM ?? 0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentStage, setCurrentStage] = useState<0|1|2|3|4>(() => getTreeStage(state.game.treeGrowthMM ?? 0) as 0|1|2|3|4);
   const currentStageRef = useRef<0|1|2|3|4>(getTreeStage(state.game.treeGrowthMM ?? 0) as 0|1|2|3|4);
   const stageTransTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -858,6 +897,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   // Must NOT run during Tutorial — ghost → care shovel is the tutorial finish path.
   // Must NOT run when pending is already 0 at sessionComplete (short income window):
   // that previously wiped «Уход» and let Metelka steal the ready row.
+  // Must NOT run while +₽ income flash (or its hold tail) is up — that remounted
+  // muted cubes as active for a frame.
   useEffect(() => {
     if (
       !shouldExitPostCareUi({
@@ -868,6 +909,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         showActivityGhost,
         showCareButton,
         showRewards,
+        showIncomePopup: showIncomePopup || incomeUiHold,
       })
     ) {
       return;
@@ -882,6 +924,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     showActivityGhost,
     showCareButton,
     showRewards,
+    showIncomePopup,
+    incomeUiHold,
   ]);
 
   // After third result is on its cube → short hold → converge. Never jump from all_done to «Уход».
@@ -1437,10 +1481,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     game.sproutPlanted === true || tutorialDone === true;
   const excessCleaning = isExcessCleaningMode(game.v2Excess);
   const excessResultPending = isExcessResultAvailable(game.v2Excess);
-  /** Excess phase: grey flask + capital coin (same as Metelka freeze). */
+  /**
+   * Excess phase: grey flask + capital coin as soon as ordinary is full /
+   * excess is available — don't wait for the next settle tick that sets
+   * generatingExcess (that lag left the flask gold for several seconds).
+   * Clock freeze stays on excessCleaning only.
+   */
   const excessUiGrey =
     excessCleaning ||
-    game.v3Roots?.excessGate?.generatingExcess === true;
+    game.v3Roots?.excessGate?.generatingExcess === true ||
+    game.v3Roots?.excessGate?.ordinaryFull === true ||
+    game.v2Excess?.excessAvailable === true;
 
   const [vaultTransferBusy, setVaultTransferBusy] = useState(false);
   const [plantSproutBusy, setPlantSproutBusy] = useState(false);
@@ -1833,7 +1884,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowXpPopup(false);
       setXpFlashAmount(null);
       if (moneyGained > 0) {
-        playCoinIncomeFeedback(moneyGained);
+        playCoinIncomeFeedback(moneyGained, "stone");
         setHistoryNotif(true);
       }
       if (res.playerLevel > prevLevel) {
@@ -1943,15 +1994,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       if (mm > from) animateGrowth(from, mm);
     }
 
-    // Stage transition
+    // Stage graphic: after growth timer → +мм, then crossfade (never blank).
     const newStage = getTreeStage(mm) as 0|1|2|3|4;
     if (newStage !== currentStageRef.current) {
-      currentStageRef.current = newStage;
       stageTransTimers.current.forEach(clearTimeout);
-      setIsTransitioning(true);
-      const t1 = setTimeout(() => setCurrentStage(newStage), 300);
-      const t2 = setTimeout(() => setIsTransitioning(false), 900);
-      stageTransTimers.current = [t1, t2];
+      const deferMs = resolveTreeStageSwapDelayMs({
+        growthAnimActive: showGrowthAnimRef.current,
+      });
+      const applyStage = () => {
+        currentStageRef.current = newStage;
+        setCurrentStage(newStage);
+      };
+      if (deferMs > 0) {
+        stageTransTimers.current = [setTimeout(applyStage, deferMs)];
+      } else {
+        stageTransTimers.current = [];
+        applyStage();
+      }
     }
   }, [game.treeGrowthMM]);
 
@@ -2656,7 +2715,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const showCareShovelUi = showCareButton;
   /** Muted spent cubes (ghost) — sticky in tutorial after «Уход» diverge. */
   const showSpentActivityGhost =
-    showActivityGhost || tutorialActivitiesExhausted;
+    showActivityGhost || tutorialActivitiesExhausted || incomeUiHold;
 
   const sessionMax = balances.balance * 0.15 / 365 / 3;
   const actionsLeft = !useLegacyCare
@@ -2751,15 +2810,90 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     });
   }
 
+  /** Place +₽ at the capital-face midline, left of the chest host. */
+  function measureIncomePopupAnchor(): { x: number; y: number } | null {
+    const host = capitalChestHostRef.current;
+    const area = gameAreaRef.current;
+    if (!host || !area) return null;
+    const hr = host.getBoundingClientRect();
+    const ar = area.getBoundingClientRect();
+    const faceRaw = getComputedStyle(host)
+      .getPropertyValue("--v3-chest-face-height")
+      .trim();
+    const face = Number.parseFloat(faceRaw);
+    const facePx = Number.isFinite(face) && face > 0 ? face : 56;
+    return {
+      x: hr.left - ar.left,
+      y: hr.bottom - ar.top - facePx / 2,
+    };
+  }
+
+  function clearIncomeUiHoldTimers() {
+    if (incomePopupHideRef.current != null) {
+      clearTimeout(incomePopupHideRef.current);
+      incomePopupHideRef.current = null;
+    }
+    if (incomeUiHoldClearRef.current != null) {
+      clearTimeout(incomeUiHoldClearRef.current);
+      incomeUiHoldClearRef.current = null;
+    }
+  }
+
+  /** Hide +₽ flash, then keep muted cubes a beat so post-care exit cannot blink. */
+  function scheduleIncomePopupHide(ms = 1500) {
+    clearIncomeUiHoldTimers();
+    incomePopupHideRef.current = setTimeout(() => {
+      incomePopupHideRef.current = null;
+      setShowIncomePopup(false);
+      setIncomePopupAnchor(null);
+      incomeUiHoldClearRef.current = setTimeout(() => {
+        incomeUiHoldClearRef.current = null;
+        // Exit chrome in the same turn as releasing the hold — otherwise one
+        // paint has ghost off + showRewards still true → empty row → ready blink.
+        if (
+          shouldExitPostCareUi({
+            tutorialDone,
+            pendingBase: stateRef.current.game.pendingBaseReward ?? 0,
+            pendingBonus: stateRef.current.game.pendingBonusReward ?? 0,
+            showCompletionStage,
+            showActivityGhost,
+            showCareButton,
+            showRewards,
+            showIncomePopup: false,
+          })
+        ) {
+          exitPostCareUiForNextCycle();
+        }
+        setIncomeUiHold(false);
+      }, 350);
+    }, ms);
+  }
+
   /** Single income flash: beige field-income-popup (no second float). */
-  function playCoinIncomeFeedback(amount: number) {
+  function playCoinIncomeFeedback(
+    amount: number,
+    tone: "gold" | "stone" = "gold",
+  ) {
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) return;
     setLastIncomeAmount(n);
+    setIncomePopupTone(tone);
+    setIncomePopupKey((k) => k + 1);
+    setCapitalBumpToken((t) => t + 1);
+    // Hold muted activity cubes for the whole flash (claimAll races otherwise).
+    setIncomeUiHold(true);
+    // Outside the roots wipe-layer — Framer clip-path clips overflow.
+    setIncomePopupAnchor(measureIncomePopupAnchor());
     setShowIncomePopup(true);
-    const hidePopup = setTimeout(() => setShowIncomePopup(false), 1500);
-    growthTimeoutsRef.current.push(hidePopup);
+    scheduleIncomePopupHide(1500);
   }
+
+  // Remeasure after paint — first credit can race before chest host layout settles.
+  useLayoutEffect(() => {
+    if (!showIncomePopup) return;
+    const next = measureIncomePopupAnchor();
+    if (next) setIncomePopupAnchor(next);
+  }, [showIncomePopup, incomePopupKey]);
 
   function claimApplesAndIncome(remaining: number) {
     if (appleAutoCollectTimerRef.current) {
@@ -2771,15 +2905,27 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const coinUncollected = !collectedAppleIndicesRef.current.includes(coinIdx);
     const redRemaining = coinUncollected ? Math.max(0, remaining - 1) : remaining;
     const cur = stateRef.current;
-    const total = (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
+    const pendingTotal =
+      (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
+    // Fallback to sessionScores if pending was cleared early (ack / poll race).
+    const scoresTotal =
+      (sessionScores?.base ?? 0) + (sessionScores?.bonus ?? 0);
+    const total = pendingTotal > 0 ? pendingTotal : scoresTotal;
     // Same beige income popup as Metelka / care income.
-    if (total > 0) playCoinIncomeFeedback(total);
-    else setShowIncomePopup(true);
+    // Only playCoinIncomeFeedback / scheduleIncomePopupHide may clear +₽ —
+    // a second setTimeout here raced the hold and flashed active activity cubes.
+    if (total > 0) {
+      playCoinIncomeFeedback(total);
+    } else {
+      setIncomeUiHold(true);
+      setShowIncomePopup(true);
+      scheduleIncomePopupHide(1500);
+    }
     if (redRemaining > 0) {
       setApplePopupCount(redRemaining);
       setShowApplePopup(true);
+      setTimeout(() => setShowApplePopup(false), 1500);
     }
-    setTimeout(() => { setShowIncomePopup(false); setShowApplePopup(false); }, 1500);
     setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
@@ -2836,11 +2982,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
    */
   function handleAppleClick(appleIdx: number) {
     if (collectedAppleIndicesRef.current.includes(appleIdx)) return;
-    // Mark as manually collected so exit animation flies toward resources
-    setFlyingAppleIndices(f => [...f, appleIdx]);
+    // Mark as manually collected so exit animation flies toward resources.
+    // Ref updates now (idempotent credit); React collected state waits one frame
+    // so AnimatePresence exit still sees custom.manual / custom.coin.
+    setFlyingAppleIndices((f) => [...f, appleIdx]);
     const next = [...collectedAppleIndicesRef.current, appleIdx];
     collectedAppleIndicesRef.current = next;
-    setCollectedAppleIndices(next);
+    requestAnimationFrame(() => {
+      setCollectedAppleIndices([...collectedAppleIndicesRef.current]);
+    });
 
     const isCoin = appleIdx === appleCountRef.current - 1;
 
@@ -2976,7 +3126,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setShowXpPopup(false);
     setShowMmPopup(false);
     setMmPopupAmount(0);
+    clearIncomeUiHoldTimers();
     setShowIncomePopup(false);
+    setIncomePopupAnchor(null);
+    setIncomeUiHold(false);
     setShowApplePopup(false);
     setXpGainAmount(null);
     setLevelUpData(null);
@@ -3412,6 +3565,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       if (session?.status == null || session?.activity == null) {
         setV3PendingAck(null);
       }
+      // Let the recovery effect re-arm after a wiped/stale local snapshot.
+      v3RecoveredSessionRef.current = null;
       return;
     }
     v3AckInFlightRef.current = true;
@@ -3622,15 +3777,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const cur = stateRef.current;
       const prevLevel = cur.game.playerLevel ?? 1;
       // Money stays in pending_* until the coin → claimAll; claim grants XP only.
-      // treeGrowthMm on the claim response is the CURRENT absolute (not +delta) —
-      // live mm is applied with money (same formula as claimAll). Preview treeGrowth=0.
-      const pendingMoney =
-        Math.max(0, Number(claimed.pendingBaseReward) || 0) +
-        Math.max(0, Number(claimed.pendingBonusReward) || 0);
-      const rewardForMm =
-        pendingMoney > 0
-          ? pendingMoney
-          : Math.max(0, Number(claimed.income?.total) || 0);
+      // Growth-timer / +N мм use THIS cycle's income only — not cumulative pending.
+      const rewardForMm = Math.max(0, Number(claimed.income?.total) || 0);
       const { newMM: growthMM, newRemainder: growthRem } = applyTreeGrowth(
         rewardForMm,
         cur.game.treeGrowthMM ?? 0,
@@ -3703,16 +3851,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         newRemainder: growthRem,
       };
 
-      // Clear cycle journal; keep care_button chrome for the animation queue.
-      const acked = await acknowledgeV3CareCycleOnce({ skipUiExit: true });
-      if (!acked) {
-        setCareClicked(false);
-        setCareSyncError(null);
-        return "ok"; // claim already applied
-      }
+      // Clear cycle journal first (keep care_button chrome for the animation queue).
+      // Do not gate rewards on ack — a failed ack previously skipped the whole
+      // XP → growth → apples → income-coin spectacle.
+      await acknowledgeV3CareCycleOnce({ skipUiExit: true });
 
       // Existing project sequence: XP → growth timer → mm → apples → income coin.
-      // Only after confirmed regular Care claim — never from Tutorial "enter game".
+      // Runs after ack settles so pending income stays intact for the capital coin.
       handleGoToRewards(scoresForQueue);
       setCareSyncError(null);
       return "ok";
@@ -4051,7 +4196,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     // Step 1 — immediately freeze care button, show XP popup, apply XP
     setCareClicked(true);
-    if (scores && scores.xp > 0) setShowXpPopup(true);
+    // Reset so LevelWidget re-fires when the same xp amount repeats next cycle.
+    setXpGainAmount(null);
+    if (scores && scores.xp > 0) {
+      setXpFlashAmount(scores.xp);
+      setShowXpPopup(true);
+    }
     const xpTimer = setTimeout(() => {
       if (px) {
         const cur = stateRef.current;
@@ -4067,7 +4217,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             xpHistory: (px.xpHistory as typeof cur.game.xpHistory) ?? cur.game.xpHistory,
           },
         });
-        if (scores) setXpGainAmount(scores.xp);
+        if (scores && scores.xp > 0) setXpGainAmount(scores.xp);
         if (px.levelUp && px.newLevel) setLevelUpData({ level: px.newLevel });
       }
       setShowXpPopup(false);
@@ -4581,7 +4731,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           useUndergroundRootsScene ? " game-area--v2-mocks" : ""
         }${useV3RootsUi ? " game-area--v3-roots" : ""}${
           undergroundRootsMasked ? " game-area--underground-masked" : ""
-        }${rewardDragging ? " game-area--reward-dragging" : ""}`}
+        }${rewardDragging ? " game-area--reward-dragging" : ""}${
+          excessCleaning ? " game-area--metelka-cleaning" : ""
+        }`}
         ref={gameAreaRef}
         data-v3-roots-scene={useV3RootsUi ? "true" : undefined}
         data-underground-masked={
@@ -4627,60 +4779,74 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         <GameAreaBg purchasedItems={purchasedItems} />
         {/* Vault always under the level slot (spacer keeps seat while level is hidden). */}
         <div className="field-level-host" data-field-level-host="true">
-          {tutorialDone || tutorialShowLevelBadge || tutorialShowAppleBadge ? (
-            <LevelWidget
-              level={game.playerLevel ?? 1}
-              totalXP={game.playerXP ?? 0}
-              xpGain={xpGainAmount}
-              pendingAchievements={hasPendingAchievements}
-              onClick={() => setShowLevelModal(true)}
-            />
-          ) : (
-            <div
-              className="lvl-badge-slot"
-              data-level-badge-slot="true"
-              aria-hidden="true"
+          {/* Level + XP float share one seat so XP sits on the diamond, not under the vault. */}
+          <div className="field-level-badge-stack" data-field-level-badge-stack="true">
+            {tutorialDone || tutorialShowLevelBadge || tutorialShowAppleBadge ? (
+              <LevelWidget
+                level={game.playerLevel ?? 1}
+                totalXP={game.playerXP ?? 0}
+                xpGain={xpGainAmount}
+                pendingAchievements={hasPendingAchievements}
+                onClick={() => setShowLevelModal(true)}
+              />
+            ) : (
+              <div
+                className="lvl-badge-slot"
+                data-level-badge-slot="true"
+                aria-hidden="true"
+              />
+            )}
+            <AnimatePresence>
+              {showXpPopup &&
+                ((sessionScores != null && sessionScores.xp > 0) ||
+                  (xpFlashAmount != null && xpFlashAmount > 0)) && (
+                <motion.div
+                  className="field-level-xp-popup topbar-reward-popup-xp"
+                  data-field-level-xp-popup="true"
+                  initial={{ opacity: 0, y: 6, scale: 0.85, x: "-50%" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                  exit={{ opacity: 0, y: -4, scale: 0.85, x: "-50%" }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                >
+                  <motion.span
+                    className="xp-popup-icon"
+                    data-xp-popup-star="true"
+                    aria-hidden="true"
+                    initial={{ scale: 0.5, rotate: -15 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}
+                  >
+                    <Star size={16} strokeWidth={2.2} fill="currentColor" />
+                  </motion.span>
+                  <span className="xp-popup-label">
+                    +{(sessionScores?.xp ?? xpFlashAmount) ?? 0} оп
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          {/* Vault: hidden on welcome / plant; appears from capital-transfer on. */}
+          {(tutorialDone ||
+            (tutorialStep != null &&
+              tutorialStep !== "welcome" &&
+              tutorialStep !== "plant-sprout")) && (
+            <VaultWidget
+              vaultBalance={vaultBalance}
+              totalCapital={
+                vaultBalance + Math.max(0, Number(balances.balance) || 0)
+              }
+              dragEnabled={
+                !tutorialDone &&
+                tutorialStep === "capital-transfer" &&
+                sproutPlanted &&
+                !vaultTransferBusy
+              }
+              onDragActiveChange={setCoinDropTargetActive}
+              onTransfer={() => {
+                void handleVaultCapitalTransfer();
+              }}
             />
           )}
-          <VaultWidget
-            vaultBalance={vaultBalance}
-            dragEnabled={
-              !tutorialDone &&
-              tutorialStep === "capital-transfer" &&
-              sproutPlanted &&
-              !vaultTransferBusy
-            }
-            onDragActiveChange={setCoinDropTargetActive}
-            onTransfer={() => {
-              void handleVaultCapitalTransfer();
-            }}
-          />
-          <AnimatePresence>
-            {showXpPopup &&
-              ((sessionScores != null && sessionScores.xp > 0) ||
-                (xpFlashAmount != null && xpFlashAmount > 0)) && (
-              <motion.div
-                className="field-level-xp-popup topbar-reward-popup-xp"
-                data-field-level-xp-popup="true"
-                initial={{ opacity: 0, y: -6, scale: 0.7 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.7 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                <motion.span
-                  className="xp-popup-icon"
-                  initial={{ scale: 0.5, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
-                >
-                  <Star size={16} strokeWidth={2.2} fill="currentColor" />
-                </motion.span>
-                <span className="xp-popup-label">
-                  +{(sessionScores?.xp ?? xpFlashAmount) ?? 0} оп
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
         {(tutorialDone || tutorialShowAppleBadge) && (
           <AppleBasket
@@ -4953,48 +5119,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               />
             </div>
             <div
+              ref={capitalChestHostRef}
               className={`v3-capital-chest-host v3-capital-chest-host--with-hourglass${
                 excessUiGrey ? " v3-capital-chest-host--metelka-frozen" : ""
-              }`}
+              }${showIncomePopup ? " v3-capital-chest-host--income-flash" : ""}`}
               data-v3-capital-chest-host="true"
               data-capital-metelka-frozen={excessUiGrey ? "true" : undefined}
+              data-income-flash={showIncomePopup ? "true" : undefined}
             >
-              <AnimatePresence>
-                {showIncomePopup && (
-                  <motion.div
-                    className="field-income-popup"
-                    data-field-income-popup="true"
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.85 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                  >
-                    <motion.span
-                      className="income-popup-icon"
-                      initial={{ scale: 0.5, rotate: 15 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="5" width="16" height="11" rx="2" fill="currentColor" fillOpacity="0.15"/>
-                        <path d="M2 8h16"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
-                      </svg>
-                    </motion.span>
-                    <span className="income-popup-label">
-                      +{lastIncomeAmount >= 1
-                        ? Math.floor(lastIncomeAmount).toLocaleString("ru-RU")
-                        : lastIncomeAmount.toLocaleString("ru-RU", {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 2,
-                          })}{" "}
-                      ₽
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
               <CapitalChestUnderRoots
                 capital={balances.balance}
+                bumpToken={capitalBumpToken}
                 dropHighlight={coinDropTargetActive}
+                dropHighlightTone={
+                  draggingMetelkaCoin ? "stone" : "gold"
+                }
                 onCapitalClick={
                   tutorialDone && !coinDropTargetActive && !excessCleaning
                     ? () => setShowDepositInfo(true)
@@ -5017,7 +5156,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     capital={balances.balance}
                     tutorialDone={tutorialDone}
                     nowMs={now}
-                    frozen={excessUiGrey}
+                    frozen={excessCleaning}
                     handoffDeadlineAtMs={tutorialWaitDeadlineMsRef.current}
                     handoffTotalSeconds={TUTORIAL_V3_WAIT_SECONDS}
                     onRefreshState={syncRootsFromServer}
@@ -5336,7 +5475,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <motion.div animate={treeControls} style={{ display: "inline-block" }}>
             <button
               type="button"
-              className={`tree-wrapper${tutorialDone ? " tree-wrapper--hit" : " tree-wrapper--tutorial-locked"}${isTransitioning ? " transitioning" : ""}`}
+              className={`tree-wrapper${tutorialDone ? " tree-wrapper--hit" : " tree-wrapper--tutorial-locked"}`}
               data-tree-stages-hit={tutorialDone ? "true" : "false"}
               data-tree-tutorial-locked={tutorialDone ? undefined : "true"}
               aria-label="Стадии роста дерева"
@@ -5349,18 +5488,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 setShowTreeInfo(true);
               }}
             >
-              {isTransitioning && <div className="tree-cloud" />}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentStage}
-                  initial={{ scale: 0.85, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 1.08, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 18 }}
-                >
-                  <TreeSVG stage={currentStage} size={110} />
-                </motion.div>
-              </AnimatePresence>
+              {/* Sync crossfade in a fixed box — no mode=wait empty trunk. */}
+              <div className="tree-stage-swap" data-tree-stage-swap="true">
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={currentStage}
+                    className="tree-stage-layer"
+                    initial={{ scale: 0.94, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 1.04, opacity: 0 }}
+                    transition={{
+                      duration: TREE_STAGE_CROSSFADE_S,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <TreeSVG stage={currentStage} size={110} />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </button>
           </motion.div>
           ) : null}
@@ -5560,9 +5705,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             ) : null}
           </AnimatePresence>
 
-          {/* Left of tree: one fixed host — timer and +N мм swap in the same spot. */}
+          {/* Above canopy: timer and +N мм — gap follows STAGE_DIMS per stage. */}
           {(growthCountdown !== null || (showMmPopup && mmPopupAmount > 0)) && (
-            <div className="growth-side-host" data-growth-side-host="true">
+            <div
+              className="growth-side-host"
+              data-growth-side-host="true"
+              data-growth-above-stage={currentStage}
+              style={
+                {
+                  ["--growth-above-bottom" as string]: `${growthAboveHostBottomPx(currentStage)}px`,
+                } as CSSProperties
+              }
+            >
               <AnimatePresence mode="wait" initial={false}>
                 {growthCountdown !== null ? (
                   <motion.div
@@ -5674,10 +5828,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             <motion.div
               key={activitiesLocked ? "cooldown" : "ready"}
               className="session-actions"
-              initial={{ opacity: 0 }}
+              // No opacity fade-in — after income hold, a 0→1 flash looked like
+              // inactive cubes blinking active.
+              initial={false}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
             >
               <CareActionsRow
                 excess={game.v2Excess}
@@ -5971,7 +6127,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </AnimatePresence>
         ) : (
           <>
-              {showSpentActivityGhost && !careDiverging ? (
+              {/* Keep muted cubes while showRewards too — never `null` between
+                  incomeUiHold end and exitPostCareUi (that gap blinked active). */}
+              {(showSpentActivityGhost || showRewards) && !careDiverging ? (
                 <div
                   className="session-actions"
                   data-care-phase="rewards-ghost"
@@ -6019,7 +6177,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     })}
                   </div>
                 </div>
-              ) : showRewards ? null : (
+              ) : (
                 <div
                   className={`session-actions ${fadeActivities ? "activities-fade" : ""}${
                     showCompletionStage && !merging && !careDiverging && !showCareShovelUi
@@ -6291,6 +6449,88 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </MotionConfig>
         </div>
         ) : null}
+
+        {/*
+          Income +₽ flash is a direct `.game-area` child (not inside the roots
+          wipe-layer). Framer clip-path on the wipe box clips overflow and hid
+          the tutorial / Care flash left of the chest.
+        */}
+        <AnimatePresence>
+          {showIncomePopup && (
+            <motion.div
+              key={incomePopupKey}
+              className={`field-income-popup field-income-popup--ported${
+                incomePopupTone === "stone"
+                  ? " field-income-popup--stone"
+                  : ""
+              }`}
+              data-field-income-popup="true"
+              data-income-popup-tone={incomePopupTone}
+              data-income-popup-ported="true"
+              style={
+                incomePopupAnchor
+                  ? ({
+                      ["--income-popup-x" as string]: `${incomePopupAnchor.x}px`,
+                      ["--income-popup-y" as string]: `${incomePopupAnchor.y}px`,
+                    } as CSSProperties)
+                  : undefined
+              }
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            >
+              <motion.span
+                className="income-popup-icon"
+                initial={{ scale: 0.5, rotate: 15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{
+                  duration: 0.28,
+                  ease: [0.34, 1.56, 0.64, 1],
+                }}
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect
+                    x="2"
+                    y="5"
+                    width="16"
+                    height="11"
+                    rx="2"
+                    fill="currentColor"
+                    fillOpacity="0.15"
+                  />
+                  <path d="M2 8h16" />
+                  <circle
+                    cx="14.5"
+                    cy="12"
+                    r="1.2"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                </svg>
+              </motion.span>
+              <span className="income-popup-label">
+                +
+                {lastIncomeAmount >= 1
+                  ? Math.floor(lastIncomeAmount).toLocaleString("ru-RU")
+                  : lastIncomeAmount.toLocaleString("ru-RU", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                ₽
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
 

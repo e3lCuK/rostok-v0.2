@@ -458,7 +458,7 @@ describe("v3 root wait timer — full cycle semantics", () => {
     expect(compSrc).toContain("frozen = false");
     expect(compSrc).toContain("v3-root-wait-timer--frozen");
     expect(compSrc).toContain('data-timer-frozen={frozen ? "true" : "false"}');
-    expect(pageSrc).toContain("frozen={excessUiGrey}");
+    expect(pageSrc).toContain("frozen={excessCleaning}");
     expect(pageSrc).toContain("v3-capital-chest-host--metelka-frozen");
     expect(cssSrc).toContain(".v3-root-wait-timer--frozen");
     expect(cssSrc).toContain(".v3-capital-chest-host--metelka-frozen");

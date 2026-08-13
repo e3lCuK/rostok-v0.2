@@ -28,8 +28,15 @@ type Props = {
   onCapitalClick?: () => void;
   /** Tall hourglass (timer / tutorial) — lid-cut foot is inside that SVG. */
   children?: ReactNode;
-  /** Pulse only the chest lock while a Care coin is dragged. */
+  /** Pulse only the chest lock while a Care / Metelka coin is dragged. */
   dropHighlight?: boolean;
+  /** Care = gold; Metelka / excess = stone grey. */
+  dropHighlightTone?: "gold" | "stone";
+  /**
+   * Force value-bump pulse (tutorial coin) even if formatted label is unchanged
+   * for a frame due to parent state batching.
+   */
+  bumpToken?: number;
 };
 
 /**
@@ -55,12 +62,15 @@ export default function CapitalChestUnderRoots({
   onCapitalClick,
   children,
   dropHighlight = false,
+  dropHighlightTone = "gold",
+  bumpToken = 0,
 }: Props) {
   const viewBox = `${CHEST_VIEW.x} ${CHEST_VIEW.y} ${CHEST_VIEW.width} ${CHEST_VIEW.height}`;
   const label = formatV2ChestCapital(capital);
   const { value, unit } = splitCapitalLabel(label);
 
   const prevLabelRef = useRef<string | null>(null);
+  const prevBumpTokenRef = useRef(0);
   const [bump, setBump] = useState(false);
   const rawId = useId();
   const fillClipId = `v3-capital-bulb-fill-${rawId.replace(/:/g, "")}`;
@@ -74,12 +84,24 @@ export default function CapitalChestUnderRoots({
     return () => window.clearTimeout(t);
   }, [label]);
 
+  useEffect(() => {
+    if (!bumpToken || bumpToken === prevBumpTokenRef.current) return;
+    prevBumpTokenRef.current = bumpToken;
+    setBump(true);
+    const t = window.setTimeout(() => setBump(false), 420);
+    return () => window.clearTimeout(t);
+  }, [bumpToken]);
+
   const badgeClass = [
     "field-caption-badge",
     "field-caption-badge--capital",
     "v3-capital-badge",
     "v3-capital-badge--in-bulb",
-  ].join(" ");
+    // Drives `.v3-capital-badge--bump` (value-change pulse on +₽ / tutorial coin).
+    bump ? "v3-capital-badge--bump" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const vw = V3_HOURGLASS_CAPITAL_BULB_VIEW.width;
   const vh = V3_HOURGLASS_CAPITAL_BULB_VIEW.height;
@@ -176,6 +198,7 @@ export default function CapitalChestUnderRoots({
           capital={capital}
           layer="body"
           dropHighlight={dropHighlight}
+          dropHighlightTone={dropHighlightTone}
         />
       </svg>
 
@@ -201,6 +224,7 @@ export default function CapitalChestUnderRoots({
             className={badgeClass}
             data-capital-label="true"
             data-chest-part="capital-label"
+            data-value-bump={bump ? "true" : "false"}
             aria-hidden="true"
           >
             {badgeInner}

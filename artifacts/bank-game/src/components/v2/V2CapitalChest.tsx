@@ -12,8 +12,10 @@ export type V2CapitalChestProps = {
   className?: string;
   /** `body` behind roots; `label` above roots for readable capital text. */
   layer?: V2CapitalChestLayer;
-  /** Pulse only the lock/clasp while a Care coin is dragged. */
+  /** Pulse only the lock/clasp while a Care / Metelka coin is dragged. */
   dropHighlight?: boolean;
+  /** Care = gold; Metelka / excess = stone grey. */
+  dropHighlightTone?: "gold" | "stone";
 };
 
 /** Same display rule as the top-left HUD capital row. */
@@ -85,7 +87,13 @@ const WOOD_INTERIOR = "#A67845";
 const EDGE = "#5c3a1a";
 const EDGE_W = 1.1;
 
-function ChestBodyGeometry({ dropHighlight = false }: { dropHighlight?: boolean }) {
+function ChestBodyGeometry({
+  dropHighlight = false,
+  dropHighlightTone = "gold",
+}: {
+  dropHighlight?: boolean;
+  dropHighlightTone?: "gold" | "stone";
+}) {
   const x0 = BODY_X;
   const y0 = BODY_Y;
   const x1 = BODY_X + BODY_W;
@@ -178,10 +186,19 @@ function ChestBodyGeometry({ dropHighlight = false }: { dropHighlight?: boolean 
 
       {/* Lock / clasp — Care coin drop target (pulse only this, not the whole chest). */}
       <g
-        className={`v2-chest-clasp${dropHighlight ? " v2-chest-clasp--drop-target" : ""}`}
+        className={`v2-chest-clasp${
+          dropHighlight
+            ? dropHighlightTone === "stone"
+              ? " v2-chest-clasp--drop-target v2-chest-clasp--drop-target-stone"
+              : " v2-chest-clasp--drop-target"
+            : ""
+        }`}
         data-chest-part="clasp-group"
         data-chest-clasp="true"
         data-chest-clasp-drop-target={dropHighlight ? "true" : undefined}
+        data-chest-clasp-tone={
+          dropHighlight ? dropHighlightTone ?? "gold" : undefined
+        }
       >
         <rect
           data-chest-part="clasp"
@@ -276,6 +293,7 @@ export function V2CapitalChest({
   className,
   layer = "all",
   dropHighlight = false,
+  dropHighlightTone = "gold",
 }: V2CapitalChestProps) {
   const label =
     formattedCapital != null && formattedCapital !== ""
@@ -326,7 +344,10 @@ export function V2CapitalChest({
             transformOrigin: `${CX}px ${BODY_Y + BODY_H * 0.55}px`,
           }}
         >
-          <ChestBodyGeometry dropHighlight={dropHighlight} />
+          <ChestBodyGeometry
+            dropHighlight={dropHighlight}
+            dropHighlightTone={dropHighlightTone}
+          />
         </g>
       )}
       {showLabel && label != null && (

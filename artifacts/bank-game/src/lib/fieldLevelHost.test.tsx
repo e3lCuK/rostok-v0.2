@@ -21,9 +21,29 @@ describe("field level host (top-left of play field)", () => {
     expect(levelIdx).toBeGreaterThan(fieldIdx);
   });
 
-  it("XP popup is anchored to the field level host", () => {
+  it("XP popup sits under level «УРОВЕНЬ», before the vault", () => {
     expect(pageSrc).toContain("data-field-level-xp-popup");
     expect(pageSrc).toContain("field-level-xp-popup");
+    expect(pageSrc).toContain("data-field-level-badge-stack");
+    const stackIdx = pageSrc.indexOf("data-field-level-badge-stack");
+    const xpIdx = pageSrc.indexOf("data-field-level-xp-popup");
+    const vaultIdx = pageSrc.indexOf("<VaultWidget");
+    expect(stackIdx).toBeGreaterThan(-1);
+    expect(xpIdx).toBeGreaterThan(stackIdx);
+    expect(vaultIdx).toBeGreaterThan(xpIdx);
+    expect(cssSrc).toContain(".field-level-badge-stack");
+    expect(cssSrc).toMatch(
+      /\.field-level-xp-popup\s*\{[^}]*top:\s*calc\(100%\s*\+\s*1px\)/s,
+    );
+    // Cream pill like apple / income; exit goes up (y: -4), not down.
+    expect(cssSrc).toMatch(
+      /\.field-level-xp-popup\s*\{[^}]*background:\s*rgba\(255,\s*248,\s*236/s,
+    );
+    expect(pageSrc).toContain("exit={{ opacity: 0, y: -4");
+    expect(pageSrc).not.toContain("y: 18");
+    // Star icon stays in the XP flash (same family as apple / income icons).
+    expect(pageSrc).toContain('data-xp-popup-star="true"');
+    expect(pageSrc).toContain("<Star");
   });
 
   it("CSS pins host to top-left of game-area", () => {

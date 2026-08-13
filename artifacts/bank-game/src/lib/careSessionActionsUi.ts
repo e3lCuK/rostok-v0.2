@@ -101,6 +101,9 @@ export function resolveCareReadyRowMode(input: {
  * once pending is cleared. Do NOT exit merely because pending is 0 when
  * `showCompletionStage` opens (short income window can yield 0₽) — that was
  * wiping «Уход» and letting Metelka steal the row.
+ *
+ * Also wait until the capital +₽ flash finishes — exiting while
+ * `showIncomePopup` is up unmounts muted activity cubes and they blink active.
  */
 export function shouldExitPostCareUi(input: {
   tutorialDone: boolean;
@@ -110,10 +113,13 @@ export function shouldExitPostCareUi(input: {
   showActivityGhost: boolean;
   showCareButton: boolean;
   showRewards: boolean;
+  /** Keep spent/muted cubes mounted for the income flash beat. */
+  showIncomePopup?: boolean;
 }): boolean {
   if (!input.tutorialDone) return false;
   if (input.pendingBase !== 0 || input.pendingBonus !== 0) return false;
   if (!input.showRewards) return false;
+  if (input.showIncomePopup) return false;
   return (
     input.showCompletionStage ||
     input.showActivityGhost ||
