@@ -34,6 +34,7 @@ import {
   isV3RootOrdinaryEligible,
   isV3SharedPoolEnergyAtMaximum,
   shouldRouteV3GeneratedToExcess,
+  shouldSuppressV3ExcessForCarePhase,
   splitV3ElapsedOrdinaryAndExcess,
   type V3ReservesFullMap,
 } from "./economy-v3-excess-gate";
@@ -161,6 +162,11 @@ export type V3CareCycleState = {
   completedAt: string | null;
   finishedAt: string | null;
   status: V3CareCycleStatus | null;
+  /**
+   * Latched at Care start when energy was at shared-pool / ordinary max —
+   * keep financial excess while activities spend below max.
+   */
+  holdExcess: boolean;
   allCompleted: boolean;
   readyToFinish: boolean;
   totalPresetSeconds: number | null;
@@ -288,6 +294,10 @@ export type EconomyV3RootsRow = {
   v3_care_cycle_completed_at?: unknown;
   v3_care_cycle_finished_at?: unknown;
   v3_care_cycle_status?: unknown;
+  /** Capacity-path Care: keep excess minting while activities run. */
+  v3_care_hold_excess?: unknown;
+  /** Pause root refill after transfer trio until Care. */
+  v3_post_collect_pause?: unknown;
   v3_care_cycle_total_preset_seconds?: unknown;
   v3_care_cycle_average_skill?: unknown;
   v3_care_cycle_claimed_at?: unknown;
@@ -352,6 +362,11 @@ export type SettleEconomyV3RootsInput = {
   generationRrCursor?: number;
   /** When true, advance anchor only — no generation / backfill / excess. */
   tutorialActive: boolean;
+  /**
+   * Tutorial 12:00 force-generate: fill ordinary roots, but never mint excess
+   * financial time (that leaked into live play as a sudden jump after complete).
+   */
+  suppressExcessMinting?: boolean;
   /** Roots already transferred — settle does not grow them. */
   transferredRoots?: readonly RootKind[];
   /** Activity reserves — gate excess when all ≥ effectivePreset. */
@@ -373,6 +388,15 @@ export type SettleEconomyV3RootsInput = {
   /** Existing excess ledger (v2 columns) before this settle. */
   excessSeconds?: number;
   excessElapsedMs?: number;
+  /**
+   * Capacity-path Care latch — keep routing generation into excess while
+   * activities spend energy below max. Partial Care must leave this false.
+   */
+  careCycleHoldingExcess?: boolean;
+  /** Care cycle status — pause generation while awaiting / running Care. */
+  careCycleStatus?: unknown;
+  /** Transfer trio just completed — pause until Care / reserves clear. */
+  postCollectPause?: boolean;
 };
 
 export type SettleEconomyV3RootsResult = {
@@ -1063,6 +1087,8 @@ export function buildV3CareCycle(
   const session = buildV3CareSession(row);
   const sessionPending = session.status != null;
   const finishedAt = parseNullableTimestampIso(row?.v3_care_cycle_finished_at);
+  const holdExcess =
+    status === "in_progress" && row?.v3_care_hold_excess === true;
 
   let totalPresetSeconds: number | null = null;
   let averageSkill: number | null = null;
@@ -1088,6 +1114,7 @@ export function buildV3CareCycle(
       : null,
     finishedAt: status === "finished" ? finishedAt : null,
     status,
+    holdExcess,
     allCompleted,
     readyToFinish:
       allCompleted && !sessionPending && status !== "finished",
@@ -2152,15 +2179,37 @@ export function settleEconomyV3Roots(
     transferredRoots: transferred,
     rootCapacitySeconds: effectivePresetSeconds,
   });
-  const routeGeneratedToExcess = shouldRouteV3GeneratedToExcess({
-    ordinaryFull: ordinaryGate.ordinaryFull,
-    ordinaryAcceptBlocked,
-    allRootsTransferred,
-    sharedPoolEnergyAtMaximum,
-  });
+  const careCycleHoldingExcess = input.careCycleHoldingExcess === true;
+  const routeGeneratedToExcess =
+    input.suppressExcessMinting === true
+      ? false
+      : shouldRouteV3GeneratedToExcess({
+          ordinaryFull: ordinaryGate.ordinaryFull,
+          ordinaryAcceptBlocked,
+          allRootsTransferred,
+          sharedPoolEnergyAtMaximum,
+          careCycleHoldingExcess,
+        });
 
-  // Post-trio pause: UI already sets accumulating=false; keep ledger/financial still.
-  if (allRootsTransferred && !ordinaryGate.ordinaryFull) {
+  // Soft Care / post-collect: keep gold accruing; block false excess when roots
+  // refill on top of button energy. Capacity hold / ordinaryFull still mint.
+  const suppressExcessForCarePhase = shouldSuppressV3ExcessForCarePhase({
+    careCycleStatus: input.careCycleStatus,
+    careHoldExcess: careCycleHoldingExcess,
+    postCollectPause: input.postCollectPause === true,
+    ordinaryFull: ordinaryGate.ordinaryFull,
+  });
+  const mintExcess =
+    routeGeneratedToExcess && !suppressExcessForCarePhase;
+
+  // Mid-trio only: all roots transferred and not yet cleared — wait for Care
+  // path without minting excess (soft phase after trio uses suppress instead).
+  if (
+    allRootsTransferred &&
+    !ordinaryGate.ordinaryFull &&
+    !careCycleHoldingExcess &&
+    !suppressExcessForCarePhase
+  ) {
     return {
       ...base,
       generationAnchorAt: nowMs,
@@ -2183,24 +2232,31 @@ export function settleEconomyV3Roots(
   const split = splitV3ElapsedOrdinaryAndExcess({
     elapsedMs,
     generatedGameSeconds: generatedRaw,
-    ordinaryFull: routeGeneratedToExcess,
+    ordinaryFull: mintExcess,
   });
 
-  const generatingExcess = routeGeneratedToExcess;
+  const generatingExcess = mintExcess;
 
   // When ordinary is full or roots cannot accept: do not grow roots.
-  // Still advance generationProgress so the cycle clock / nextWholeSecondAt
-  // stay absolute (same as ordinary). Freezing progress while resetting
-  // generationAnchorAt=now caused the UI timer to jump back every poll.
-  if (routeGeneratedToExcess) {
-    const totalGenerated = progress + split.excessGenerated;
-    const wholeSeconds = Math.max(0, Math.floor(totalGenerated));
-    const newProgress = normalizeGenerationProgress(
-      totalGenerated - wholeSeconds,
-    );
+  // Gold ~12:00 cycle progress must NOT advance during excess — the grey flask
+  // uses financial elapsed. Advancing here left a mid-cycle save so after Care
+  // «Уход» the gold timer resumed at e.g. 11:39 instead of a fresh 12:00.
+  //
+  // - Capacity / shared-pool excess → reset progress to 0 (next gold starts 12:00).
+  // - Care-hold-only (partial fill → activities) → freeze prior ordinary progress
+  //   so gold can resume from that save after the shovel.
+  if (mintExcess) {
+    const capacityBasedExcess =
+      ordinaryGate.ordinaryFull === true ||
+      sharedPoolEnergyAtMaximum === true ||
+      (ordinaryAcceptBlocked && !careCycleHoldingExcess);
+    const nextProgress = capacityBasedExcess
+      ? 0
+      : progress; /* care-hold-only: keep pre-Care ordinary save */
+    const wholeSeconds = 0;
     return {
       ...base,
-      generationProgress: newProgress,
+      generationProgress: nextProgress,
       generationAnchorAt: nowMs,
       elapsedMs,
       elapsedSeconds,

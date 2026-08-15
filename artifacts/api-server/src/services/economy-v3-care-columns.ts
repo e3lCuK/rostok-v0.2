@@ -25,6 +25,7 @@ export const V3_CARE_CYCLE_SELECT_COLUMNS = `
   v3_care_cycle_completed_at,
   v3_care_cycle_finished_at,
   v3_care_cycle_status,
+  v3_care_hold_excess,
   v3_care_cycle_total_preset_seconds,
   v3_care_cycle_average_skill,
   v3_care_cycle_claimed_at,

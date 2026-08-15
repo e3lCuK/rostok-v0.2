@@ -3,6 +3,9 @@ import { V2_SECONDS_PER_ENERGY_AT_REFERENCE } from "./economy-v2";
 import { splitGeneratedIntoOrdinaryAndExcess } from "./economy-v2-excess";
 import {
   computeV3OrdinaryFullState,
+  isV3CareCycleHoldingExcess,
+  shouldPauseV3GenerationForCarePhase,
+  shouldSuppressV3ExcessForCarePhase,
   splitV3ElapsedOrdinaryAndExcess,
   splitV3GeneratedIntoOrdinaryAndExcess,
 } from "./economy-v3-excess-gate";
@@ -346,5 +349,93 @@ describe("economy v3 excessGate snapshot", () => {
         ordinaryFull: false,
       }),
     ).toEqual({ ordinaryAccepted: 8, excessGenerated: 0 });
+  });
+});
+
+describe("isV3CareCycleHoldingExcess", () => {
+  it("partial Care without latch → false", () => {
+    expect(
+      isV3CareCycleHoldingExcess({
+        careCycleStatus: "in_progress",
+        careHoldExcess: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("Care with capacity latch → true", () => {
+    expect(
+      isV3CareCycleHoldingExcess({
+        careCycleStatus: "in_progress",
+        careHoldExcess: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("not in_progress → false even with latch", () => {
+    expect(
+      isV3CareCycleHoldingExcess({
+        careCycleStatus: "idle",
+        careHoldExcess: true,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("shouldSuppressV3ExcessForCarePhase / shouldPauseV3GenerationForCarePhase", () => {
+  it("suppresses excess on post-collect when reserves not full", () => {
+    expect(
+      shouldSuppressV3ExcessForCarePhase({
+        ordinaryFull: false,
+        postCollectPause: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not suppress when reserves are truly full", () => {
+    expect(
+      shouldSuppressV3ExcessForCarePhase({
+        ordinaryFull: true,
+        postCollectPause: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("care-hold keeps excess (no suppress)", () => {
+    expect(
+      shouldSuppressV3ExcessForCarePhase({
+        careCycleStatus: "in_progress",
+        careHoldExcess: true,
+        ordinaryFull: false,
+        postCollectPause: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("partial Care in_progress suppresses excess without hold", () => {
+    expect(
+      shouldSuppressV3ExcessForCarePhase({
+        careCycleStatus: "in_progress",
+        careHoldExcess: false,
+        ordinaryFull: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("full generation pause is retired (always false)", () => {
+    expect(
+      shouldPauseV3GenerationForCarePhase({
+        ordinaryFull: false,
+        sharedPoolEnergyAtMaximum: false,
+        postCollectPause: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldPauseV3GenerationForCarePhase({
+        careCycleStatus: "in_progress",
+        careHoldExcess: false,
+        ordinaryFull: false,
+        sharedPoolEnergyAtMaximum: false,
+      }),
+    ).toBe(false);
   });
 });

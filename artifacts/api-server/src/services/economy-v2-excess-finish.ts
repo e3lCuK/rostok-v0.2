@@ -249,10 +249,11 @@ async function settleLegacyPendingResult(
       sourceSeconds,
     );
     // Remove paid financial snapshot so the next Metelka cannot re-pay it.
-    const nextElapsed = deductExcessSnapshotShare(
+    let nextElapsed = deductExcessSnapshotShare(
       normalizeExcessElapsedMs(row.v2_excess_elapsed_ms),
       sourceElapsedMs,
     );
+    if (nextSeconds <= 0) nextElapsed = 0;
     await client.query(
       `UPDATE game_state
        SET v2_excess_seconds = $2,
@@ -390,13 +391,18 @@ async function finishV2Session(
   );
   const nextSeconds = deductExcessSnapshotShare(currentSeconds, sourceSeconds);
   // Deduct the frozen paid financial period (anti double-pay). Not a ledger rewrite.
-  const nextElapsedMs = deductExcessSnapshotShare(
+  let nextElapsedMs = deductExcessSnapshotShare(
     currentElapsedMs,
     sourceElapsed,
   );
-  const nextBaseLedger = baseAlreadyApplied
+  let nextBaseLedger = baseAlreadyApplied
     ? currentBaseLedger
     : deductExcessSnapshotShare(currentBaseLedger, sessionBaseIncome);
+  // Fully paid ledger → wipe financial history so the excess timer restarts at 0.
+  if (nextSeconds <= 0) {
+    nextElapsedMs = 0;
+    nextBaseLedger = 0;
+  }
 
   const carePendingBase =
     parseFloat(String(row.pending_base_reward ?? "0")) || 0;
@@ -664,10 +670,11 @@ async function finishLegacySession(
     normalizeExcessSeconds(row.v2_excess_seconds),
     sourceSeconds,
   );
-  const nextElapsed = deductExcessSnapshotShare(
+  let nextElapsed = deductExcessSnapshotShare(
     normalizeExcessElapsedMs(row.v2_excess_elapsed_ms),
     sourceElapsed,
   );
+  if (nextSeconds <= 0) nextElapsed = 0;
 
   await client.query(
     `UPDATE game_state

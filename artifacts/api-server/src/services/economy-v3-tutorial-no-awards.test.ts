@@ -311,8 +311,19 @@ describe("tutorial does not persist real economy awards", () => {
   it("tutorial/complete SQL clears pending rewards but keeps +1 мм / +1 apple / XP / catches", () => {
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/pending_base_reward\s*=\s*0/);
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/pending_bonus_reward\s*=\s*0/);
-    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/tree_growth_mm\s*=\s*1/);
-    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/total_apples\s*=\s*1/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(/v2_excess_seconds\s*=\s*0/);
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(
+      /v2_excess_elapsed_ms\s*=\s*0/,
+    );
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(
+      /v2_excess_base_income\s*=\s*0/,
+    );
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(
+      /tree_growth_mm\s*=\s*GREATEST\(COALESCE\(tree_growth_mm,\s*0\),\s*\$4\)/,
+    );
+    expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).toMatch(
+      /total_apples\s*=\s*GREATEST\(COALESCE\(total_apples,\s*0\),\s*1\)/,
+    );
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).not.toMatch(/player_xp\s*=\s*0/);
     // Tutorial catches count toward achievements — must not wipe.
     expect(V3_TUTORIAL_COMPLETE_CLEAR_SQL).not.toMatch(/total_water_drops\s*=\s*0/);

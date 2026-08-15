@@ -24,7 +24,8 @@ describe("tutorial exit vs Care reward animation", () => {
   it("1–4. tutorial finish/dismiss only complete tutorial (no regular reward queue)", () => {
     expect(pageSrc).toContain("function handleTutorialFinish()");
     expect(pageSrc).toContain("function handleTutorialDismiss()");
-    expect(pageSrc).toContain("await api.tutorialComplete({ generationAnchorAt })");
+    expect(pageSrc).toContain("await api.tutorialComplete({");
+    expect(pageSrc).toContain("compensationStartedAt");
     expect(pageSrc).toContain("resolveTutorialGenerationAnchorAt");
     expect(pageSrc).toContain("tutorialDone: true");
     const finishFn =
@@ -91,8 +92,9 @@ describe("tutorial exit vs Care reward animation", () => {
       )?.[0] ?? "";
     expect(appleClick).toContain("tutorialRewardActiveRef.current");
     expect(appleClick).toContain("totalApples: nextApples");
-    expect(appleClick).toContain("balance: cur.balances.balance + 1");
-    expect(appleClick).toContain("playCoinIncomeFeedback(1)");
+    expect(appleClick).toContain("computeTutorialCompensation");
+    expect(appleClick).toContain("balance: cur.balances.balance + amount");
+    expect(appleClick).toContain("playCoinIncomeFeedback(amount)");
     // Exit fly needs a frame with flying before collected unmounts.
     expect(appleClick).toContain("requestAnimationFrame");
     expect(pageSrc).toContain("treeGrowthMM: toMM");
@@ -162,7 +164,7 @@ describe("tutorial exit vs Care reward animation", () => {
     // Shovel wiring: v3 always uses Care shovel handler (no silent tutorial-finish fallback).
     expect(pageSrc).toContain("void handleV3CareShovelClick()");
     expect(pageSrc).toMatch(
-      /useV3\s*\n\s*\?\s*\(\)\s*=>\s*\{\s*\n\s*void handleV3CareShovelClick\(\)/,
+      /if\s*\(\s*useV3\s*\)\s*\{\s*\r?\n\s*void handleV3CareShovelClick\(\)/,
     );
   });
 

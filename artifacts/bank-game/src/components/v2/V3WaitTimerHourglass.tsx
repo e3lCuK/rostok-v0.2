@@ -77,6 +77,8 @@ type Props = {
   timeLabel: string;
   ariaLabel: string;
   testId?: string;
+  /** Opens flask income help (upper bulb hit target). */
+  onHelpClick?: () => void;
 };
 
 export default function V3WaitTimerHourglass({
@@ -84,6 +86,7 @@ export default function V3WaitTimerHourglass({
   timeLabel,
   ariaLabel,
   testId = "v3-root-wait-timer-capsule",
+  onHelpClick,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const rawId = useId();
@@ -235,6 +238,19 @@ export default function V3WaitTimerHourglass({
         </span>
         <span className="v3-root-wait-timer-capsule__time">{timeLabel}</span>
       </div>
+      {onHelpClick ? (
+        <button
+          type="button"
+          className="v3-root-wait-timer-help-hit"
+          data-flask-help-hit="true"
+          aria-label="Что означает колба дохода"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onHelpClick();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

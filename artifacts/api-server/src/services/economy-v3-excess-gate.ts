@@ -157,10 +157,12 @@ export function isV3SharedPoolEnergyAtMaximum(input: {
 /**
  * True when this settle window should mint excess (ledger + financial elapsed).
  *
+ * - Care holding excess (capacity path already started) → yes
  * - ordinaryFull → yes (reserves at cap)
  * - shared-pool full on every activity (roots and/or buttons) → yes
  * - shared-pool full on eligible roots → yes
  * - all roots transferred and reserves not full → no (pause; wait for cycle)
+ *   unless Care is holding excess (capacity path already started)
  */
 export function shouldRouteV3GeneratedToExcess(input: {
   ordinaryFull: boolean;
@@ -168,11 +170,66 @@ export function shouldRouteV3GeneratedToExcess(input: {
   allRootsTransferred: boolean;
   /** root+reserve ≥ cap on every activity (buttons count). */
   sharedPoolEnergyAtMaximum?: boolean;
+  /**
+   * Care activities running after financial excess already started from
+   * capacity — keep minting until the cycle leaves in_progress.
+   * Must not be set for partial-fill Care (no prior excess clock).
+   */
+  careCycleHoldingExcess?: boolean;
 }): boolean {
+  if (input.careCycleHoldingExcess === true) return true;
   if (input.ordinaryFull === true) return true;
   if (input.allRootsTransferred === true) return false;
   if (input.sharedPoolEnergyAtMaximum === true) return true;
   return input.ordinaryAcceptBlocked === true;
+}
+
+/**
+ * Care may keep minting financial excess only when the cycle was latched at
+ * start from capacity (shared-pool / ordinary max). Partial-fill Care must
+ * not invent or continue excess from leftover ledger alone.
+ */
+export function isV3CareCycleHoldingExcess(input: {
+  careCycleStatus: unknown;
+  /** Persisted latch from Care start at capacity. */
+  careHoldExcess?: boolean;
+}): boolean {
+  if (input.careCycleStatus !== "in_progress") return false;
+  return input.careHoldExcess === true;
+}
+
+/**
+ * Soft Care / post-collect window: keep ordinary (gold flask) accruing, but do
+ * not mint excess unless capacity was already latched (care hold) or reserves
+ * are truly full. Stops idle capital without reopening false shared-pool excess
+ * when roots refill on top of button energy.
+ */
+export function shouldSuppressV3ExcessForCarePhase(input: {
+  careCycleStatus?: unknown;
+  careHoldExcess?: boolean;
+  /** Latched when transfer trio completed; awaiting Care / shovel ack. */
+  postCollectPause?: boolean;
+  ordinaryFull: boolean;
+}): boolean {
+  if (input.careHoldExcess === true) return false;
+  if (input.ordinaryFull === true) return false;
+  if (input.careCycleStatus === "in_progress") return true;
+  return input.postCollectPause === true;
+}
+
+/**
+ * @deprecated Full generation pause removed — capital stays productive via gold.
+ * Kept as a thin wrapper: never pauses (always false). Prefer
+ * {@link shouldSuppressV3ExcessForCarePhase}.
+ */
+export function shouldPauseV3GenerationForCarePhase(_input: {
+  careCycleStatus?: unknown;
+  careHoldExcess?: boolean;
+  postCollectPause?: boolean;
+  ordinaryFull: boolean;
+  sharedPoolEnergyAtMaximum?: boolean;
+}): boolean {
+  return false;
 }
 
 /**

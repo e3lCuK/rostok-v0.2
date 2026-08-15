@@ -9,6 +9,13 @@ import { V3_CARE_SESSION_AND_CYCLE_SELECT_COLUMNS } from "./economy-v3-care-colu
 import {
   computeV3EffectivePresetSeconds,
 } from "./economy-v3-effective-capacity";
+import {
+  areAllV3RootsTransferred,
+  canAcceptV3OrdinaryRootUnit,
+  computeV3OrdinaryFullState,
+  isV3SharedPoolEnergyAtMaximum,
+  shouldRouteV3GeneratedToExcess,
+} from "./economy-v3-excess-gate";
 import { isEconomyV3RootsEnabled } from "./economy-v3-feature";
 import {
   buildEconomyV3RootsPublicState,
@@ -32,8 +39,14 @@ import {
   loadCapitalForUser,
 } from "./economy-v2-energy-settle";
 import {
+  buildEconomyV2ExcessFromRow,
+  isExcessAvailable,
   normalizeExcessSeconds,
+  type EconomyV2ExcessPublicState,
 } from "./economy-v2-excess";
+import {
+  normalizeExcessElapsedMs,
+} from "./economy-v2-excess-income";
 import {
   advanceV3MetelkaCycleFlags,
   computeV3RootsFull,
@@ -70,6 +83,10 @@ export type TransferEconomyV3RootResult = {
   /** True when the requested root was completed by auto-transfer (no double credit). */
   viaAutoTransfer: boolean;
   v3Roots: EconomyV3RootsPublicState;
+  /** Settled excess ledger — client must apply so financial time does not roll back. */
+  excess: EconomyV2ExcessPublicState;
+  excessElapsedMs: number;
+  excessSeconds: number;
 };
 
 const V3_TRANSFER_SELECT = `
@@ -164,6 +181,7 @@ export async function transferEconomyV3Root(
       settled.autoTransfer.roots.includes(rootRaw)
     ) {
       await client.query("COMMIT");
+      const excessLedger = settled.excessLedger;
       return {
         transferred: true,
         root: rootRaw,
@@ -177,6 +195,18 @@ export async function transferEconomyV3Root(
         autoTransfer: settled.autoTransfer,
         viaAutoTransfer: true,
         v3Roots: settled.snapshot,
+        excess: excessLedger?.excess ??
+          buildEconomyV2ExcessFromRow({
+            ...locked,
+            v2_excess_seconds: settled.excessSeconds,
+            v2_excess_elapsed_ms: settled.excessElapsedMs,
+          }),
+        excessElapsedMs: normalizeExcessElapsedMs(
+          excessLedger?.excessElapsedMs ?? settled.excessElapsedMs,
+        ),
+        excessSeconds: normalizeExcessSeconds(
+          excessLedger?.excessSeconds ?? settled.excessSeconds,
+        ),
       };
     }
 
@@ -356,6 +386,11 @@ export async function transferEconomyV3Root(
            v3_metelka_required = $15,
            v3_metelka_completed_for_cycle = $16,
            v2_excess_seconds = $17,
+           v2_excess_elapsed_ms = $18,
+           v3_post_collect_pause = CASE
+             WHEN $19::boolean THEN TRUE
+             ELSE COALESCE(v3_post_collect_pause, FALSE)
+           END,
            updated_at = NOW()
        WHERE user_id = $1`,
       [
@@ -380,6 +415,8 @@ export async function transferEconomyV3Root(
         cycleAfterTransfer.required,
         cycleAfterTransfer.completedForCycle,
         excessAfter,
+        normalizeExcessElapsedMs(settled.excessElapsedMs),
+        transferred.cycleCompleted === true,
       ],
     );
 
@@ -408,12 +445,66 @@ export async function transferEconomyV3Root(
     locked.v3_metelka_completed_for_cycle =
       cycleAfterTransfer.completedForCycle;
     locked.v2_excess_seconds = excessAfter;
+    locked.v2_excess_elapsed_ms = normalizeExcessElapsedMs(
+      settled.excessElapsedMs,
+    );
 
     await client.query("COMMIT");
+
+    // Post-transfer excess gate: energy on buttons counts toward shared-pool
+    // max so the flask greys immediately (not only after the next settle).
+    const ordinaryGate = computeV3OrdinaryFullState({
+      reserveWaterSeconds: transferred.reserveWaterSeconds,
+      reserveSunSeconds: transferred.reserveSunSeconds,
+      reserveFertilizerSeconds: transferred.reserveFertilizerSeconds,
+      effectivePresetSeconds,
+    });
+    const sharedPoolEnergyAtMaximum = isV3SharedPoolEnergyAtMaximum({
+      rootWaterSeconds: transferred.rootWaterSeconds,
+      rootSunSeconds: transferred.rootSunSeconds,
+      rootFertilizerSeconds: transferred.rootFertilizerSeconds,
+      reserveWaterSeconds: transferred.reserveWaterSeconds,
+      reserveSunSeconds: transferred.reserveSunSeconds,
+      reserveFertilizerSeconds: transferred.reserveFertilizerSeconds,
+      rootCapacitySeconds: effectivePresetSeconds,
+    });
+    const ordinaryAcceptBlocked = !canAcceptV3OrdinaryRootUnit({
+      rootWaterSeconds: transferred.rootWaterSeconds,
+      rootSunSeconds: transferred.rootSunSeconds,
+      rootFertilizerSeconds: transferred.rootFertilizerSeconds,
+      reserveWaterSeconds: transferred.reserveWaterSeconds,
+      reserveSunSeconds: transferred.reserveSunSeconds,
+      reserveFertilizerSeconds: transferred.reserveFertilizerSeconds,
+      reservesFull: ordinaryGate.reservesFull,
+      transferredRoots: transferred.transferredRoots,
+      rootCapacitySeconds: effectivePresetSeconds,
+    });
+    const generatingExcess = shouldRouteV3GeneratedToExcess({
+      ordinaryFull: ordinaryGate.ordinaryFull,
+      ordinaryAcceptBlocked,
+      // Trio-complete clears transferredRoots in pure transfer; treat that
+      // moment as "all transferred" so we pause unless reserves are full.
+      allRootsTransferred:
+        transferred.cycleCompleted === true ||
+        areAllV3RootsTransferred(transferred.transferredRoots),
+      sharedPoolEnergyAtMaximum,
+    });
+
+    const excessElapsedMs = normalizeExcessElapsedMs(settled.excessElapsedMs);
+    const excess = buildEconomyV2ExcessFromRow({
+      ...locked,
+      v2_excess_seconds: excessAfter,
+      v2_excess_elapsed_ms: excessElapsedMs,
+      v2_excess_base_income:
+        settled.excessLedger?.excessBaseIncome ??
+        locked.v2_excess_base_income,
+    });
 
     const snapshot = buildEconomyV3RootsPublicState(locked, {
       capital,
       streakDays: locked.streak_days,
+      generatingExcess,
+      excessAvailable: isExcessAvailable(excessAfter),
     });
     return {
       transferred: true,
@@ -426,6 +517,9 @@ export async function transferEconomyV3Root(
       autoTransfer: settled.autoTransfer,
       viaAutoTransfer: false,
       v3Roots: snapshot,
+      excess,
+      excessElapsedMs,
+      excessSeconds: excessAfter,
     };
   } catch (err) {
     if (!(err instanceof EconomyV3RootsTransferError)) {

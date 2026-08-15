@@ -137,6 +137,171 @@ describe("roots at capacity → excess (no void discard)", () => {
     expect(r.generationProgress).toBe(0.4);
   });
 
+  it("Care in_progress: keep minting excess after trio (activities hold financial clock)", () => {
+    expect(
+      shouldRouteV3GeneratedToExcess({
+        ordinaryFull: false,
+        ordinaryAcceptBlocked: true,
+        allRootsTransferred: true,
+        careCycleHoldingExcess: true,
+      }),
+    ).toBe(true);
+
+    const r = settleEconomyV3Roots({
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      generationProgress: 0,
+      generationRrCursor: 0,
+      generationAnchorAt: NOW - T * 1000,
+      generationFrozenAt: NOW - 30_000,
+      dayKey: "2026-07-27",
+      capital: 100_000,
+      nowMs: NOW,
+      tutorialActive: false,
+      reserveWaterSeconds: 5,
+      reserveSunSeconds: 5,
+      reserveFertilizerSeconds: 5,
+      dailyCapSeconds: 25,
+      streakDays: 0,
+      visitBonusSeconds: 0,
+      excessSeconds: 3,
+      excessElapsedMs: 20_000,
+      transferredRoots: ["water", "sun", "fertilizer"],
+      careCycleHoldingExcess: true,
+    });
+
+    expect(r.generatingExcess).toBe(true);
+    expect(r.excessGenerated).toBeCloseTo(1, 8);
+    expect(r.excessElapsedMs).toBeGreaterThan(20_000);
+    expect(r.excessSeconds).toBeCloseTo(4, 5);
+    // Care-hold must not burn / invent gold ~12:00 progress.
+    expect(r.generationProgress).toBe(0);
+  });
+
+  it("partial-fill Care in_progress without prior excess: gold accrues, no excess", () => {
+    const r = settleEconomyV3Roots({
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      generationProgress: 0.35,
+      generationRrCursor: 0,
+      generationAnchorAt: NOW - T * 1000,
+      generationFrozenAt: NOW - 30_000,
+      dayKey: "2026-07-27",
+      capital: 100_000,
+      nowMs: NOW,
+      tutorialActive: false,
+      reserveWaterSeconds: 10,
+      reserveSunSeconds: 10,
+      reserveFertilizerSeconds: 10,
+      dailyCapSeconds: 25,
+      streakDays: 0,
+      visitBonusSeconds: 0,
+      excessSeconds: 0,
+      excessElapsedMs: 0,
+      transferredRoots: [],
+      careCycleHoldingExcess: false,
+      careCycleStatus: "in_progress",
+    });
+    expect(r.generatingExcess).toBe(false);
+    expect(r.excessGenerated).toBe(0);
+    expect(r.excessElapsedMs).toBe(0);
+    expect(r.excessSeconds).toBe(0);
+    // Soft Care: capital keeps working into gold / roots — not a full idle pause.
+    expect(r.generated).toBe(true);
+    expect(r.generationProgress).not.toBe(0.35);
+  });
+
+  it("post-collect partial (empty roots + button energy): gold accrues, no false excess", () => {
+    const r = settleEconomyV3Roots({
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      generationProgress: 0.2,
+      generationRrCursor: 0,
+      generationAnchorAt: NOW - T * 1000,
+      generationFrozenAt: null,
+      dayKey: "2026-07-27",
+      capital: 100_000,
+      nowMs: NOW,
+      tutorialActive: false,
+      reserveWaterSeconds: 10,
+      reserveSunSeconds: 10,
+      reserveFertilizerSeconds: 10,
+      dailyCapSeconds: 21,
+      streakDays: 0,
+      visitBonusSeconds: 0,
+      excessSeconds: 0,
+      excessElapsedMs: 0,
+      transferredRoots: [],
+      careCycleHoldingExcess: false,
+      postCollectPause: true,
+    });
+    expect(r.generatingExcess).toBe(false);
+    expect(r.excessGenerated).toBe(0);
+    expect(r.generated).toBe(true);
+    // Roots may refill into shared-pool room; excess must stay closed.
+    const rooted =
+      r.rootWaterSeconds + r.rootSunSeconds + r.rootFertilizerSeconds;
+    expect(rooted).toBeGreaterThan(0);
+  });
+
+  it("care-hold after capacity path freezes mid-cycle gold progress", () => {
+    const r = settleEconomyV3Roots({
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      generationProgress: 0.35,
+      generationRrCursor: 0,
+      generationAnchorAt: NOW - T * 1000,
+      generationFrozenAt: NOW - 30_000,
+      dayKey: "2026-07-27",
+      capital: 100_000,
+      nowMs: NOW,
+      tutorialActive: false,
+      reserveWaterSeconds: 5,
+      reserveSunSeconds: 5,
+      reserveFertilizerSeconds: 5,
+      dailyCapSeconds: 25,
+      streakDays: 0,
+      visitBonusSeconds: 0,
+      excessSeconds: 3,
+      excessElapsedMs: 20_000,
+      transferredRoots: ["water", "sun", "fertilizer"],
+      careCycleHoldingExcess: true,
+    });
+    expect(r.generatingExcess).toBe(true);
+    expect(r.generationProgress).toBe(0.35);
+  });
+
+  it("capacity excess zeros gold progress so post-Care starts at 12:00", () => {
+    const r = settleEconomyV3Roots({
+      rootWaterSeconds: 25,
+      rootSunSeconds: 25,
+      rootFertilizerSeconds: 25,
+      generationProgress: 0.35,
+      generationRrCursor: 0,
+      generationAnchorAt: NOW - T * 1000,
+      generationFrozenAt: null,
+      dayKey: "2026-07-27",
+      capital: 100_000,
+      nowMs: NOW,
+      tutorialActive: false,
+      reserveWaterSeconds: 0,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      dailyCapSeconds: 25,
+      streakDays: 0,
+      visitBonusSeconds: 0,
+      excessSeconds: 0,
+      excessElapsedMs: 0,
+      transferredRoots: [],
+    });
+    expect(r.generatingExcess).toBe(true);
+    expect(r.generationProgress).toBe(0);
+  });
+
   it("all transferred + all reserves full: still mints excess", () => {
     expect(
       shouldRouteV3GeneratedToExcess({

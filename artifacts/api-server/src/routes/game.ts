@@ -11,6 +11,7 @@ import { isEconomyV3RootsEnabled } from "../services/economy-v3-feature";
 import { buildEconomyV3RootsPublicState } from "../services/economy-v3-roots";
 import { settleAndPersistEconomyV3Roots } from "../services/economy-v3-roots-settle";
 import { V3_TUTORIAL_COMPLETE_CLEAR_SQL } from "../services/economy-v3-tutorial";
+import { computeTutorialCompensation } from "../services/economy-v3-tutorial-compensation";
 import { readMetelkaPendingRewardFromRow } from "../services/economy-v2-excess-metelka-pending";
 
 const COOLDOWN_MS = 8 * 60 * 60 * 1000;
@@ -276,7 +277,8 @@ router.post("/game/init", requireAuth, async (req: any, res) => {
   }
 });
 
-// POST /game/tutorial/complete — mark tutorial done, keep +1₽/+1мм/+1яблоко,
+// POST /game/tutorial/complete — mark tutorial done, award capital-idle
+// compensation (12% APR from capital-on-chest → gold flask start), keep apple,
 // continue v3 generation from the tutorial 12:00 wait start when provided.
 router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
   const userId = req.userId;
@@ -308,26 +310,40 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
       }
     }
 
-    // Starting capital + tutorial +1₽ (demo collectible that sticks into live play).
+    const capitalRow = await pool.query(
+      `SELECT starting_capital FROM accounts WHERE user_id = $1`,
+      [userId],
+    );
+    const startingCapital = Number(capitalRow.rows[0]?.starting_capital);
+    const compensation = computeTutorialCompensation({
+      capital: startingCapital,
+      startedAtMs: req.body?.compensationStartedAt,
+      endedAtMs: req.body?.compensationEndedAt,
+      nowMs: now,
+    });
+    const amountRub = compensation.amountRub;
+    const growthMm = compensation.growthMm;
+
+    // Starting capital + idle compensation (closes the tutorial no-pay window).
     // NULLIF: legacy rows may have starting_capital=0 (column default).
     await pool.query(
       `UPDATE accounts
-       SET active_balance = COALESCE(NULLIF(starting_capital, 0), 100000) + 1,
+       SET active_balance = COALESCE(NULLIF(starting_capital, 0), 100000) + $2,
            vault_balance = 0,
-           active_earned = 1,
+           active_earned = $2,
            standard_earned = 0
        WHERE user_id = $1`,
-      [userId],
+      [userId, amountRub],
     );
-    // Replace any mid-tutorial income rows with the single tutorial +1₽ entry.
+    // Replace any mid-tutorial income rows with the compensation entry.
     await pool.query(`DELETE FROM income_history WHERE user_id = $1`, [userId]);
     await pool.query(
       `INSERT INTO income_history(user_id, amount, type, earned_date)
-       VALUES ($1, 1, 'base', CURRENT_DATE)`,
-      [userId],
+       VALUES ($1, $2, 'tutorial', CURRENT_DATE)`,
+      [userId, amountRub],
     );
 
-    // Keep tutorial collectibles (1 мм / 1 apple / claimed skill XP); clear care residue.
+    // Keep tutorial collectibles (compensation мм / 1 apple / claimed skill XP).
     // v3 generation clock continues from the tutorial wait start (not "now"),
     // so a 9:54 leftover on the tutorial capsule becomes the live wait timer.
     if (isEconomyV3RootsEnabled()) {
@@ -368,13 +384,16 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
              ${V3_TUTORIAL_COMPLETE_CLEAR_SQL},
              updated_at = NOW()
          WHERE user_id = $1`,
-        // $2 = v2 bigint epoch-ms; $3 = v3 TIMESTAMP (separate types — avoid 42P08)
-        [userId, now, new Date(generationAnchorAt)],
+        // $2 = v2 bigint epoch-ms; $3 = v3 TIMESTAMP; $4 = growth floor
+        [userId, now, new Date(generationAnchorAt), growthMm],
       );
       return res.json({
         success: true,
         energyAnchorAt: now,
         generationAnchorAt,
+        compensationRub: amountRub,
+        compensationGrowthMm: growthMm,
+        compensationUsedFallback: compensation.usedFallback,
       });
     } else {
       await pool.query(
@@ -383,9 +402,9 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
              v2_energy_anchor_at = $2,
              v2_root_generation_progress = 0,
              v2_root_ready_mask = '0',
-             tree_growth_mm = 1,
+             tree_growth_mm = GREATEST(COALESCE(tree_growth_mm, 0), $3),
              tree_growth_remainder = 0,
-             total_apples = 1,
+             total_apples = GREATEST(COALESCE(total_apples, 0), 1),
              total_sessions = 0,
              streak_days = 0,
              last_streak_date = NULL,
@@ -393,10 +412,16 @@ router.post("/game/tutorial/complete", requireAuth, async (req: any, res) => {
              pending_bonus_reward = 0,
              updated_at = NOW()
          WHERE user_id = $1`,
-        [userId, now],
+        [userId, now, growthMm],
       );
     }
-    return res.json({ success: true, energyAnchorAt: now });
+    return res.json({
+      success: true,
+      energyAnchorAt: now,
+      compensationRub: amountRub,
+      compensationGrowthMm: growthMm,
+      compensationUsedFallback: compensation.usedFallback,
+    });
   } catch (err) {
     req.log.error({ err }, "Error completing tutorial");
     return res.status(500).json({ error: "Internal server error" });
@@ -674,10 +699,12 @@ router.post("/game/session/claimAll", requireAuth, async (req: any, res) => {
       newGrowthRemainder -= extraMM;
     }
 
-    const applesCollected = parseInt(req.body?.applesCollected) || 0;
+    const applesCollected = Math.max(0, parseInt(req.body?.applesCollected, 10) || 0);
+    const prevApples = parseInt(g.total_apples, 10) || 0;
+    const totalApples = prevApples + applesCollected;
     await pool.query(
-      `UPDATE game_state SET pending_base_reward = 0, pending_bonus_reward = 0, tree_growth_mm = $2, tree_growth_remainder = $3, total_apples = COALESCE(total_apples, 0) + $4, updated_at = NOW() WHERE user_id = $1`,
-      [userId, newGrowthMM, newGrowthRemainder, applesCollected],
+      `UPDATE game_state SET pending_base_reward = 0, pending_bonus_reward = 0, tree_growth_mm = $2, tree_growth_remainder = $3, total_apples = $4, updated_at = NOW() WHERE user_id = $1`,
+      [userId, newGrowthMM, newGrowthRemainder, totalApples],
     );
     await pool.query(
       `UPDATE accounts SET active_balance = active_balance + $1, active_earned = active_earned + $1 WHERE user_id = $2`,
@@ -696,8 +723,17 @@ router.post("/game/session/claimAll", requireAuth, async (req: any, res) => {
       );
     }
 
-    req.log.info({ baseAmount, bonusAmount, totalAmount, newGrowthMM }, "All rewards claimed");
-    return res.json({ success: true, totalAmount, baseAmount, bonusAmount, treeGrowthMM: newGrowthMM, treeGrowthRemainder: newGrowthRemainder });
+    req.log.info({ baseAmount, bonusAmount, totalAmount, newGrowthMM, applesCollected, totalApples }, "All rewards claimed");
+    return res.json({
+      success: true,
+      totalAmount,
+      baseAmount,
+      bonusAmount,
+      treeGrowthMM: newGrowthMM,
+      treeGrowthRemainder: newGrowthRemainder,
+      applesCollected,
+      totalApples,
+    });
   } catch (err) {
     req.log.error({ err }, "Error claiming all rewards");
     return res.status(500).json({ error: "Internal server error" });

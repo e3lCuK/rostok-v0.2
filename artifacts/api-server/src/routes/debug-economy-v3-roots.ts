@@ -49,8 +49,15 @@ export function registerDebugEconomyV3RootsRoute(router: Router) {
           v3Roots: result.v3Roots,
           capacitySeconds: result.capacitySeconds,
           clamp: result.clamp,
+          ...(result.excess
+            ? {
+                excess: result.excess,
+                excessElapsedMs: result.excess.excessElapsedMs,
+              }
+            : {}),
           game: {
             v3Roots: result.v3Roots,
+            ...(result.excess ? { v2Excess: result.excess } : {}),
           },
         });
       } catch (err) {

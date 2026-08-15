@@ -10,6 +10,10 @@
  */
 
 import {
+  capitalMultiplier,
+  V2_SECONDS_PER_ENERGY_AT_REFERENCE,
+} from "./economy-v2";
+import {
   roundMoneyToKopecks,
   V2_BASE_APR,
   V2_SECONDS_PER_YEAR,
@@ -120,6 +124,85 @@ export function normalizeExcessElapsedMs(raw: unknown): number {
   const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? "0"));
   if (!Number.isFinite(n) || n < 0) return 0;
   return n;
+}
+
+/**
+ * Wall-clock length of one financial energy-second cycle at capital K.
+ * Same as grey-flask / `secondsPerGameSecondForCapital`: 720 / M(K).
+ * Returns +Infinity when capital cannot mint.
+ */
+export function financialCycleDurationMsForCapital(capital: number): number {
+  const m = capitalMultiplier(capital);
+  if (!Number.isFinite(m) || m <= 0) return Number.POSITIVE_INFINITY;
+  const sec = V2_SECONDS_PER_ENERGY_AT_REFERENCE / m;
+  if (!Number.isFinite(sec) || sec <= 0) return Number.POSITIVE_INFINITY;
+  return sec * 1000;
+}
+
+export type MetelkaPaidFinancialSplit = {
+  /** Complete financial cycles that enter Metelka payout. */
+  completeCycles: number;
+  cycleDurationMs: number;
+  paidElapsedMs: number;
+  /** Game-seconds matched 1:1 with complete cycles (deducted on finish). */
+  paidSeconds: number;
+  paidBaseIncome: number;
+  remainderElapsedMs: number;
+  remainderSeconds: number;
+  remainderBaseIncome: number;
+};
+
+/**
+ * At Metelka start: peel the incomplete financial-cycle tail so it does not
+ * enter the paid snapshot. Remainder stays on live ledgers (finish deducts
+ * only the paid share) and keeps accruing — no idle gap, no lost time.
+ *
+ * 1 financial cycle ↔ 1 game-second at current capital (720/M(K) wall ms).
+ * When cycle length is unusable, pay nothing from elapsed (keep all as remainder).
+ */
+export function splitMetelkaPaidFinancialCycles(input: {
+  excessElapsedMs: number;
+  excessSeconds: number;
+  excessBaseIncome: number;
+  capital: number;
+}): MetelkaPaidFinancialSplit {
+  const elapsed = normalizeExcessElapsedMs(input.excessElapsedMs);
+  const seconds =
+    Number.isFinite(input.excessSeconds) && input.excessSeconds > 0
+      ? input.excessSeconds
+      : 0;
+  const base = normalizeExcessBaseIncome(input.excessBaseIncome);
+  const cycleDurationMs = financialCycleDurationMsForCapital(input.capital);
+
+  if (!Number.isFinite(cycleDurationMs) || cycleDurationMs <= 0 || elapsed <= 0) {
+    return {
+      completeCycles: 0,
+      cycleDurationMs: Number.isFinite(cycleDurationMs) ? cycleDurationMs : 0,
+      paidElapsedMs: 0,
+      paidSeconds: 0,
+      paidBaseIncome: 0,
+      remainderElapsedMs: elapsed,
+      remainderSeconds: seconds,
+      remainderBaseIncome: base,
+    };
+  }
+
+  const completeCycles = Math.floor(elapsed / cycleDurationMs);
+  const paidElapsedMs = completeCycles * cycleDurationMs;
+  const paidSeconds = Math.min(seconds, completeCycles);
+  const paidBaseIncome =
+    elapsed > 0 && paidElapsedMs > 0 ? base * (paidElapsedMs / elapsed) : 0;
+
+  return {
+    completeCycles,
+    cycleDurationMs,
+    paidElapsedMs,
+    paidSeconds,
+    paidBaseIncome: normalizeExcessBaseIncome(paidBaseIncome),
+    remainderElapsedMs: normalizeExcessElapsedMs(elapsed - paidElapsedMs),
+    remainderSeconds: Math.max(0, seconds - paidSeconds),
+    remainderBaseIncome: normalizeExcessBaseIncome(base - paidBaseIncome),
+  };
 }
 
 /** True when game excess can back a financial payout (has real elapsed history). */

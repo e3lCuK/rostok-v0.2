@@ -173,6 +173,8 @@ export type V3TransferringState = {
   /** Pre-success fill; not recalculated from economy. */
   holdRoot: EconomyV3RootState;
   pendingSnapshot: EconomyV3RootsState;
+  /** Settled excess from transfer response — apply with roots to keep financial time. */
+  excess?: unknown;
 };
 
 /**
@@ -329,7 +331,12 @@ export function formatV3TransferError(err: unknown): string {
 }
 
 export type PerformV3RootTransferResult =
-  | { ok: true; root: EconomyV3RootKind; v3Roots: EconomyV3RootsState }
+  | {
+      ok: true;
+      root: EconomyV3RootKind;
+      v3Roots: EconomyV3RootsState;
+      excess?: unknown;
+    }
   | { ok: false; skipped: true }
   | { ok: false; skipped: false; error: string };
 
@@ -343,7 +350,10 @@ export async function performEconomyV3RootTransfer(input: {
   busyRoot: EconomyV3RootKind | null;
   transferEnabled: boolean;
   transferLocked?: boolean;
-  transferFn?: (root: EconomyV3RootKind) => Promise<{ v3Roots: unknown }>;
+  transferFn?: (root: EconomyV3RootKind) => Promise<{
+    v3Roots: unknown;
+    excess?: unknown;
+  }>;
 }): Promise<PerformV3RootTransferResult> {
   if (!input.transferEnabled) return { ok: false, skipped: true };
   if (input.busyRoot != null) return { ok: false, skipped: true };
@@ -361,7 +371,12 @@ export async function performEconomyV3RootTransfer(input: {
         error: "transfer response missing v3Roots",
       };
     }
-    return { ok: true, root: input.kind, v3Roots: normalized };
+    return {
+      ok: true,
+      root: input.kind,
+      v3Roots: normalized,
+      excess: res.excess,
+    };
   } catch (err) {
     return { ok: false, skipped: false, error: formatV3TransferError(err) };
   }
@@ -379,14 +394,20 @@ type Props = {
   /** Tutorial: only this root is clickable; others stay waiting/frozen. */
   tutorialHighlightRoot?: EconomyV3RootKind | null;
   /** Apply normalized server snapshot after success (+ optional animation). */
-  onTransferred?: (v3Roots: EconomyV3RootsState) => void;
+  onTransferred?: (
+    v3Roots: EconomyV3RootsState,
+    meta?: { excess?: unknown },
+  ) => void;
   /**
    * Override prefers-reduced-motion (tests). When omitted, reads matchMedia.
    * true = no waiting / transfer motion.
    */
   reducedMotion?: boolean | null;
   /** Test seam: override transfer API. */
-  transferFn?: (root: EconomyV3RootKind) => Promise<{ v3Roots: unknown }>;
+  transferFn?: (root: EconomyV3RootKind) => Promise<{
+    v3Roots: unknown;
+    excess?: unknown;
+  }>;
   /** Test seam: override animation duration (ms). */
   transferAnimMs?: number;
 };
@@ -560,7 +581,8 @@ export default function EconomyV3RootSystem({
       pending,
       committedKey: committedKeyRef.current,
       onPulse: (kind) => pulseV3ActivityReceive(kind),
-      onTransferred: (snap) => onTransferredRef.current?.(snap),
+      onTransferred: (snap) =>
+        onTransferredRef.current?.(snap, { excess: pending?.excess }),
     });
     if (result.nextKey) committedKeyRef.current = result.nextKey;
     return result.committed;
@@ -668,6 +690,7 @@ export default function EconomyV3RootSystem({
       holdRoot,
       pendingSnapshot:
         plan.mode === "animate" ? plan.pendingSnapshot : plan.snapshot,
+      excess: result.excess,
     };
     transferringRef.current = next;
     setTransferring(next);

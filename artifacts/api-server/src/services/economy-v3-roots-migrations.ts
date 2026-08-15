@@ -49,6 +49,18 @@ export const ECONOMY_V3_ROOT_MIGRATION_SQL: readonly string[] = [
   /** Roots-full → Metelka-before-transfer cycle markers. */
   `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_metelka_required BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_metelka_completed_for_cycle BOOLEAN NOT NULL DEFAULT FALSE`,
+  /**
+   * Set when Care cycle starts at shared-pool / ordinary max — keep minting
+   * financial excess while activities spend energy below max. Cleared on
+   * acknowledge-cycle / excess reset. Partial-fill Care must leave this false.
+   */
+  `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_care_hold_excess BOOLEAN NOT NULL DEFAULT FALSE`,
+  /**
+   * Set when the transfer trio completes (markers cleared). Pauses root
+   * refill while buttons still hold energy so partial collect cannot hit
+   * shared-pool max before Care. Cleared on Care ack / all reserves empty.
+   */
+  `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_post_collect_pause BOOLEAN NOT NULL DEFAULT FALSE`,
   /** Tutorial: tree + underground unlock after tap-to-plant. */
   `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS sprout_planted BOOLEAN NOT NULL DEFAULT FALSE`,
   /** Starting capital parked in vault until drag-to-chest (accounts). */

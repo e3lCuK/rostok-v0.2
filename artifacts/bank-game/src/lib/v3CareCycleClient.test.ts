@@ -393,6 +393,14 @@ describe("v3 Care cycle — GamePage / api wiring (7I)", () => {
     expect(pageSrc).toContain("Цикл ухода не готов");
   });
 
+  it("auto-presses Care shovel after CARE_SHOVEL_AUTO_PRESS_MS if untouched", () => {
+    expect(clientSrc).toContain("CARE_SHOVEL_AUTO_PRESS_MS = 60_000");
+    expect(pageSrc).toContain("careShovelAutoPressTimerRef");
+    expect(pageSrc).toContain("pressCareShovelRef");
+    expect(pageSrc).toContain("CARE_SHOVEL_AUTO_PRESS_MS");
+    expect(pageSrc).toContain("showCareShovelUi");
+  });
+
   it("pending rewards come from claim response fields", () => {
     expect(pageSrc).toContain("pendingBaseReward: claimed.pendingBaseReward");
     expect(pageSrc).toContain("pendingBonusReward: claimed.pendingBonusReward");

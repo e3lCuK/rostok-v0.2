@@ -4,6 +4,7 @@
  */
 
 import { formatRub } from "@/lib/engine";
+import type { EconomyV3RootsState } from "@/lib/api";
 
 export type MetelkaPendingRewardUi = {
   active: boolean;
@@ -15,6 +16,9 @@ export type MetelkaPendingRewardUi = {
   claimToken: string | null;
   claimedAt: number | null;
 };
+
+/** Auto-claim Metelka coin if the player leaves it untouched (same as Care shovel). */
+export const METELKA_COIN_AUTO_CLAIM_MS = 60_000;
 
 const XP_SHOWN_PREFIX = "metelka-xp-shown:";
 
@@ -137,12 +141,14 @@ export function normalizeMetelkaPendingReward(
 /**
  * Apply Metelka claim response onto game slice.
  * Uses server playerXp/playerLevel as SoT (field name playerXP for LevelWidget).
+ * Immediately unlocks grey Metelka root lock (do not wait for the next poll).
  */
 export function applyMetelkaClaimToGameState<
   G extends {
     playerXP?: number;
     playerLevel?: number;
     metelkaPendingReward?: MetelkaPendingRewardUi;
+    v3Roots?: EconomyV3RootsState | null;
   },
 >(
   game: G,
@@ -159,6 +165,35 @@ export function applyMetelkaClaimToGameState<
     metelkaPendingReward: normalizeMetelkaPendingReward(
       res.metelkaPendingReward ?? undefined,
     ),
+    v3Roots: unlockV3RootsAfterMetelkaClaim(game.v3Roots),
+  };
+}
+
+/**
+ * Clear Metelka grey-lock on roots as soon as the reward coin is claimed.
+ * Finish alone can leave a stale careLocked/transferLocked until the next settle.
+ */
+export function unlockV3RootsAfterMetelkaClaim(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): EconomyV3RootsState | null {
+  if (v3Roots == null || v3Roots.enabled !== true) {
+    return v3Roots ?? null;
+  }
+  const cycle = v3Roots.metelkaCycle;
+  if (cycle == null) return v3Roots;
+  return {
+    ...v3Roots,
+    metelkaCycle: {
+      ...cycle,
+      required: false,
+      completedForCycle: true,
+      transferLocked: false,
+      careLocked: false,
+      phase:
+        v3Roots.excessGate?.rootsFull === true
+          ? "root_transfer_unlocked"
+          : "roots_accumulating",
+    },
   };
 }
 

@@ -140,6 +140,8 @@ export async function acknowledgeEconomyV3CareCycle(
            v3_care_cycle_completed_at = NULL,
            v3_care_cycle_finished_at = NULL,
            v3_care_cycle_status = NULL,
+           v3_care_hold_excess = FALSE,
+           v3_post_collect_pause = FALSE,
            v3_care_cycle_total_preset_seconds = NULL,
            v3_care_cycle_average_skill = NULL,
            v3_care_cycle_claimed_at = NULL,
@@ -172,6 +174,8 @@ export async function acknowledgeEconomyV3CareCycle(
     locked.v3_care_cycle_completed_at = null;
     locked.v3_care_cycle_finished_at = null;
     locked.v3_care_cycle_status = null;
+    locked.v3_care_hold_excess = false;
+    locked.v3_post_collect_pause = false;
     locked.v3_care_cycle_total_preset_seconds = null;
     locked.v3_care_cycle_average_skill = null;
     locked.v3_care_cycle_claimed_at = null;

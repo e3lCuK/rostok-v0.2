@@ -30,6 +30,16 @@ describe("Level modal embeds achievements; no bottom nav", () => {
     expect(lvlSrc).toContain("pendingAchievements");
     expect(lvlSrc).toContain("lvl-badge-ach-dot");
     expect(cssSrc).toContain(".lvl-badge-ach-dot");
+    // Apple / flask chrome: green wash + thin rim — not a solid paint blob.
+    expect(cssSrc).toMatch(
+      /\.ach-fire-dot\s*\{[\s\S]*?border:\s*1\.05px\s+solid\s+#2f5c0e/,
+    );
+    expect(cssSrc).toMatch(
+      /\.ach-fire-dot\s*\{[\s\S]*?rgba\(134,\s*239,\s*172/,
+    );
+    expect(cssSrc).not.toMatch(
+      /\.ach-fire-dot\s*\{[\s\S]*?background:\s*#92B34D/,
+    );
   });
 
   it("level diamond uses thin flask-style rim + cream shell", () => {

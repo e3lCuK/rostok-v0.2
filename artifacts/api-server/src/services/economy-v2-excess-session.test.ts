@@ -304,50 +304,65 @@ describe("startEconomyV2ExcessSession", () => {
     expect(state.game.v2_excess_session_active).toBe(false);
   });
 
-  it("2. allows start at excess = 5", async () => {
+  it("2. allows start at excess = 5; partial cycle stays unpaid", async () => {
     state.game = baseGame({
       v2_excess_seconds: 5,
-      v2_excess_elapsed_ms: 12_000,
+      v2_excess_elapsed_ms: 12_000, // < one 720s financial cycle
     });
     const r = await startEconomyV2ExcessSession(USER, NOW);
     expect(r.session.active).toBe(true);
-    expect(r.session.sourceSeconds).toBe(5);
-    expect(r.session.sourceElapsedMs).toBe(12_000);
+    // Incomplete cycle does not enter the paid snapshot.
+    expect(r.session.sourceSeconds).toBe(0);
+    expect(r.session.sourceElapsedMs).toBe(0);
+    // Live ledger unchanged — remainder keeps accruing.
+    expect(r.excessSeconds).toBe(5);
+    expect(state.game.v2_excess_seconds).toBe(5);
+    expect(state.game.v2_excess_elapsed_ms).toBe(12_000);
     expect(r.session.capital).toBe(state.capital);
     expect(r.session.presetSeconds).toBe(5);
-    expect(r.excessSeconds).toBe(5);
   });
 
-  it("5–6. start freezes sourceElapsedMs and capital", async () => {
-    state.capital = 77_777;
+  it("5–6. start freezes only complete financial cycles + capital", async () => {
+    state.capital = 100_000; // 720s cycle
+    const cycleMs = 720_000;
+    const elapsed = 5 * cycleMs + 45_000;
     state.game = baseGame({
-      v2_excess_seconds: 10,
-      v2_excess_elapsed_ms: 45_000,
+      v2_excess_seconds: 5.5,
+      v2_excess_elapsed_ms: elapsed,
+      v2_excess_base_income: 10,
     });
     const r = await startEconomyV2ExcessSession(USER, NOW);
-    expect(r.session.sourceElapsedMs).toBe(45_000);
-    expect(r.session.capital).toBe(77_777);
-    expect(state.game.v2_excess_session_source_elapsed_ms).toBe(45_000);
-    expect(state.game.v2_excess_session_capital).toBe(77_777);
+    expect(r.session.sourceElapsedMs).toBe(5 * cycleMs);
+    expect(r.session.sourceSeconds).toBe(5);
+    expect(r.session.capital).toBe(100_000);
+    expect(state.game.v2_excess_session_source_elapsed_ms).toBe(5 * cycleMs);
+    expect(state.game.v2_excess_session_capital).toBe(100_000);
+    // Live ledgers still hold full amount (incl. unpaid tail).
+    expect(state.game.v2_excess_elapsed_ms).toBe(elapsed);
+    expect(state.game.v2_excess_seconds).toBe(5.5);
   });
 
   it("7. post-start excess growth does not change session snapshot", async () => {
+    const cycleMs = 720_000;
     state.game = baseGame({
       v2_excess_seconds: 12,
-      v2_excess_elapsed_ms: 20_000,
+      v2_excess_elapsed_ms: 12 * cycleMs + 20_000,
     });
     const r = await startEconomyV2ExcessSession(USER, NOW);
     expect(r.session.sourceSeconds).toBe(12);
-    expect(r.session.sourceElapsedMs).toBe(20_000);
+    expect(r.session.sourceElapsedMs).toBe(12 * cycleMs);
     state.game.v2_excess_seconds = 14;
-    state.game.v2_excess_elapsed_ms = 30_000;
+    state.game.v2_excess_elapsed_ms = 14 * cycleMs;
     const again = readExcessSessionFromRow(state.game);
     expect(again.sourceSeconds).toBe(12);
-    expect(again.sourceElapsedMs).toBe(20_000);
+    expect(again.sourceElapsedMs).toBe(12 * cycleMs);
   });
 
   it("3. allows start when excess > 5", async () => {
-    state.game = baseGame({ v2_excess_seconds: 25 });
+    state.game = baseGame({
+      v2_excess_seconds: 25,
+      v2_excess_elapsed_ms: 25 * 720_000,
+    });
     const r = await startEconomyV2ExcessSession(USER, NOW);
     expect(r.session.active).toBe(true);
     expect(r.session.sourceSeconds).toBe(25);
@@ -355,11 +370,17 @@ describe("startEconomyV2ExcessSession", () => {
 
   it("4–8. freezes source, preset, rate, startedAt, active, webCount, seed", async () => {
     const source = 12.5;
-    state.game = baseGame({ v2_excess_seconds: source });
+    const cycleMs = 720_000;
+    state.game = baseGame({
+      v2_excess_seconds: source,
+      v2_excess_elapsed_ms: source * cycleMs,
+    });
     const cycle = excessCycleFromSeconds(source);
     const r = await startEconomyV2ExcessSession(USER, NOW);
 
-    expect(r.session.sourceSeconds).toBeCloseTo(source, 10);
+    // Paid snapshot floors to complete cycles; gameplay T/rate from full ledger.
+    expect(r.session.sourceSeconds).toBe(12);
+    expect(r.session.sourceElapsedMs).toBe(12 * cycleMs);
     expect(r.session.presetSeconds).toBe(excessPresetSeconds(cycle));
     expect(r.session.presetSeconds).toBeGreaterThanOrEqual(5);
     expect(r.session.presetSeconds).toBeLessThanOrEqual(25);
@@ -370,7 +391,8 @@ describe("startEconomyV2ExcessSession", () => {
       Math.round(2.4 * (r.session.presetSeconds as number)),
     );
     expect(r.session.layoutSeed).not.toBeNull();
-    expect(r.session.webs.length).toBe((r.session.webCount ?? 0) + 1);
+    // version=2: white webs only (no special web in the layout array).
+    expect(r.session.webs.length).toBe(r.session.webCount);
     expect(r.session.clearedWebIds).toEqual([]);
     expect(r.session.clearedWebCount).toBe(0);
     expect(r.session.remainingWebCount).toBe(r.session.webCount);
@@ -425,7 +447,11 @@ describe("startEconomyV2ExcessSession", () => {
   });
 
   it("12. later excess accrual does not change session snapshot", async () => {
-    state.game = baseGame({ v2_excess_seconds: 12 });
+    const cycleMs = 720_000;
+    state.game = baseGame({
+      v2_excess_seconds: 12,
+      v2_excess_elapsed_ms: 12 * cycleMs,
+    });
     const started = await startEconomyV2ExcessSession(USER, NOW);
     expect(started.session.sourceSeconds).toBe(12);
 

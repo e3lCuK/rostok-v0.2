@@ -159,7 +159,9 @@ describe("v3 wait timer full chain", () => {
     expect(pageSrc).toContain("nowMs={now}");
     expect(pageSrc).toContain("tutorialDone={tutorialDone}");
     expect(pageSrc).toContain("v3-capital-chest-host--with-hourglass");
-    expect(pageSrc).toContain("onCapitalClick={() => setShowDepositInfo(true)}");
+    expect(pageSrc).toContain("onCapitalClick=");
+    expect(pageSrc).toContain("setShowDepositInfo(true)");
+    expect(pageSrc).toContain("financialMode={excessUiGrey}");
   });
 
   it("4–5. accumulating → countdown MM:SS; not null", () => {

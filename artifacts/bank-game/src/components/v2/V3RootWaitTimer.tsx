@@ -3,11 +3,15 @@
  * Uses absolute nextWholeSecondAt / secondsUntilNextWholeSecond (~12:00 cycle).
  * Always visible (idle empty glass when no active countdown).
  *
- * During Metelka cleaning: grey frozen capsule (clock held, no refresh).
+ * Excess / grey flask: countdown of the financial cycle phased by whole
+ * excessElapsed seconds (1s → 11:59), not the gold wait remaining.
+ * Metelka cleaning must NOT freeze financial accrual (no idle gap).
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { EconomyV3RootsState } from "@/lib/api";
+import { resolveV3FinancialFlaskDisplay } from "@/lib/v3FinancialFlask";
+import { readMetelkaFinancialLiveMs } from "@/lib/metelkaFinancialLive";
 import {
   captureV3RootWaitTimer,
   mergeV3RootWaitTimerSnapshot,
@@ -22,9 +26,20 @@ type Props = {
   tutorialDone: boolean;
   nowMs: number;
   frozen?: boolean;
+  /**
+   * Excess-phase (stone grey): drive label/fill from financial elapsed, never
+   * from the gold generation wait-clock.
+   */
+  financialMode?: boolean;
+  /** Production excessElapsedMs (server); live-projected while minting. */
+  excessElapsedMs?: number;
+  /** When true, project financial elapsed between polls. */
+  financialMinting?: boolean;
   handoffDeadlineAtMs?: number | null;
   handoffTotalSeconds?: number;
   onRefreshState: () => void | Promise<void>;
+  /** Tap upper flask → income help modal. */
+  onHelpClick?: () => void;
 };
 
 type FrozenHold = {
@@ -46,9 +61,13 @@ export default function V3RootWaitTimer({
   tutorialDone,
   nowMs,
   frozen = false,
+  financialMode = false,
+  excessElapsedMs = 0,
+  financialMinting = false,
   handoffDeadlineAtMs = null,
   handoffTotalSeconds = 12 * 60,
   onRefreshState,
+  onHelpClick,
 }: Props) {
   const refreshingRef = useRef(false);
   const prevSnapshotRef = useRef<V3RootWaitTimerSnapshot | null>(null);
@@ -60,18 +79,30 @@ export default function V3RootWaitTimer({
     Number.isFinite(handoffDeadlineAtMs) &&
     handoffDeadlineAtMs > nowMs - 2000;
 
+  // Financial excess keeps minting during Metelka — never hold the grey flask.
+  const holdFrozen = frozen && !financialMode;
+
   useEffect(() => {
-    if (frozen) {
+    if (holdFrozen) {
       setFrozenNowMs((prev) => prev ?? nowMs);
     } else {
       setFrozenNowMs(null);
       setFrozenHold(null);
     }
-  }, [frozen, nowMs]);
+  }, [holdFrozen, nowMs]);
 
-  const displayNowMs = frozen && frozenNowMs != null ? frozenNowMs : nowMs;
+  // Excess phase: drop gold-merge memory immediately so we never paint a
+  // leftover generation / tutorial deadline on the grey flask.
+  useLayoutEffect(() => {
+    if (financialMode) {
+      prevSnapshotRef.current = null;
+    }
+  }, [financialMode]);
+
+  const displayNowMs = holdFrozen && frozenNowMs != null ? frozenNowMs : nowMs;
 
   if (
+    !financialMode &&
     tutorialDone &&
     !handoffSeededRef.current &&
     handoffDeadlineAtMs != null &&
@@ -89,7 +120,31 @@ export default function V3RootWaitTimer({
     };
   }
 
+  const financialLiveMs = financialMode
+    ? readMetelkaFinancialLiveMs({
+        serverElapsedMs: excessElapsedMs,
+        // Keep projecting while grey even if cleaning freezes the label.
+        minting: financialMinting,
+        nowMs: displayNowMs,
+      })
+    : 0;
+
+  const financialTimer = useMemo(() => {
+    if (!financialMode) return null;
+    return resolveV3FinancialFlaskDisplay({
+      excessElapsedMs: financialLiveMs,
+      cycleDurationSeconds: v3Roots?.generation?.cycleDurationSeconds,
+      capital,
+    });
+  }, [
+    financialMode,
+    financialLiveMs,
+    capital,
+    v3Roots?.generation?.cycleDurationSeconds,
+  ]);
+
   const snapshot = useMemo(() => {
+    if (financialMode) return null;
     if (!tutorialDone) return null;
     const captured = captureV3RootWaitTimer({
       v3Roots,
@@ -104,6 +159,7 @@ export default function V3RootWaitTimer({
       protectTutorialHandoff: protectHandoff,
     });
   }, [
+    financialMode,
     tutorialDone,
     capital,
     displayNowMs,
@@ -118,25 +174,38 @@ export default function V3RootWaitTimer({
   ]);
 
   useLayoutEffect(() => {
-    prevSnapshotRef.current = snapshot;
-  }, [snapshot]);
+    if (financialMode) return;
+    // Never wipe a seeded tutorial handoff with a null capture gap —
+    // that flashed idle "—:—" for a frame after dismiss.
+    if (snapshot != null) {
+      prevSnapshotRef.current = snapshot;
+    }
+  }, [snapshot, financialMode]);
 
-  const liveTimer = resolveV3RootWaitTimerDisplay({
-    snapshot,
-    nowMs: displayNowMs,
-  });
+  const liveTimer = financialTimer
+    ? {
+        kind: "countdown" as const,
+        timeLabel: financialTimer.timeLabel,
+        barProgress: financialTimer.barProgress,
+        pulse: false,
+        seconds: financialTimer.remainingSeconds,
+      }
+    : resolveV3RootWaitTimerDisplay({
+        snapshot,
+        nowMs: displayNowMs,
+      });
 
   useEffect(() => {
-    if (!frozen || frozenHold != null) return;
+    if (!holdFrozen || frozenHold != null) return;
     if (liveTimer.kind !== "countdown") return;
     setFrozenHold({
       timeLabel: liveTimer.timeLabel,
       barProgress: liveTimer.barProgress,
     });
-  }, [frozen, frozenHold, liveTimer]);
+  }, [holdFrozen, frozenHold, liveTimer]);
 
   const timer =
-    frozen && frozenHold
+    holdFrozen && frozenHold
       ? {
           kind: "countdown" as const,
           timeLabel: frozenHold.timeLabel,
@@ -149,7 +218,8 @@ export default function V3RootWaitTimer({
         : IDLE_TIMER;
 
   useEffect(() => {
-    if (!snapshot || frozen || !tutorialDone) return;
+    // Gold wait only: financial mode has no “deadline hit → settle roots”.
+    if (financialMode || !snapshot || holdFrozen || !tutorialDone) return;
     const display = resolveV3RootWaitTimerDisplay({ snapshot, nowMs });
     if (display.kind !== "countdown" || display.seconds > 0) return;
     if (refreshingRef.current) return;
@@ -159,22 +229,35 @@ export default function V3RootWaitTimer({
       .finally(() => {
         refreshingRef.current = false;
       });
-  }, [snapshot, nowMs, frozen, tutorialDone, onRefreshState]);
+  }, [
+    financialMode,
+    snapshot,
+    nowMs,
+    holdFrozen,
+    tutorialDone,
+    onRefreshState,
+  ]);
 
   return (
     <div
       className={`v3-root-wait-timer${
-        !frozen && "pulse" in timer && timer.pulse
+        !holdFrozen && "pulse" in timer && timer.pulse
           ? " v3-root-wait-timer--pulse"
           : ""
-      }${frozen ? " v3-root-wait-timer--frozen" : ""}`}
+      }${holdFrozen ? " v3-root-wait-timer--frozen" : ""}`}
       data-v3-root-wait-timer="true"
       data-testid="v3-root-wait-timer"
       data-timer-kind={
-        liveTimer.kind === "countdown" ? "countdown" : "idle"
+        financialMode
+          ? "financial"
+          : liveTimer.kind === "countdown"
+            ? "countdown"
+            : "idle"
       }
-      data-timer-frozen={frozen ? "true" : "false"}
-      data-timer-source={snapshot?.source ?? "none"}
+      data-timer-frozen={holdFrozen ? "true" : "false"}
+      data-timer-source={
+        financialMode ? "financial" : (snapshot?.source ?? "none")
+      }
       data-timer-visible="true"
       aria-live="polite"
     >
@@ -182,13 +265,16 @@ export default function V3RootWaitTimer({
         barProgress={timer.barProgress}
         timeLabel={timer.timeLabel}
         ariaLabel={
-          frozen
+          holdFrozen
             ? "Накопление приостановлено"
-            : liveTimer.kind === "countdown"
-              ? "До следующего накопления"
-              : "Ожидание накопления"
+            : financialMode
+              ? "Финансовое время избытка"
+              : liveTimer.kind === "countdown"
+                ? "До следующего накопления"
+                : "Ожидание накопления"
         }
         testId="v3-root-wait-timer-capsule"
+        onHelpClick={onHelpClick}
       />
     </div>
   );

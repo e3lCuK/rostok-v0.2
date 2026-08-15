@@ -155,6 +155,7 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(TUTORIAL_V3_ROOT_SECONDS).toBe(10);
     expect(pageSrc).toContain("V3TutorialFillTimer");
     expect(pageSrc).toContain("tutorialFillDeadlineMs");
+    expect(pageSrc).toContain("!excessUiGrey");
     expect(pageSrc).toContain("prepareTutorialV3({ kind })");
     expect(pageSrc).toContain("nextV3TutorialFillKind");
     expect(pageSrc).toContain("withTutorialRootSeconds");

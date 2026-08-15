@@ -109,6 +109,64 @@ export function clampV3ReserveSeconds(
   return Math.min(cap, floorNonNeg(raw));
 }
 
+/**
+ * True when every activity holds max energy in its shared pool
+ * (root + matching reserve ≥ effectivePreset). Energy on the root or on the
+ * activity button both count — flask greys from this without waiting for
+ * the next settle `generatingExcess` tick.
+ */
+export function isV3SharedPoolEnergyAtMaximum(
+  v3Roots: EconomyV3RootsState | null | undefined,
+): boolean {
+  if (!v3Roots || v3Roots.enabled !== true) return false;
+  const cap = clampV3CapacitySecondsField(
+    v3Roots.effectivePresetSeconds ??
+      v3Roots.roots?.water?.capacitySeconds ??
+      v3Roots.dailyCapSeconds,
+  );
+  for (const kind of V3_ROOT_KINDS) {
+    const root = clampV3RootSeconds(v3Roots.roots?.[kind]?.seconds, cap);
+    const reserve = clampV3ReserveSeconds(
+      v3Roots.reserves?.[kind]?.seconds,
+      cap,
+    );
+    if (root + reserve < cap) return false;
+  }
+  return true;
+}
+
+/**
+ * Excess-phase flask / capital stone-grey. Prefer live shared-pool max so the
+ * flask greys as soon as energy is full in roots and/or buttons.
+ * Care keeps grey + financial clock only when the cycle latched holdExcess
+ * at start (capacity path — never during tutorial / partial-fill Care).
+ */
+export function isV3CareCycleHoldingExcess(
+  v3Roots: EconomyV3RootsState | null | undefined,
+  tutorialDone: boolean = true,
+): boolean {
+  if (tutorialDone === false) return false;
+  if (v3Roots?.careCycle?.status !== "in_progress") return false;
+  return v3Roots.careCycle?.holdExcess === true;
+}
+
+export function shouldGreyV3ExcessFlask(input: {
+  v3Roots?: EconomyV3RootsState | null;
+  excessCleaning?: boolean;
+  excessAvailable?: boolean;
+  /** Tutorial must never enter excess / grey-flask UX. */
+  tutorialDone?: boolean;
+}): boolean {
+  if (input.tutorialDone === false) return false;
+  if (input.excessCleaning === true) return true;
+  if (input.excessAvailable === true) return true;
+  if (isV3CareCycleHoldingExcess(input.v3Roots, true)) return true;
+  const gate = input.v3Roots?.excessGate;
+  if (gate?.generatingExcess === true) return true;
+  if (gate?.ordinaryFull === true) return true;
+  return isV3SharedPoolEnergyAtMaximum(input.v3Roots);
+}
+
 function asFiniteNumber(raw: unknown, fallback = 0): number {
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) ? n : fallback;
@@ -331,6 +389,7 @@ function normalizeCareCycle(raw: unknown): EconomyV3CareCycleState {
       completedAt: null,
       finishedAt: null,
       status: null,
+      holdExcess: false,
       allCompleted: false,
       readyToFinish: false,
       totalPresetSeconds: null,
@@ -373,6 +432,7 @@ function normalizeCareCycle(raw: unknown): EconomyV3CareCycleState {
     completedAt: asNullableString(o.completedAt),
     finishedAt: asNullableString(o.finishedAt),
     status,
+    holdExcess: asBool(o.holdExcess),
     allCompleted: asBool(o.allCompleted),
     readyToFinish: asBool(o.readyToFinish),
     totalPresetSeconds: totalPreset,

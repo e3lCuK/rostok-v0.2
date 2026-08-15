@@ -131,8 +131,23 @@ export function resolveGeneratingProgress(input: {
   return resolveCountdownProgress(until, per);
 }
 
-export function formatRootTimer(totalSeconds: number): string {
-  const s = Math.max(0, Math.ceil(totalSeconds));
+/**
+ * Ceiling countdown label (m:ss).
+ * Optional `cycleCapSeconds` clamps the display so a fresh full cycle never
+ * shows past the cycle length (e.g. 720.01 → "12:00", not ceil → "12:01").
+ */
+export function formatRootTimer(
+  totalSeconds: number,
+  cycleCapSeconds?: number,
+): string {
+  let s = Math.max(0, Math.ceil(totalSeconds));
+  if (
+    cycleCapSeconds != null &&
+    Number.isFinite(cycleCapSeconds) &&
+    cycleCapSeconds > 0
+  ) {
+    s = Math.min(s, Math.max(1, Math.round(cycleCapSeconds)));
+  }
   const mm = Math.floor(s / 60);
   const ss = s % 60;
   return `${mm}:${String(ss).padStart(2, "0")}`;
@@ -261,13 +276,16 @@ export function resolveRootTimerDisplay(input: {
     input.secondsPerSection > 0
       ? input.secondsPerSection
       : 0;
+  const cycleCap = total > 0 ? Math.max(1, Math.round(total)) : undefined;
+  const remaining =
+    cycleCap != null ? Math.min(seconds, cycleCap) : seconds;
   return {
     kind: "countdown",
-    seconds,
-    timeLabel: formatRootTimer(seconds),
-    barProgress: resolveCountdownProgress(seconds, total),
+    seconds: remaining,
+    timeLabel: formatRootTimer(remaining, cycleCap),
+    barProgress: resolveCountdownProgress(remaining, total),
     pulse: shouldPulseRootTimerBar({
-      remainingSeconds: seconds,
+      remainingSeconds: remaining,
       totalSeconds: total,
     }),
   };

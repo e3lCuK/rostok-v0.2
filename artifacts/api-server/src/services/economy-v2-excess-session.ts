@@ -3,6 +3,8 @@
  *
  * On start (version=2): settle → snapshot source/preset/rate/webCount/seed/
  * capital/elapsed/baseIncome → mark active. Does NOT deduct ledgers on start.
+ * Incomplete financial-cycle tail is excluded from the paid snapshot so it
+ * stays on live ledgers and keeps accruing (finish deducts only paid share).
  */
 
 import { pool } from "@workspace/db";
@@ -20,6 +22,7 @@ import {
 import {
   normalizeExcessBaseIncome,
   normalizeExcessElapsedMs,
+  splitMetelkaPaidFinancialCycles,
 } from "./economy-v2-excess-income";
 import { createExcessWebLayoutSeed } from "./economy-v2-excess-webs";
 import {
@@ -160,7 +163,8 @@ async function lockExcessSessionRow(
 /**
  * Start one Metelka attempt: settle, require excess ≥ 5, no active session,
  * freeze source/preset/rate/webCount/layoutSeed/capital/sourceElapsedMs/baseIncome.
- * Leaves v2_excess_seconds / v2_excess_elapsed_ms / v2_excess_base_income unchanged.
+ * Leaves live ledgers unchanged. Paid snapshot uses only complete financial
+ * cycles (720/M(K)); the incomplete tail stays for continued accrual.
  */
 export async function startEconomyV2ExcessSession(
   userId: string | number,
@@ -220,11 +224,18 @@ export async function startEconomyV2ExcessSession(
       );
     }
 
+    // Gameplay T / rate / webs from the full live ledger; money uses only
+    // complete financial cycles. Partial cycle stays on live ledgers.
     const snap = computeExcessSessionSnapshot(settled.excessSeconds);
-    const sourceElapsedMs = normalizeExcessElapsedMs(settled.excessElapsedMs);
-    const sessionBaseIncome = normalizeExcessBaseIncome(
-      settled.excessBaseIncome,
-    );
+    const paid = splitMetelkaPaidFinancialCycles({
+      excessElapsedMs: settled.excessElapsedMs,
+      excessSeconds: settled.excessSeconds,
+      excessBaseIncome: settled.excessBaseIncome,
+      capital,
+    });
+    const sourceElapsedMs = normalizeExcessElapsedMs(paid.paidElapsedMs);
+    const sourceSeconds = normalizeExcessSeconds(paid.paidSeconds);
+    const sessionBaseIncome = normalizeExcessBaseIncome(paid.paidBaseIncome);
     const layoutSeed = createExcessWebLayoutSeed();
 
     const updated = await client.query(
@@ -296,7 +307,7 @@ export async function startEconomyV2ExcessSession(
         String(userId),
         V2_EXCESS_SESSION_VERSION,
         nowMs,
-        snap.sourceSeconds,
+        sourceSeconds,
         sourceElapsedMs,
         capital,
         sessionBaseIncome,

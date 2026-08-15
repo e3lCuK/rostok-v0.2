@@ -10,12 +10,17 @@ import {
   normalizeExcessSeconds,
 } from "./economy-v2-excess";
 import { V3_CARE_SESSION_AND_CYCLE_SELECT_COLUMNS } from "./economy-v3-care-columns";
+import {
+  computeV3OrdinaryFullState,
+  isV3SharedPoolEnergyAtMaximum,
+} from "./economy-v3-excess-gate";
 import { computeV3EffectivePresetSeconds } from "./economy-v3-effective-capacity";
 import { isEconomyV3RootsEnabled } from "./economy-v3-feature";
 import { isCareBlockedByMetelka } from "./economy-v3-metelka-cycle";
 import {
   buildEconomyV3RootsPublicState,
   clampReserveSeconds,
+  clampRootSeconds,
   normalizeDailyCap,
   normalizeTransferredRoots,
   isCareCycleActivityCompleted,
@@ -198,6 +203,34 @@ export async function startEconomyV3CareActivity(
       basePresetSeconds,
       streakDays: locked.streak_days,
     });
+    // Latch BEFORE spending the first activity — capacity path must see max pool.
+    const openingCareCycle = locked.v3_care_cycle_status == null;
+    const careHoldExcess = openingCareCycle
+      ? computeV3OrdinaryFullState({
+          reserveWaterSeconds: locked.v3_reserve_water_seconds,
+          reserveSunSeconds: locked.v3_reserve_sun_seconds,
+          reserveFertilizerSeconds: locked.v3_reserve_fertilizer_seconds,
+          effectivePresetSeconds,
+        }).ordinaryFull ||
+        isV3SharedPoolEnergyAtMaximum({
+          rootWaterSeconds: clampRootSeconds(
+            locked.v3_root_water_seconds,
+            effectivePresetSeconds,
+          ),
+          rootSunSeconds: clampRootSeconds(
+            locked.v3_root_sun_seconds,
+            effectivePresetSeconds,
+          ),
+          rootFertilizerSeconds: clampRootSeconds(
+            locked.v3_root_fertilizer_seconds,
+            effectivePresetSeconds,
+          ),
+          reserveWaterSeconds: locked.v3_reserve_water_seconds,
+          reserveSunSeconds: locked.v3_reserve_sun_seconds,
+          reserveFertilizerSeconds: locked.v3_reserve_fertilizer_seconds,
+          rootCapacitySeconds: effectivePresetSeconds,
+        })
+      : locked.v3_care_hold_excess === true;
     const activityKind =
       validateRootKind(activityRaw) ? activityRaw : null;
     const started = startEconomyV3CareActivityPure({
@@ -259,6 +292,10 @@ export async function startEconomyV3CareActivity(
              WHEN v3_care_cycle_status = 'finished' THEN v3_care_cycle_status
              ELSE COALESCE(v3_care_cycle_status, 'in_progress')
            END,
+           v3_care_hold_excess = CASE
+             WHEN v3_care_cycle_status IS NULL THEN $10
+             ELSE v3_care_hold_excess
+           END,
            updated_at = NOW()
        WHERE user_id = $1`,
       [
@@ -271,6 +308,7 @@ export async function startEconomyV3CareActivity(
         new Date(started.careActivityStartedAt),
         started.careActivityStatus,
         new Date(cycleStartedAt),
+        careHoldExcess,
       ],
     );
 
@@ -285,6 +323,9 @@ export async function startEconomyV3CareActivity(
     locked.v3_care_activity_finished_at = null;
     locked.v3_care_cycle_started_at = new Date(cycleStartedAt);
     if (locked.v3_care_cycle_status !== "finished") {
+      if (locked.v3_care_cycle_status == null) {
+        locked.v3_care_hold_excess = careHoldExcess;
+      }
       locked.v3_care_cycle_status =
         locked.v3_care_cycle_status == null
           ? "in_progress"

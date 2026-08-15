@@ -1440,6 +1440,62 @@ body {
   color: #4d7c0f;
 }
 
+.flask-help-lead {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #4d7c0f;
+}
+
+.flask-help-list {
+  margin-bottom: 4px;
+}
+
+.flask-help-row {
+  align-items: flex-start;
+}
+
+.flask-help-row--grey {
+  border-color: #d6d3d1;
+  background: #fafaf9;
+}
+
+.flask-help-body {
+  line-height: 1.35;
+  color: #57534e !important;
+}
+
+.flask-help-badge--grey {
+  background: #e7e5e4;
+  color: #57534e;
+}
+
+.flask-help-mini {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flask-help-mini__svg {
+  display: block;
+}
+
+.flask-help-mini__time {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
 /* Drift stays right of the level diamond (~viewBox x < 95). */
 @keyframes bg-cloud-drift-left {
   0%   { transform: translateX(0px); }
@@ -1595,8 +1651,9 @@ body {
   transition: opacity 0.45s ease;
 }
 
-/* Metelka cleaning: hide apple + growth counters; fade back in when done. */
-.game-area--metelka-cleaning .apple-basket-host,
+/* Metelka cleaning: hide apple count + growth counters; keep basket art. */
+.game-area--metelka-cleaning .apple-basket-badge,
+.game-area--metelka-cleaning .apple-basket-popup-slot,
 .game-area--metelka-cleaning .tree-growth-badge-host {
   opacity: 0;
   pointer-events: none;
@@ -5859,13 +5916,16 @@ canvas {
   justify-content: center;
 }
 .ach-fire-dot {
+  /* Apple chrome rim + soft green wash inside (same family as level diamond fill). */
   position: absolute;
   top: -3px;
   right: -5px;
-  width: 8px;
-  height: 8px;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: #92B34D;
+  background: rgba(134, 239, 172, 0.72);
+  border: 1.05px solid #2f5c0e;
   pointer-events: none;
   z-index: 2;
 }
@@ -5876,7 +5936,7 @@ canvas {
 }
 @keyframes ach-dot-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50%       { transform: scale(1.35); opacity: 0.6; }
+  50%       { transform: scale(1.28); opacity: 0.85; }
 }
 
 /* Bell notification dot */
@@ -7921,7 +7981,7 @@ button.v3-capital-badge:focus-visible {
 
 /*
  * Tall capital-hourglass. Palette: cream shell, capital-gold rim + wash.
- * Capital base is the only pointer-events target.
+ * Pointer targets: capital face (history) + upper flask help hit.
  */
 .game-area--v3-roots .v3-root-wait-timer-capsule {
   display: block;
@@ -7994,6 +8054,26 @@ button.v3-capital-badge:focus-visible {
   justify-content: center;
   gap: 2px;
   pointer-events: none;
+}
+
+/* Upper bulb hit — opens flask income help (capital face stays separate). */
+.game-area--v3-roots .v3-root-wait-timer-help-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 42% 42% 38% 38% / 48% 48% 42% 42%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-area--v3-roots .v3-root-wait-timer-help-hit:focus-visible {
+  outline: 2px solid var(--v3-flask-rim, #c9920a);
+  outline-offset: 2px;
 }
 
 .game-area--v3-roots .v3-root-wait-timer-icon {

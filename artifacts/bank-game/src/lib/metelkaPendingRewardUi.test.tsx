@@ -162,6 +162,15 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
   const apiSrc = readFileSync(join(here, "api.ts"), "utf8");
   const css = readFileSync(join(here, "../bank.css"), "utf8");
 
+  it("GamePage: auto-claims Metelka coin after METELKA_COIN_AUTO_CLAIM_MS if untouched", () => {
+    const uiSrc = readFileSync(join(here, "metelkaPendingRewardUi.ts"), "utf8");
+    expect(uiSrc).toContain("METELKA_COIN_AUTO_CLAIM_MS = 60_000");
+    expect(page).toContain("metelkaCoinAutoClaimTimerRef");
+    expect(page).toContain("claimMetelkaCoinRef");
+    expect(page).toContain("METELKA_COIN_AUTO_CLAIM_MS");
+    expect(page).toContain("metelkaPendingActive");
+  });
+
   it("progress clear creates no money/XP floats", () => {
     expect(
       buildClearRewardFloatsFromResponse({
@@ -184,6 +193,11 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
     expect(page).toContain("markMetelkaXpAnimationShown");
     expect(page).toContain("unmarkMetelkaXpAnimationShown");
     expect(page).toContain("applyMetelkaClaimToGameState");
+    // Paid Metelka must wipe / sync live financial clock (no stuck excess timer).
+    expect(page).toMatch(
+      /applyFinishSuccess[\s\S]*?resetMetelkaFinancialLive|adoptMetelkaFinancialLiveMs/,
+    );
+    expect(page).toContain("paidElapsedMs");
     expect(page).not.toMatch(
       /finishEconomyV2ExcessSession[\s\S]{0,800}setShowApples\(true\)/,
     );
@@ -256,6 +270,51 @@ describe("applyMetelkaClaimToGameState", () => {
     expect(next.playerXP).toBe(46);
     expect(next.playerLevel).toBe(1);
     expect(next.metelkaPendingReward?.active).toBe(false);
+  });
+
+  it("unlocks grey Metelka root lock immediately on claim", () => {
+    const next = applyMetelkaClaimToGameState(
+      {
+        playerXP: 10,
+        playerLevel: 1,
+        metelkaPendingReward: activePending(),
+        v3Roots: {
+          enabled: true,
+          metelkaCycle: {
+            required: true,
+            completedForCycle: false,
+            transferLocked: true,
+            careLocked: true,
+            phase: "metelka_pending_result",
+          },
+        } as any,
+      },
+      {
+        playerXp: 15,
+        playerLevel: 1,
+        metelkaPendingReward: activePending({
+          active: false,
+          claimedAt: 1,
+        }),
+      },
+    );
+    expect(next.v3Roots?.metelkaCycle?.careLocked).toBe(false);
+    expect(next.v3Roots?.metelkaCycle?.transferLocked).toBe(false);
+    expect(next.v3Roots?.metelkaCycle?.completedForCycle).toBe(true);
+    expect(next.v3Roots?.metelkaCycle?.required).toBe(false);
+  });
+});
+
+describe("GamePage Metelka root thaw timing", () => {
+  it("keeps roots grey while Metelka coin is pending; unlocks on claim helper", () => {
+    const page = readFileSync(
+      join(here, "../pages/GamePage.tsx"),
+      "utf8",
+    );
+    expect(page).toContain("metelkaPendingActive ||");
+    expect(page).toContain("!metelkaPendingActive &&");
+    expect(page).toContain("applyMetelkaClaimToGameState(cur.game, res)");
+    expect(page).toContain("void syncRootsFromServer()");
   });
 });
 

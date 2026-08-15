@@ -80,6 +80,7 @@ export interface UserState {
     type:
       | "base"
       | "bonus"
+      | "tutorial"
       | "metelka"
       | "excess"
       | "excess_base"

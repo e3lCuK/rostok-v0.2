@@ -52,6 +52,8 @@ import EconomyV3RootSystem from "@/components/v2/EconomyV3RootSystem";
 import CapitalChestUnderRoots from "@/components/v2/CapitalChestUnderRoots";
 import V3UndergroundWrapRoots from "@/components/v2/V3UndergroundWrapRoots";
 import V3RootWaitTimer from "@/components/v2/V3RootWaitTimer";
+import FlaskIncomeHelpModal from "@/components/v2/FlaskIncomeHelpModal";
+import { computeAverageIncomePercent } from "@/lib/incomeHistoryAvgPercent";
 import TreeRewardToken from "@/components/v2/TreeRewardToken";
 import { INCOME_CHEST_FLOAT_MS } from "@/lib/incomeChestFeedback";
 import {
@@ -89,6 +91,7 @@ import {
   normalizeMetelkaPendingReward,
   shouldShowMetelkaFinishXpAnimation,
   unmarkMetelkaXpAnimationShown,
+  METELKA_COIN_AUTO_CLAIM_MS,
 } from "@/lib/metelkaPendingRewardUi";
 import {
   excessSessionFinishKey,
@@ -112,7 +115,10 @@ import {
   applyEconomyV3FromServerGame,
   applyEconomyV3RootsToState,
   economyV3DebugReadout,
+  isV3CareCycleHoldingExcess,
+  isV3SharedPoolEnergyAtMaximum,
   normalizeEconomyV3RootsSnapshot,
+  shouldGreyV3ExcessFlask,
 } from "@/lib/v3Roots";
 import {
   isV3ActivityButtonVisuallyLocked,
@@ -123,6 +129,7 @@ import {
   v3ActivityReserveFillPercent,
 } from "@/lib/v3ActivityCards";
 import {
+  CARE_SHOVEL_AUTO_PRESS_MS,
   canStartV3CareActivity,
   formatV3CareError,
   isV3CareSessionBlocking,
@@ -144,6 +151,7 @@ import {
   careBlockedByMetelka,
   v3CareBlocksMetelka,
 } from "@/lib/v3MetelkaUi";
+import { resetMetelkaFinancialLive, freezeMetelkaFinancialLive, adoptMetelkaFinancialLiveMs } from "@/lib/metelkaFinancialLive";
 import {
   isEconomyV3GameCycleEnabled,
   isV3CareUiBusy,
@@ -265,6 +273,13 @@ import {
   loadTutorialWaitClock,
   persistTutorialWaitClock,
 } from "@/lib/tutorialWaitClock";
+import { computeTutorialCompensation } from "@/lib/tutorialCompensation";
+import {
+  clearTutorialCompensationClock,
+  loadTutorialCompensationClock,
+  markTutorialCompensationEnded,
+  markTutorialCompensationStarted,
+} from "@/lib/tutorialCompensationClock";
 import V3TutorialFillTimer from "@/components/v2/V3TutorialFillTimer";
 
 import { APP_VERSION } from "@/lib/engine";
@@ -440,6 +455,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [coinDropTargetActive, setCoinDropTargetActive] = useState(false);
   const rewardDragLockRef = useRef(false);
   const rewardDragging = draggingAppleIdx !== null || draggingMetelkaCoin;
+  /**
+   * Red apples already added to the basket this Care reward wave.
+   * Prevents double-count when manual drag credits + claimApplesAndIncome.
+   */
+  const applesCreditedThisWaveRef = useRef(0);
+  /** True while tree apple/coin overlay is up — poll must not jump basket early. */
+  const rewardAppleWaveActiveRef = useRef(false);
   const [showApplePopup, setShowApplePopup] = useState(false);
   const [applePopupCount, setApplePopupCount] = useState(1);
   const [showIncomePopup, setShowIncomePopup] = useState(false);
@@ -477,6 +499,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
   const [showTreeInfo, setShowTreeInfo] = useState(false);
+  const [showFlaskIncomeHelp, setShowFlaskIncomeHelp] = useState(false);
   /** Eye toggle: mask underground root system (clip wipe bottom → top). */
   const [undergroundRootsMasked, setUndergroundRootsMasked] = useState(false);
   const [showDepositInfo, setShowDepositInfo] = useState(false);
@@ -569,6 +592,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [careSyncError, setCareSyncError] = useState<string | null>(null);
   const [pendingActivitySync, setPendingActivitySync] = useState<CareActivity | null>(null);
   const appleAutoCollectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Auto-press Care shovel («Уход») after CARE_SHOVEL_AUTO_PRESS_MS if untouched. */
+  const careShovelAutoPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressCareShovelRef = useRef<() => void>(() => {});
+  /** Auto-claim Metelka coin after METELKA_COIN_AUTO_CLAIM_MS if untouched. */
+  const metelkaCoinAutoClaimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const claimMetelkaCoinRef = useRef<() => void>(() => {});
   const collectedAppleIndicesRef = useRef<number[]>([]);
   const appleCountRef = useRef(1);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -609,23 +638,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           Number.isFinite(Number(sessionPresetRaw))
             ? Math.round(Number(sessionPresetRaw))
             : null;
-        // generation.anchorAt is the root wait-clock. Only expose it as the
-        // financial live-projection anchor while excess is actually minting —
-        // otherwise debug "Финансовое время" climbs/resets with ordinary fill.
-        const generatingExcess =
-          g.v3Roots?.excessGate?.generatingExcess === true;
-        const anchorRaw = g.v3Roots?.generation?.anchorAt;
-        const anchorMs =
-          !generatingExcess || anchorRaw == null || anchorRaw === ""
-            ? null
-            : (() => {
-                const asNum = Number(anchorRaw);
-                if (Number.isFinite(asNum) && asNum > 1e11) {
-                  return Math.trunc(asNum);
-                }
-                const t = Date.parse(String(anchorRaw));
-                return Number.isFinite(t) ? t : null;
-              })();
+        // Financial live clock must NOT use generation.anchorAt — transfers reset
+        // that wait-clock and would roll "Финансовое время" back (e.g. to 5 сек).
+        const energyAtMax = isV3SharedPoolEnergyAtMaximum(g.v3Roots);
+        const mintingFinancial =
+          tutorialDoneRef.current === true &&
+          (g.v3Roots?.excessGate?.generatingExcess === true ||
+            g.v3Roots?.excessGate?.ordinaryFull === true ||
+            energyAtMax ||
+            isV3CareCycleHoldingExcess(g.v3Roots, true));
         const excessFields = {
           excessSeconds: live.excessSeconds,
           excessPresetSeconds: live.excessPresetSeconds,
@@ -633,7 +654,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             0,
             Number(g.v2Excess?.excessElapsedMs) || 0,
           ),
-          excessFinancialAnchorAt: anchorMs,
+          excessFinancialMinting: mintingFinancial,
+          excessFinancialAnchorAt: null,
           capital: Math.max(0, Number(stateRef.current.balances?.balance) || 0),
           sessionActive,
           sessionPresetSeconds,
@@ -1212,6 +1234,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           setTutorialShowAppleBadge(true);
           setAppleCount(2);
           appleCountRef.current = 2;
+          applesCreditedThisWaveRef.current = 0;
           collectedAppleIndicesRef.current = [];
           setCollectedAppleIndices([]);
           setFlyingAppleIndices([]);
@@ -1284,14 +1307,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           waitDeadlineMs:
             tutorialWaitDeadlineMsRef.current ?? storedWait?.deadlineMs,
         });
+        const compensationClock = loadTutorialCompensationClock();
         try {
           // Continue live root generation from the tutorial 12:00 wait start
           // (e.g. 9:54 remaining → same clock in the main game).
-          await api.tutorialComplete({ generationAnchorAt });
+          await api.tutorialComplete({
+            generationAnchorAt,
+            compensationStartedAt: compensationClock?.startedAtMs,
+            compensationEndedAt: compensationClock?.endedAtMs,
+          });
           // Server owns the cycle after a successful handoff.
           clearTutorialWaitClock();
+          clearTutorialCompensationClock();
+          // Tutorial must not seed Metelka financial time — live excess starts at 0.
+          resetMetelkaFinancialLive();
         } catch {
           // Still unlock local UI; next getState will reconcile.
+          resetMetelkaFinancialLive();
         }
         // Keep deadline seed for V3RootWaitTimer; clear start after handoff.
         tutorialWaitStartedAtRef.current = null;
@@ -1304,7 +1336,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           const data = await api.getState();
           tutorialDemoRewardRef.current = { mm: 0, apples: 0, money: 0 };
           if (data.exists && data.game) {
-            // Keep tutorial +1 мм / +1 яблоко / +1₽ (server grant or local collect).
+            // Keep tutorial мм / apple / compensation ₽ (server grant or local collect).
             const keptMm = Math.max(
               Number(data.game.treeGrowthMM) || 0,
               Number(localBefore.game.treeGrowthMM) || 0,
@@ -1482,16 +1514,40 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const excessCleaning = isExcessCleaningMode(game.v2Excess);
   const excessResultPending = isExcessResultAvailable(game.v2Excess);
   /**
-   * Excess phase: grey flask + capital coin as soon as ordinary is full /
-   * excess is available — don't wait for the next settle tick that sets
-   * generatingExcess (that lag left the flask gold for several seconds).
-   * Clock freeze stays on excessCleaning only.
+   * Excess phase: grey flask + capital coin as soon as energy is at shared-pool
+   * max (roots and/or buttons), ordinary is full, or excess is available —
+   * don't wait for the next settle tick that sets generatingExcess (that lag
+   * left the flask gold after transferring a full root onto a button).
+   * Financial clock keeps running during Metelka (no idle freeze).
    */
-  const excessUiGrey =
-    excessCleaning ||
-    game.v3Roots?.excessGate?.generatingExcess === true ||
-    game.v3Roots?.excessGate?.ordinaryFull === true ||
-    game.v2Excess?.excessAvailable === true;
+  const excessUiGrey = shouldGreyV3ExcessFlask({
+    v3Roots: game.v3Roots,
+    excessCleaning,
+    excessAvailable: game.v2Excess?.excessAvailable === true,
+    tutorialDone,
+  });
+
+  const financialMintingLive =
+    tutorialDone &&
+    (game.v3Roots?.excessGate?.generatingExcess === true ||
+      game.v3Roots?.excessGate?.ordinaryFull === true ||
+      isV3SharedPoolEnergyAtMaximum(game.v3Roots) ||
+      isV3CareCycleHoldingExcess(game.v3Roots, true));
+
+  // When excess minting stops (Care shovel / gold wait), freeze immediately so a
+  // later fill cannot project idle wall-time into financial elapsed.
+  useEffect(() => {
+    if (!financialMintingLive) {
+      freezeMetelkaFinancialLive();
+    }
+  }, [financialMintingLive]);
+
+  useEffect(() => {
+    if (!excessUiGrey) return;
+    // Keep ticking during Metelka — financial accrual must not idle while cleaning.
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [excessUiGrey]);
 
   const [vaultTransferBusy, setVaultTransferBusy] = useState(false);
   const [plantSproutBusy, setPlantSproutBusy] = useState(false);
@@ -1597,6 +1653,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       dropStaleTutorialWaitClock();
       setTutorialTimerKind(null);
       setTutorialFillDeadlineMs(null);
+      markTutorialCompensationStarted(
+        Date.now(),
+        Number(res.balances.balance) || 100_000,
+      );
       setTutorialStep("intro");
     } catch {
       // stay on capital-transfer
@@ -1675,6 +1735,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         const nextState = applyEconomyV2ExcessDebugToState(prev, {
           v2Excess: input.excess,
         });
+        // Paid Metelka window is gone — sync live financial clock to the
+        // post-finish ledger (usually 0). Without this the grey flask kept
+        // projecting the pre-Metelka elapsed.
+        const paidElapsedMs = Math.max(
+          0,
+          Number(input.excess.excessElapsedMs) || 0,
+        );
+        if (paidElapsedMs <= 0) {
+          resetMetelkaFinancialLive();
+        } else {
+          adoptMetelkaFinancialLiveMs(paidElapsedMs, Date.now(), false, {
+            force: true,
+          });
+        }
         commitState({
           ...nextState,
           balances: {
@@ -1879,6 +1953,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         game: applyMetelkaClaimToGameState(cur.game, res),
         history: nextHistory,
       });
+      // Reconcile excessAvailable / metelkaCycle with server after local unlock.
+      if (tutorialDoneRef.current) {
+        void syncRootsFromServer();
+      }
       // Clear finish flash so a later Metelka can re-trigger LevelWidget.
       setXpGainAmount(null);
       setShowXpPopup(false);
@@ -1938,6 +2016,34 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setMetelkaClaimBusy(false);
     }
   }
+
+  claimMetelkaCoinRef.current = () => {
+    void handleClaimMetelkaPendingReward();
+  };
+
+  // Same 60s auto-claim as Care shovel / apple collect: if Metelka coin stays up, claim it.
+  useEffect(() => {
+    if (!metelkaPendingActive || metelkaClaimBusy) {
+      if (metelkaCoinAutoClaimTimerRef.current) {
+        clearTimeout(metelkaCoinAutoClaimTimerRef.current);
+        metelkaCoinAutoClaimTimerRef.current = null;
+      }
+      return;
+    }
+    if (metelkaCoinAutoClaimTimerRef.current) {
+      clearTimeout(metelkaCoinAutoClaimTimerRef.current);
+    }
+    metelkaCoinAutoClaimTimerRef.current = setTimeout(() => {
+      metelkaCoinAutoClaimTimerRef.current = null;
+      claimMetelkaCoinRef.current();
+    }, METELKA_COIN_AUTO_CLAIM_MS);
+    return () => {
+      if (metelkaCoinAutoClaimTimerRef.current) {
+        clearTimeout(metelkaCoinAutoClaimTimerRef.current);
+        metelkaCoinAutoClaimTimerRef.current = null;
+      }
+    };
+  }, [metelkaPendingActive, metelkaClaimBusy, metelkaPending?.claimToken]);
 
   async function handleAcknowledgeExcessResult() {
     if (excessAckBusy) return;
@@ -2309,6 +2415,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [tutorialTimerKind, setTutorialTimerKind] =
     useState<TutorialV3TimerKind | null>(null);
   const tutorialTimerKindRef = useRef<TutorialV3TimerKind | null>(null);
+
+  // Debug fill / excess phase during live play: drop the gold tutorial capsule
+  // so the grey flask binds to financial time. Never during tutorial itself.
+  useEffect(() => {
+    if (!tutorialDone || !excessUiGrey) return;
+    setTutorialFillDeadlineMs(null);
+    setTutorialTimerKind(null);
+  }, [excessUiGrey, tutorialDone]);
   const tutorialFillRunRef = useRef(0);
   const tutorialWaitStartedRef = useRef(false);
   /** Absolute start of the tutorial 12:00 wait — handed to tutorial/complete. */
@@ -2354,6 +2468,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   const dropStaleTutorialWaitClock = () => {
     clearTutorialWaitClock();
+    clearTutorialCompensationClock();
     tutorialWaitStartedRef.current = false;
     tutorialWaitStartedAtRef.current = null;
     tutorialWaitDeadlineMsRef.current = null;
@@ -2437,7 +2552,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const startedAt = tutorialWaitStartedAtRef.current;
       void (async () => {
         try {
-          const res = await api.syncTutorialV3WaitEnergy(startedAt);
+          // First roots-full: end compensation + zero ordinary so gold flask
+          // starts clean (no double-pay with «Обучение»).
+          const compClock = loadTutorialCompensationClock();
+          const startGoldFlask =
+            compClock != null && compClock.endedAtMs == null;
+          const res = await api.syncTutorialV3WaitEnergy(startedAt, {
+            startGoldFlask,
+          });
+          if (startGoldFlask) {
+            markTutorialCompensationEnded(Date.now());
+          }
           const cur = stateRef.current;
           if (res.v3Roots) {
             commitState(applyEconomyV3RootsToState(cur, res.v3Roots));
@@ -2487,6 +2612,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setTutorialTimerKind(null);
       return;
     }
+    // Excess/grey already owns the flask — do not re-arm the gold tutorial wait.
+    if (tutorialDone && excessUiGrey) return;
     if (!areV3TutorialRootsEnergyReady(game.v3Roots)) return;
     if (
       tutorialWaitStartedRef.current &&
@@ -2497,7 +2624,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
     startTutorialWaitCountdown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialDone, useV3, game.v3Roots, tutorialTimerKind]);
+  }, [tutorialDone, useV3, game.v3Roots, tutorialTimerKind, excessUiGrey]);
 
   /**
    * Bootstrap root-energy fill / 12:00 wait after plant + capital transfer.
@@ -2895,15 +3022,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     if (next) setIncomePopupAnchor(next);
   }, [showIncomePopup, incomePopupKey]);
 
-  function claimApplesAndIncome(remaining: number) {
+  function claimApplesAndIncome(opts?: { creditRemainingApples?: boolean }) {
     if (appleAutoCollectTimerRef.current) {
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
     }
-    // Coin (index = appleCount-1) never counts toward red apple counter
-    const coinIdx = appleCountRef.current - 1;
-    const coinUncollected = !collectedAppleIndicesRef.current.includes(coinIdx);
-    const redRemaining = coinUncollected ? Math.max(0, remaining - 1) : remaining;
+    const redsInWave = Math.max(0, appleCountRef.current - 1);
+    // Coin drag: income only. Apple +N popup / basket only when reds are
+    // dragged (or auto-collect explicitly asks to credit remaining).
+    const creditRemainingApples = opts?.creditRemainingApples === true;
+    const redsToCredit = creditRemainingApples
+      ? Math.max(0, redsInWave - applesCreditedThisWaveRef.current)
+      : 0;
     const cur = stateRef.current;
     const pendingTotal =
       (cur.game.pendingBaseReward ?? 0) + (cur.game.pendingBonusReward ?? 0);
@@ -2921,23 +3051,30 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       setShowIncomePopup(true);
       scheduleIncomePopupHide(1500);
     }
-    if (redRemaining > 0) {
-      setApplePopupCount(redRemaining);
+    if (redsToCredit > 0) {
+      const nextApples = (cur.game.totalApples ?? 0) + redsToCredit;
+      applesCreditedThisWaveRef.current += redsToCredit;
+      setTotalApples(nextApples);
+      setApplePopupCount(redsToCredit);
       setShowApplePopup(true);
       setTimeout(() => setShowApplePopup(false), 1500);
+      commitState({
+        ...cur,
+        game: { ...cur.game, totalApples: nextApples },
+      });
     }
-    setTotalApples(t => t + redRemaining);
     setHistoryHighlight(true);
     setTimeout(() => setHistoryHighlight(false), 2800);
     // Only enter rewards-hide if still in post-care UI (not already returned to new-care buttons).
     if (showActivityGhost || showCareButton || showCompletionStage) {
       setShowRewards(true);
     }
-    // Save only red apples (coin excluded from lifetime counter)
-    void handleClaimAll(appleCountRef.current - 1);
+    // Persist full wave red count with income; UI basket catches up on red drags.
+    void handleClaimAll(redsInWave);
     // Hide overlay only when all apples are collected
     const allCollected = collectedAppleIndicesRef.current.length >= appleCountRef.current;
     if (allCollected) {
+      rewardAppleWaveActiveRef.current = false;
       setTimeout(() => {
         setShowApples(false);
         collectedAppleIndicesRef.current = [];
@@ -2945,20 +3082,35 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         setFlyingAppleIndices([]);
       }, 600);
     } else {
-      // Red apples still remain — restart 60s auto-clean timer (no income, just count reds)
+      // Red apples still remain — restart 60s auto-clean timer
       appleAutoCollectTimerRef.current = setTimeout(() => {
         appleAutoCollectTimerRef.current = null;
-        const uncollectedReds = (appleCountRef.current - 1) -
+        const redsInWaveNow = Math.max(0, appleCountRef.current - 1);
+        const uncollectedReds = redsInWaveNow -
           collectedAppleIndicesRef.current.filter(i => i < appleCountRef.current - 1).length;
         if (uncollectedReds > 0) {
-          // Анимируем оставшиеся красные кружки исчезновением (монетка уже собрана)
           const allIdx = Array.from({ length: appleCountRef.current }, (_, i) => i);
           collectedAppleIndicesRef.current = allIdx;
           setCollectedAppleIndices(allIdx);
-          setApplePopupCount(uncollectedReds);
-          setShowApplePopup(true);
-          setTimeout(() => setShowApplePopup(false), 1500);
-          setTotalApples(t => t + uncollectedReds);
+          // Credit + animate apples that were never dragged (coin was first).
+          const creditNow = Math.max(
+            0,
+            redsInWaveNow - applesCreditedThisWaveRef.current,
+          );
+          if (creditNow > 0) {
+            const latest = stateRef.current;
+            const nextApples = (latest.game.totalApples ?? 0) + creditNow;
+            applesCreditedThisWaveRef.current += creditNow;
+            setApplePopupCount(creditNow);
+            setShowApplePopup(true);
+            setTimeout(() => setShowApplePopup(false), 1500);
+            setTotalApples(nextApples);
+            commitState({
+              ...latest,
+              game: { ...latest.game, totalApples: nextApples },
+            });
+          }
+          rewardAppleWaveActiveRef.current = false;
           setTimeout(() => {
             setShowApples(false);
             collectedAppleIndicesRef.current = [];
@@ -2966,6 +3118,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             setFlyingAppleIndices([]);
           }, 320);
         } else {
+          rewardAppleWaveActiveRef.current = false;
           setShowApples(false);
           collectedAppleIndicesRef.current = [];
           setCollectedAppleIndices([]);
@@ -2994,11 +3147,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     const isCoin = appleIdx === appleCountRef.current - 1;
 
-    // Tutorial reward beat: +1 apple / +1₽ into real counters, then finish card.
+    // Tutorial reward beat: +1 apple / compensation ₽ into real counters, then finish card.
     if (tutorialRewardActiveRef.current) {
       if (isCoin) {
         tutorialRewardCollectRef.current.coin = true;
-        tutorialDemoRewardRef.current.money = 1;
+        const clock =
+          loadTutorialCompensationClock() ??
+          markTutorialCompensationEnded(Date.now());
+        const comp = computeTutorialCompensation({
+          capital: clock?.capital ?? 100_000,
+          startedAtMs: clock?.startedAtMs,
+          endedAtMs: clock?.endedAtMs,
+        });
+        const amount = comp.amountRub;
+        tutorialDemoRewardRef.current.money = amount;
         {
           const cur = stateRef.current;
           const today = new Date().toLocaleDateString("ru-RU");
@@ -3006,16 +3168,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             ...cur,
             balances: {
               ...cur.balances,
-              balance: cur.balances.balance + 1,
-              earned: cur.balances.earned + 1,
+              balance: cur.balances.balance + amount,
+              earned: cur.balances.earned + amount,
             },
             history: [
-              { date: today, amount: 1, type: "base" as const },
+              { date: today, amount, type: "tutorial" as const },
               ...cur.history,
             ].slice(0, 30),
           });
         }
-        playCoinIncomeFeedback(1);
+        playCoinIncomeFeedback(amount);
       } else {
         tutorialRewardCollectRef.current.apple = true;
         tutorialDemoRewardRef.current.apples = 1;
@@ -3038,14 +3200,26 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
 
     if (isCoin) {
-      claimApplesAndIncome(0);
+      // Income only — apple +N waits for red apple drag (or auto-collect).
+      claimApplesAndIncome();
     } else {
-      setTotalApples(t => t + 1);
-      setApplePopupCount(1);
-      setShowApplePopup(true);
-      setTimeout(() => setShowApplePopup(false), 1200);
+      const redsInWave = Math.max(0, appleCountRef.current - 1);
+      if (applesCreditedThisWaveRef.current < redsInWave) {
+        const cur = stateRef.current;
+        const nextApples = (cur.game.totalApples ?? 0) + 1;
+        applesCreditedThisWaveRef.current += 1;
+        setTotalApples(nextApples);
+        commitState({
+          ...cur,
+          game: { ...cur.game, totalApples: nextApples },
+        });
+        setApplePopupCount(1);
+        setShowApplePopup(true);
+        setTimeout(() => setShowApplePopup(false), 1200);
+      }
       // If all apples now collected (golden was clicked first), hide overlay
       if (next.length === appleCountRef.current) {
+        rewardAppleWaveActiveRef.current = false;
         if (appleAutoCollectTimerRef.current) {
           clearTimeout(appleAutoCollectTimerRef.current);
           appleAutoCollectTimerRef.current = null;
@@ -3211,6 +3385,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         tutorialCompleteHealRef.current = true;
         try {
           const storedWait = loadTutorialWaitClock();
+          const compensationClock = loadTutorialCompensationClock();
           await api.tutorialComplete({
             generationAnchorAt: resolveTutorialGenerationAnchorAt({
               startedAtMs:
@@ -3218,8 +3393,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               waitDeadlineMs:
                 tutorialWaitDeadlineMsRef.current ?? storedWait?.deadlineMs,
             }),
+            compensationStartedAt: compensationClock?.startedAtMs,
+            compensationEndedAt: compensationClock?.endedAtMs,
           });
           clearTutorialWaitClock();
+          clearTutorialCompensationClock();
           data = await api.getState();
           // Unlock «Пройти обучение» pending claim after heal.
           checkPendingAchievements();
@@ -3247,10 +3425,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           Number(serverGame.treeGrowthMM) || 0,
           Number(local.game.treeGrowthMM) || 0,
         );
-        const syncedApples = Math.max(
-          Number(serverGame.totalApples) || 0,
-          Number(local.game.totalApples) || 0,
-        );
+        // Mid reward-wave: keep basket at locally dragged apples — claimAll may
+        // already have persisted undragged reds on the server.
+        const syncedApples = rewardAppleWaveActiveRef.current
+          ? Math.max(0, Number(local.game.totalApples) || 0)
+          : Math.max(
+              Number(serverGame.totalApples) || 0,
+              Number(local.game.totalApples) || 0,
+            );
         const syncedEarned = Math.max(
           Number(data.balances?.earned) || 0,
           Number(local.balances.earned) || 0,
@@ -3613,6 +3795,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     v3LiveConvergeRef.current = true;
     // Third fill already played on the activity card — skip replaying 0→target.
     skipCareFillAnimationRef.current = true;
+    // Compensation ends at gold-flask start (wait sync), not shovel.
+    // Fallback only if wait never fired (endedAt still null).
+    if (!tutorialDoneRef.current) {
+      const clock = loadTutorialCompensationClock();
+      if (clock != null && clock.endedAtMs == null) {
+        markTutorialCompensationEnded(Date.now());
+      }
+    }
     hydrateCareResultFillsFromV3Cycle(stateRef.current.game.v3Roots);
     dispatchCarePhase({ type: "all_done" });
   }
@@ -3620,6 +3810,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   /** F5 / recovery only — server already ready/finished; skip converge. */
   function enterV3CareShovelUi() {
     skipCareFillAnimationRef.current = true;
+    if (!tutorialDoneRef.current) {
+      const clock = loadTutorialCompensationClock();
+      if (clock != null && clock.endedAtMs == null) {
+        markTutorialCompensationEnded(Date.now());
+      }
+    }
     hydrateCareResultFillsFromV3Cycle(stateRef.current.game.v3Roots);
     dispatchCarePhase({ type: "restore_shovel" });
   }
@@ -3898,6 +4094,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     ) {
       return;
     }
+    if (careShovelAutoPressTimerRef.current) {
+      clearTimeout(careShovelAutoPressTimerRef.current);
+      careShovelAutoPressTimerRef.current = null;
+    }
     setCareSyncError(null);
 
     const run = async (retried: boolean): Promise<void> => {
@@ -3960,6 +4160,43 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
     await run(false);
   }
+
+  pressCareShovelRef.current = () => {
+    if (careClicked || merging || careDiverging) return;
+    if (useV3) {
+      void handleV3CareShovelClick();
+      return;
+    }
+    if (!tutorialDone && tutorialStep === "complete") {
+      handleTutorialFinish();
+      return;
+    }
+    handleGoToRewards();
+  };
+
+  // Same 60s auto-press pattern as apple/coin collect: if «Уход» stays up, press it.
+  useEffect(() => {
+    if (!showCareShovelUi || careClicked || merging || careDiverging) {
+      if (careShovelAutoPressTimerRef.current) {
+        clearTimeout(careShovelAutoPressTimerRef.current);
+        careShovelAutoPressTimerRef.current = null;
+      }
+      return;
+    }
+    if (careShovelAutoPressTimerRef.current) {
+      clearTimeout(careShovelAutoPressTimerRef.current);
+    }
+    careShovelAutoPressTimerRef.current = setTimeout(() => {
+      careShovelAutoPressTimerRef.current = null;
+      pressCareShovelRef.current();
+    }, CARE_SHOVEL_AUTO_PRESS_MS);
+    return () => {
+      if (careShovelAutoPressTimerRef.current) {
+        clearTimeout(careShovelAutoPressTimerRef.current);
+        careShovelAutoPressTimerRef.current = null;
+      }
+    };
+  }, [showCareShovelUi, careClicked, merging, careDiverging]);
 
   /**
    * Economy v2 Care start — only /v2/care/start. No session/start bridge.
@@ -4241,6 +4478,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const newAppleCount = (avgPct >= 90 ? 3 : avgPct >= 70 ? 2 : 1) + 1;
     setAppleCount(newAppleCount);
     appleCountRef.current = newAppleCount;
+    applesCreditedThisWaveRef.current = 0;
+    rewardAppleWaveActiveRef.current = false;
     setShowApples(false);
     setShowGrowthAnim(true);
     setGrowthTimerTotal(timerSecs);
@@ -4294,6 +4533,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           setShowGrowthAnim(false);
           collectedAppleIndicesRef.current = [];
           setCollectedAppleIndices([]);
+          applesCreditedThisWaveRef.current = 0;
+          rewardAppleWaveActiveRef.current = true;
           setShowApples(true);
           // Автосбор через 60 секунд если пользователь не собрал
           appleAutoCollectTimerRef.current = setTimeout(() => {
@@ -4302,16 +4543,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             const collected = collectedAppleIndicesRef.current.length;
             const remaining = total - collected;
             if (remaining > 0) {
-              // Считаем сколько красных ДО пометки всех как собранных
-              const coinIdx = total - 1;
-              const coinWasUncollected = !collectedAppleIndicesRef.current.includes(coinIdx);
-              const redRemaining = coinWasUncollected ? remaining - 1 : remaining;
               // Анимируем все оставшиеся кружки одновременно (как при ручном сборе)
               const allIdx = Array.from({ length: total }, (_, i) => i);
               collectedAppleIndicesRef.current = allIdx;
               setCollectedAppleIndices(allIdx);
-              // Передаём скорректированное кол-во: без монетки
-              setTimeout(() => claimApplesAndIncome(redRemaining), 320);
+              // Auto: income + credit remaining apples together.
+              setTimeout(
+                () => claimApplesAndIncome({ creditRemainingApples: true }),
+                320,
+              );
             }
           }, 60000);
         }, 1800);
@@ -4605,6 +4845,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         newEntries.push({ date: today, amount: result.baseAmount, type: "base" });
       const newHistory = [...newEntries, ...cur.history];
       const curMM = stateRef.current.game.treeGrowthMM ?? 0;
+      // Prefer server absolute apple total after claim — but never jump the
+      // basket while red apples are still on the tree (coin-first path).
+      const redsInWave = Math.max(0, appleCountRef.current - 1);
+      const waveStillCollecting =
+        rewardAppleWaveActiveRef.current &&
+        applesCreditedThisWaveRef.current < redsInWave;
+      const serverApples =
+        typeof result.totalApples === "number" && Number.isFinite(result.totalApples)
+          ? Math.max(0, Math.floor(result.totalApples))
+          : null;
+      const claimedApples = waveStillCollecting
+        ? Math.max(0, cur.game.totalApples ?? 0)
+        : serverApples != null
+          ? serverApples
+          : Math.max(0, cur.game.totalApples ?? 0);
+      if (!waveStillCollecting && serverApples != null) {
+        setTotalApples(claimedApples);
+      }
       commitState({
         ...cur,
         balances: {
@@ -4618,6 +4876,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           pendingBonusReward: 0,
           treeGrowthMM: Math.max(result.treeGrowthMM ?? 0, curMM),
           treeGrowthRemainder: result.treeGrowthRemainder ?? cur.game.treeGrowthRemainder,
+          totalApples: claimedApples,
         },
         history: newHistory.slice(0, 30),
       });
@@ -4636,7 +4895,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     return value.toFixed(2) + " %";
   }
 
-  /** Accrual history: Care base/bonus sessions + excess / Metelka payouts. */
+  /** Accrual history: Care base/bonus sessions + excess / Metelka + tutorial. */
   const sessionHistory = (() => {
     const items = [...state.history].reverse();
     const sessions: {
@@ -4644,7 +4903,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       base: number;
       bonus: number;
       total: number;
-      kind: "activity" | "excess" | "metelka";
+      kind: "activity" | "excess" | "metelka" | "tutorial";
     }[] = [];
     let i = 0;
     while (i < items.length) {
@@ -4652,6 +4911,18 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const next = items[i + 1];
       const type = String(item.type);
       const nextType = next ? String(next.type) : "";
+
+      if (type === "tutorial") {
+        sessions.push({
+          date: item.date,
+          base: item.amount,
+          bonus: 0,
+          total: item.amount,
+          kind: "tutorial",
+        });
+        i += 1;
+        continue;
+      }
 
       const isCarePair =
         (type === "base" || type === "bonus") &&
@@ -4715,13 +4986,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     return sessions;
   })();
 
-  const avgPercent =
-    sessionHistory.length > 0
-      ? sessionHistory.reduce(
-          (sum, s) => sum + (s.base > 0 ? (s.total / s.base) * 12 : 12),
-          0,
-        ) / sessionHistory.length
-      : 0;
+  const avgPercent = computeAverageIncomePercent(sessionHistory);
 
   return (
     <div className={`game-page${!tutorialDone ? " game-page-tutorial" : ""}`}>
@@ -5064,12 +5329,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             >
               <EconomyV3RootSystem
                 v3Roots={game.v3Roots}
-                metelkaLocked={careBlockedByMetelka({
-                  excess: game.v2Excess,
-                  v3Roots: game.v3Roots,
-                })}
+                metelkaLocked={
+                  // Stay grey until Metelka coin is claimed (not only until finish).
+                  metelkaPendingActive ||
+                  careBlockedByMetelka({
+                    excess: game.v2Excess,
+                    v3Roots: game.v3Roots,
+                  })
+                }
                 transferEnabled={
                   (tutorialDone || isV3TutorialRootStep(tutorialStep)) &&
+                  !metelkaPendingActive &&
                   game.v3Roots?.metelkaCycle?.transferLocked !== true &&
                   !careBlockedByMetelka({
                     excess: game.v2Excess,
@@ -5079,16 +5349,27 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 tutorialHighlightRoot={
                   !tutorialDone ? tutorialHighlightRoot(tutorialStep) : null
                 }
-                onTransferred={(v3Roots) => {
+                onTransferred={(v3Roots, meta) => {
                   const local = stateRef.current.game.v3Roots;
                   const nextRoots =
                     !tutorialDone && useV3 && local
                       ? mergeTutorialRootsPreserveFill(local, v3Roots)
                       : v3Roots;
-                  commitState(
-                    applyEconomyV3RootsToState(stateRef.current, nextRoots),
+                  let nextState = applyEconomyV3RootsToState(
+                    stateRef.current,
+                    nextRoots,
                   );
-                  // ordinaryFull may flip Metelka; refresh excess from server SoT.
+                  if (meta?.excess != null) {
+                    nextState = {
+                      ...nextState,
+                      game: {
+                        ...nextState.game,
+                        v2Excess: normalizeV2Excess(meta.excess),
+                      },
+                    };
+                  }
+                  commitState(nextState);
+                  // ordinaryFull / shared-pool max may flip excess; refresh SoT.
                   // Skip during tutorial — a stale poll must not snap 10s siblings to 5s.
                   if (
                     tutorialDone &&
@@ -5140,7 +5421,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     : undefined
                 }
               >
-                {tutorialFillDeadlineMs != null && tutorialTimerKind != null ? (
+                {/* Excess/grey phase must never keep the tutorial gold wait clock. */}
+                {tutorialFillDeadlineMs != null &&
+                tutorialTimerKind != null &&
+                !excessUiGrey ? (
                   <V3TutorialFillTimer
                     deadlineMs={tutorialFillDeadlineMs}
                     kind={tutorialTimerKind}
@@ -5157,9 +5441,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     tutorialDone={tutorialDone}
                     nowMs={now}
                     frozen={excessCleaning}
+                    financialMode={excessUiGrey}
+                    excessElapsedMs={Math.max(
+                      0,
+                      Number(game.v2Excess?.excessElapsedMs) || 0,
+                    )}
+                    financialMinting={financialMintingLive}
                     handoffDeadlineAtMs={tutorialWaitDeadlineMsRef.current}
                     handoffTotalSeconds={TUTORIAL_V3_WAIT_SECONDS}
                     onRefreshState={syncRootsFromServer}
+                    onHelpClick={
+                      tutorialDone
+                        ? () => setShowFlaskIncomeHelp(true)
+                        : undefined
+                    }
                   />
                 )}
               </CapitalChestUnderRoots>
@@ -6218,15 +6513,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                           onClick={
                             careClicked || merging || careDiverging
                               ? undefined
-                              : useV3
-                                ? () => {
-                                    void handleV3CareShovelClick();
-                                  }
-                                : !tutorialDone && tutorialStep === "complete"
-                                  ? handleTutorialFinish
-                                  : () => {
-                                      handleGoToRewards();
-                                    }
+                              : () => {
+                                  pressCareShovelRef.current();
+                                }
                           }
                         >
                           {!careClicked ? (
@@ -6997,6 +7286,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </motion.div>
         )}
 
+        {showFlaskIncomeHelp && (
+          <FlaskIncomeHelpModal onClose={() => setShowFlaskIncomeHelp(false)} />
+        )}
+
         {showDepositInfo && (
           <motion.div
             className="help-overlay"
@@ -7077,10 +7370,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                                 {s.kind === "metelka" && (
                                   <span className="inc-txn-tag inc-txn-tag-bonus">Метелка</span>
                                 )}
+                                {s.kind === "tutorial" && (
+                                  <span className="inc-txn-tag inc-txn-tag-base">
+                                    Обучение {formatRub(s.total)}
+                                  </span>
+                                )}
                                 {s.kind === "excess" && s.base <= 0 && s.bonus <= 0 && (
                                   <span className="inc-txn-tag inc-txn-tag-bonus">Избыток</span>
                                 )}
-                                {s.base > 0 && (
+                                {s.kind !== "tutorial" && s.base > 0 && (
                                   <span className="inc-txn-tag inc-txn-tag-base">
                                     База {formatRub(s.base)}
                                   </span>
@@ -7090,7 +7388,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                                     Бонус +{formatRub(s.bonus)}
                                   </span>
                                 )}
-                                {s.kind === "activity" && (
+                                {(s.kind === "activity" || s.kind === "tutorial") && (
                                   <span className="inc-txn-rate">{formatPercent(pct)} год.</span>
                                 )}
                               </div>

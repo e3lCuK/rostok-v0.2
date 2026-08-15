@@ -39,6 +39,7 @@ import {
   normalizeGenerationRrCursor,
   normalizeTransferredRoots,
   parseNullableTimestampMs,
+  parseV3CareCycleStatus,
   settleEconomyV3Roots,
   toEconomyV3AutoTransferPublic,
   validateRootKind,
@@ -47,6 +48,7 @@ import {
   type EconomyV3RootsRow,
   type SettleEconomyV3RootsResult,
 } from "./economy-v3-roots";
+import { isV3CareCycleHoldingExcess } from "./economy-v3-excess-gate";
 import {
   advanceV3MetelkaCycleFlags,
   computeV3RootsFull,
@@ -93,6 +95,7 @@ const V3_SETTLE_SELECT = `
   v3_transferred_roots,
   v3_metelka_required,
   v3_metelka_completed_for_cycle,
+  v3_post_collect_pause,
   v2_excess_seconds,
   v2_excess_elapsed_ms,
   v2_excess_base_income,
@@ -191,6 +194,11 @@ export async function settleEconomyV3RootsInTransaction(
      * completing the tutorial (fills root cells like live play).
      */
     forceGenerate?: boolean;
+    /**
+     * Debug fillToCapacity: never dump wait-clock / pause wall-time into
+     * financial excessElapsedMs (keep the preserved ledger).
+     */
+    suppressExcessMinting?: boolean;
   },
 ): Promise<PersistedEconomyV3Roots> {
   const resolvedCapital =
@@ -245,6 +253,9 @@ export async function settleEconomyV3RootsInTransaction(
     capital: resolvedCapital,
     nowMs: now,
     tutorialActive,
+    // Tutorial wait expiry / debug fill: never dump wait-clock into excess.
+    suppressExcessMinting:
+      options?.forceGenerate === true || options?.suppressExcessMinting === true,
     transferredRoots: normalizeTransferredRoots(
       lockedRow.v3_transferred_roots,
     ),
@@ -264,6 +275,17 @@ export async function settleEconomyV3RootsInTransaction(
     streakDays,
     excessSeconds: normalizeExcessSeconds(lockedRow.v2_excess_seconds),
     excessElapsedMs: normalizeExcessElapsedMs(lockedRow.v2_excess_elapsed_ms),
+    // Capacity-path Care only: latch set at Care start when pool was max.
+    careCycleHoldingExcess:
+      !rowTutorialActive &&
+      isV3CareCycleHoldingExcess({
+        careCycleStatus: parseV3CareCycleStatus(
+          lockedRow.v3_care_cycle_status,
+        ),
+        careHoldExcess: lockedRow.v3_care_hold_excess === true,
+      }),
+    careCycleStatus: parseV3CareCycleStatus(lockedRow.v3_care_cycle_status),
+    postCollectPause: lockedRow.v3_post_collect_pause === true,
   });
 
   // Tutorial Care buttons must show 10 с — upgrade stale 5 s reserves in place.
@@ -393,6 +415,7 @@ export async function settleEconomyV3RootsInTransaction(
            v3_insurance_deadline_at = NULL,
            v3_first_transferred_root = NULL,
            v3_transferred_roots = '{}'::text[],
+           v3_post_collect_pause = TRUE,
            v2_excess_seconds = $13,
            v2_excess_elapsed_ms = $14,
            v2_excess_base_income = $15,
@@ -436,6 +459,7 @@ export async function settleEconomyV3RootsInTransaction(
     lockedRow.v3_insurance_deadline_at = null;
     lockedRow.v3_first_transferred_root = null;
     lockedRow.v3_transferred_roots = [];
+    lockedRow.v3_post_collect_pause = true;
     lockedRow.v2_excess_seconds = excessAfterAuto;
     lockedRow.v2_excess_elapsed_ms = excessElapsedAfterAuto;
     lockedRow.v2_excess_base_income = excessBaseAfterAuto;
@@ -583,12 +607,15 @@ export async function syncTutorialV3WaitEnergyInTransaction(
   userId: string | number,
   startedAtMs: number | null | undefined,
   nowMs: number = Date.now(),
+  options?: { startGoldFlask?: boolean },
 ): Promise<{
   synced: true;
   wholeSeconds: number;
   v3Roots: EconomyV3RootsPublicState;
+  goldFlaskStarted: boolean;
 }> {
   const now = Number.isFinite(nowMs) ? Math.trunc(nowMs) : Date.now();
+  const startGoldFlask = options?.startGoldFlask === true;
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -648,11 +675,25 @@ export async function syncTutorialV3WaitEnergyInTransaction(
       capital,
       { forceGenerate: true },
     );
+
+    // First roots-full beat: hand off capital-idle to gold flask. Drop ordinary
+    // elapsed accrued during the fill window (paid by tutorial compensation).
+    if (startGoldFlask) {
+      await client.query(
+        `UPDATE game_state
+         SET v2_ordinary_income_elapsed_ms = 0,
+             updated_at = NOW()
+         WHERE user_id = $1`,
+        [String(userId)],
+      );
+    }
+
     await client.query("COMMIT");
     return {
       synced: true,
       wholeSeconds: persisted.wholeSeconds,
       v3Roots: persisted.snapshot,
+      goldFlaskStarted: startGoldFlask,
     };
   } catch (err) {
     try {

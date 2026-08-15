@@ -18,9 +18,14 @@ export type EconomyV2DebugSnapshot = {
   /** Financial wall-clock t_excess (ms) — server snapshot. */
   excessElapsedMs: number;
   /**
-   * Financial live-projection anchor (ms). Set only while generatingExcess —
-   * never the ordinary root wait-clock. Debug may show
-   * excessElapsedMs + (now − anchor) between polls when this is non-null.
+   * True while excess financial time should keep accumulating (shared-pool max /
+   * generatingExcess / ordinaryFull). Debug live clock uses this — not the
+   * root generation wait-clock — so transfers never roll the readout back.
+   */
+  excessFinancialMinting: boolean;
+  /**
+   * @deprecated Prefer excessFinancialMinting + readMetelkaFinancialLiveMs.
+   * Kept for older panel checks; may be null.
    */
   excessFinancialAnchorAt: number | null;
   /** Player capital used for Metelka money preview. */
@@ -74,6 +79,7 @@ const EMPTY_SNAPSHOT: EconomyV2DebugSnapshot = Object.freeze({
   excessSeconds: 0,
   excessPresetSeconds: 5,
   excessElapsedMs: 0,
+  excessFinancialMinting: false,
   excessFinancialAnchorAt: null,
   capital: 0,
   sessionActive: false,
@@ -141,6 +147,7 @@ function snapshotsEqual(
     a.excessSeconds === b.excessSeconds &&
     a.excessPresetSeconds === b.excessPresetSeconds &&
     a.excessElapsedMs === b.excessElapsedMs &&
+    a.excessFinancialMinting === b.excessFinancialMinting &&
     a.excessFinancialAnchorAt === b.excessFinancialAnchorAt &&
     a.capital === b.capital &&
     a.sessionActive === b.sessionActive &&
@@ -165,6 +172,7 @@ function peekRawSnapshot(): EconomyV2DebugSnapshot {
       Math.min(25, Math.round(Number(raw.excessPresetSeconds) || 5)),
     ),
     excessElapsedMs: Math.max(0, Number(raw.excessElapsedMs) || 0),
+    excessFinancialMinting: raw.excessFinancialMinting === true,
     excessFinancialAnchorAt: (() => {
       const n = Number(raw.excessFinancialAnchorAt);
       return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;

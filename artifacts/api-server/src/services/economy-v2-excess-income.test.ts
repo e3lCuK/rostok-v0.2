@@ -5,9 +5,14 @@ import {
   computeExcessGrossIncome,
   computeExcessPaidIncome,
   computeExcessPaymentFactor,
+  financialCycleDurationMsForCapital,
+  splitMetelkaPaidFinancialCycles,
   V2_YEAR_DURATION_MS,
 } from "./economy-v2-excess-income";
 import { V2_SECONDS_PER_YEAR } from "./economy-v2-care-income";
+import { V2_REFERENCE_CAPITAL } from "./economy-v2";
+
+const REF_CYCLE_MS = financialCycleDurationMsForCapital(V2_REFERENCE_CAPITAL);
 
 describe("computeExcessElapsedMsShare", () => {
   it("1. full ordinary storage → all elapsed to t_excess", () => {
@@ -103,5 +108,58 @@ describe("computeExcessCleaningIncome", () => {
     expect(r.grossIncome).toBeCloseTo(1000, 8);
     expect(r.paymentFactor).toBe(0.5);
     expect(r.paidIncome).toBeCloseTo(500, 8);
+  });
+});
+
+describe("splitMetelkaPaidFinancialCycles", () => {
+  it("reference capital cycle is 720s", () => {
+    expect(REF_CYCLE_MS).toBe(720_000);
+  });
+
+  it("peels incomplete financial-cycle tail from the paid snapshot", () => {
+    const elapsed = 2 * REF_CYCLE_MS + 90_000; // 2 full + 1.5 min
+    const split = splitMetelkaPaidFinancialCycles({
+      excessElapsedMs: elapsed,
+      excessSeconds: 2.5,
+      excessBaseIncome: 10,
+      capital: V2_REFERENCE_CAPITAL,
+    });
+    expect(split.completeCycles).toBe(2);
+    expect(split.paidElapsedMs).toBe(2 * REF_CYCLE_MS);
+    expect(split.paidSeconds).toBe(2);
+    expect(split.remainderElapsedMs).toBe(90_000);
+    expect(split.remainderSeconds).toBeCloseTo(0.5, 10);
+    expect(split.paidBaseIncome + split.remainderBaseIncome).toBeCloseTo(10, 10);
+    expect(split.paidBaseIncome).toBeCloseTo(10 * ((2 * REF_CYCLE_MS) / elapsed), 10);
+  });
+
+  it("under one cycle → nothing paid; full remainder kept", () => {
+    const split = splitMetelkaPaidFinancialCycles({
+      excessElapsedMs: 45_000,
+      excessSeconds: 10,
+      excessBaseIncome: 3,
+      capital: V2_REFERENCE_CAPITAL,
+    });
+    expect(split.completeCycles).toBe(0);
+    expect(split.paidElapsedMs).toBe(0);
+    expect(split.paidSeconds).toBe(0);
+    expect(split.paidBaseIncome).toBe(0);
+    expect(split.remainderElapsedMs).toBe(45_000);
+    expect(split.remainderSeconds).toBe(10);
+    expect(split.remainderBaseIncome).toBe(3);
+  });
+
+  it("exact cycle boundary pays all", () => {
+    const split = splitMetelkaPaidFinancialCycles({
+      excessElapsedMs: 5 * REF_CYCLE_MS,
+      excessSeconds: 5,
+      excessBaseIncome: 1.25,
+      capital: V2_REFERENCE_CAPITAL,
+    });
+    expect(split.completeCycles).toBe(5);
+    expect(split.paidElapsedMs).toBe(5 * REF_CYCLE_MS);
+    expect(split.paidSeconds).toBe(5);
+    expect(split.remainderElapsedMs).toBe(0);
+    expect(split.remainderSeconds).toBe(0);
   });
 });

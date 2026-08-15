@@ -111,10 +111,12 @@ router.post(
         raw == null || raw === ""
           ? null
           : Number(raw);
+      const startGoldFlask = req.body?.startGoldFlask === true;
       const result = await syncTutorialV3WaitEnergy(
         req.userId,
         startedAtMs,
         Date.now(),
+        { startGoldFlask },
       );
       return res.json(result);
     } catch (err) {

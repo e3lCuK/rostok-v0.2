@@ -18,15 +18,23 @@ describe("POST /game/tutorial/complete energy boundary", () => {
       gameRouteSrc.indexOf("POST /api/game/accrue"),
     );
     expect(completeBlock).not.toContain("v2_energy_seconds");
-    // Keep tutorial collectibles: starting capital +1₽ / +1 мм / +1 apple.
+    // Capital-idle compensation (12% APR) instead of fixed +1₽.
+    expect(completeBlock).toContain("computeTutorialCompensation");
+    expect(completeBlock).toContain("compensationStartedAt");
+    expect(completeBlock).toContain("compensationEndedAt");
     expect(completeBlock).toContain("starting_capital");
     expect(completeBlock).toContain("NULLIF(starting_capital, 0)");
-    expect(completeBlock).toContain("100000) + 1");
-    expect(completeBlock).toContain("active_earned = 1");
+    expect(completeBlock).toContain("active_earned = $2");
     expect(completeBlock).toContain("DELETE FROM income_history");
     expect(completeBlock).toContain("INSERT INTO income_history");
-    expect(completeBlock).toMatch(/tree_growth_mm\s*=\s*1/);
-    expect(completeBlock).toMatch(/total_apples\s*=\s*1/);
+    expect(completeBlock).toContain("'tutorial'");
+    expect(completeBlock).toContain("growthMm");
+    expect(completeBlock).toContain(
+      "[userId, now, new Date(generationAnchorAt), growthMm]",
+    );
+    expect(completeBlock).toMatch(
+      /total_apples\s*=\s*GREATEST\(COALESCE\(total_apples,\s*0\),\s*1\)/,
+    );
     // v3 clock: client tutorial 12:00 start → same remaining after dismiss.
     expect(completeBlock).toContain("generationAnchorAt");
     expect(completeBlock).toContain("new Date(generationAnchorAt)");
@@ -34,7 +42,7 @@ describe("POST /game/tutorial/complete energy boundary", () => {
 
   it("new accounts start with tutorial_done FALSE", () => {
     expect(gameRouteSrc).toMatch(
-      /INSERT INTO game_state[\s\S]*tutorial_done\)[\s\S]*FALSE/,
+      /INSERT INTO game_state[\s\S]*tutorial_done[\s\S]*FALSE/,
     );
   });
 });

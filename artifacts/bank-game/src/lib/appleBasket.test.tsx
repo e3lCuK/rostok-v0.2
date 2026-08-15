@@ -27,7 +27,12 @@ describe("AppleBasket on play field", () => {
     expect(pageSrc).toContain("data-apple-basket-popup");
     expect(pageSrc).toContain("apple-basket-popup-slot");
     expect(pageSrc).toContain('excessCleaning ? " game-area--metelka-cleaning"');
-    expect(cssSrc).toContain(".game-area--metelka-cleaning .apple-basket-host");
+    expect(cssSrc).toContain(
+      ".game-area--metelka-cleaning .apple-basket-badge",
+    );
+    expect(cssSrc).not.toMatch(
+      /\.game-area--metelka-cleaning\s+\.apple-basket-host\s*\{[^}]*opacity:\s*0/s,
+    );
     expect(cssSrc).toContain(
       ".game-area--metelka-cleaning .tree-growth-badge-host",
     );

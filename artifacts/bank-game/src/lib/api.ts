@@ -93,6 +93,7 @@ export interface GameStateResponse {
     type:
       | "base"
       | "bonus"
+      | "tutorial"
       | "metelka"
       | "excess"
       | "excess_base"
@@ -186,6 +187,8 @@ export interface EconomyV3CareCycleState {
   completedAt: string | null;
   finishedAt: string | null;
   status: EconomyV3CareCycleStatus | null;
+  /** Capacity-path Care: keep financial excess while activities spend energy. */
+  holdExcess?: boolean;
   allCompleted: boolean;
   readyToFinish: boolean;
   totalPresetSeconds: number | null;
@@ -529,20 +532,39 @@ export const api = {
   /**
    * Finish tutorial. Pass `generationAnchorAt` (epoch ms) = start of the
    * tutorial 12:00 wait so live root generation continues from that clock.
+   * Pass compensation window (capital-on-chest → gold flask start) for 12% APR.
    */
-  tutorialComplete: (input?: { generationAnchorAt?: number | null }) =>
+  tutorialComplete: (input?: {
+    generationAnchorAt?: number | null;
+    compensationStartedAt?: number | null;
+    compensationEndedAt?: number | null;
+  }) =>
     request<{
       success: boolean;
       energyAnchorAt?: number;
       generationAnchorAt?: number;
+      compensationRub?: number;
+      compensationGrowthMm?: number;
+      compensationUsedFallback?: boolean;
+      alreadyComplete?: boolean;
     }>("/game/tutorial/complete", {
       method: "POST",
-      body: JSON.stringify(
-        input?.generationAnchorAt != null &&
-          Number.isFinite(input.generationAnchorAt)
+      body: JSON.stringify({
+        ...(input?.generationAnchorAt != null &&
+        Number.isFinite(input.generationAnchorAt)
           ? { generationAnchorAt: Math.trunc(input.generationAnchorAt) }
-          : {},
-      ),
+          : {}),
+        ...(input?.compensationStartedAt != null &&
+        Number.isFinite(input.compensationStartedAt)
+          ? {
+              compensationStartedAt: Math.trunc(input.compensationStartedAt),
+            }
+          : {}),
+        ...(input?.compensationEndedAt != null &&
+        Number.isFinite(input.compensationEndedAt)
+          ? { compensationEndedAt: Math.trunc(input.compensationEndedAt) }
+          : {}),
+      }),
     }),
 
   /**
@@ -610,19 +632,26 @@ export const api = {
   /**
    * After tutorial 12:00 elapses — settle root energy like main play
    * without completing the tutorial.
+   * Pass `startGoldFlask: true` once (first roots-full): ends compensation
+   * window and zeros ordinary elapsed so the flask starts clean.
    */
-  syncTutorialV3WaitEnergy: (startedAtMs?: number | null) =>
+  syncTutorialV3WaitEnergy: (
+    startedAtMs?: number | null,
+    options?: { startGoldFlask?: boolean },
+  ) =>
     request<{
       synced: true;
       wholeSeconds: number;
       v3Roots: EconomyV3RootsState;
+      goldFlaskStarted?: boolean;
     }>("/game/tutorial/v3/sync-wait-energy", {
       method: "POST",
-      body: JSON.stringify(
-        startedAtMs != null && Number.isFinite(startedAtMs)
+      body: JSON.stringify({
+        ...(startedAtMs != null && Number.isFinite(startedAtMs)
           ? { startedAtMs: Math.trunc(startedAtMs) }
-          : {},
-      ),
+          : {}),
+        ...(options?.startGoldFlask === true ? { startGoldFlask: true } : {}),
+      }),
     }),
 
   accrue: () =>
@@ -690,7 +719,16 @@ export const api = {
     ),
 
   claimAll: (applesCollected?: number) =>
-    request<{ success: boolean; totalAmount: number; baseAmount: number; bonusAmount: number; treeGrowthMM: number; treeGrowthRemainder: number }>(
+    request<{
+      success: boolean;
+      totalAmount: number;
+      baseAmount: number;
+      bonusAmount: number;
+      treeGrowthMM: number;
+      treeGrowthRemainder: number;
+      applesCollected?: number;
+      totalApples?: number;
+    }>(
       "/game/session/claimAll",
       { method: "POST", body: JSON.stringify({ applesCollected: applesCollected ?? 0 }) },
     ),
@@ -881,6 +919,8 @@ export const api = {
           action: "fillToCapacity";
           roots?: boolean;
           reserves?: boolean;
+          /** Live FE financial elapsed — fill pins max(db, client). */
+          clientExcessElapsedMs?: number;
         },
   ) =>
     request<{
@@ -938,7 +978,9 @@ export const api = {
           >
         >;
       };
-      game: { v3Roots: EconomyV3RootsState };
+      game: { v3Roots: EconomyV3RootsState; v2Excess?: EconomyV2ExcessState };
+      excess?: EconomyV2ExcessState;
+      excessElapsedMs?: number;
     }>("/game/debug/economy-v3/roots", {
       method: "POST",
       body: JSON.stringify(body),
@@ -1090,6 +1132,10 @@ export const api = {
       acceptedSeconds: number;
       discardedSeconds: number;
       v3Roots: EconomyV3RootsState;
+      /** Settled excess ledger — apply so financial time does not roll back. */
+      excess?: EconomyV2ExcessState;
+      excessElapsedMs?: number;
+      excessSeconds?: number;
     }>("/game/v3/roots/transfer", {
       method: "POST",
       body: JSON.stringify({ root }),

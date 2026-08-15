@@ -195,14 +195,24 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(cssSrc).toContain("--v3-hourglass-height");
   });
 
-  it("excess greys flask + capital; clock freezes only during cleaning", () => {
+  it("excess greys flask + capital; financial clock keeps running during Metelka", () => {
     expect(pageSrc).toContain("excessUiGrey");
+    expect(pageSrc).toContain("shouldGreyV3ExcessFlask");
     expect(pageSrc).toContain("ordinaryFull");
     expect(pageSrc).toContain("excessAvailable");
     expect(pageSrc).toContain("generatingExcess");
     expect(pageSrc).toContain("v3-capital-chest-host--metelka-frozen");
+    expect(pageSrc).toContain("isV3CareCycleHoldingExcess");
+    expect(pageSrc).toContain("tutorialDone,");
+    expect(pageSrc).toContain("financialMode={excessUiGrey}");
     expect(pageSrc).toContain("frozen={excessCleaning}");
     expect(pageSrc).not.toContain("frozen={excessUiGrey}");
+    // Grey flask must ignore cleaning freeze (no idle gap while Metelka runs).
+    const timerSrc = readFileSync(
+      join(here, "../components/v2/V3RootWaitTimer.tsx"),
+      "utf8",
+    );
+    expect(timerSrc).toContain("holdFrozen = frozen && !financialMode");
     expect(cssSrc).toContain(
       ".game-area--v3-roots .v3-capital-chest-host--metelka-frozen",
     );

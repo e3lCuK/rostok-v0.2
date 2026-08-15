@@ -6,7 +6,7 @@ interface Props {
   level: number;
   /** Triggers diamond pulse; +XP label lives in field-level-xp-popup (cream pill). */
   xpGain?: number | null;
-  /** Claimable achievements — green dot on the diamond. */
+  /** Claimable achievements — cream + rim dot (apple chrome), not a flat paint blob. */
   pendingAchievements?: boolean;
   onClick?: () => void;
 }

@@ -172,6 +172,24 @@ describe("v3 root wait timer — full cycle semantics", () => {
     ).toMatchObject({ kind: "countdown", timeLabel: "12:00" });
   });
 
+  it("fresh cycle with float remaining > 720 still labels 12:00 (not 12:01)", () => {
+    const now = Date.parse("2026-07-25T10:00:00.000Z");
+    const display = resolveV3RootWaitTimerDisplay({
+      snapshot: {
+        source: "cycle",
+        deadlineAtMs: now + 720_500,
+        totalSeconds: 720,
+        capturedAtMs: now,
+      },
+      nowMs: now,
+    });
+    expect(display).toMatchObject({
+      kind: "countdown",
+      timeLabel: "12:00",
+      seconds: 720,
+    });
+  });
+
   it("2–4. after 60s / 70s still visible near 660 / 650 — does not hide", () => {
     const t0 = Date.parse("2026-07-25T10:00:00.000Z");
     const snap = captureV3RootWaitTimer({
@@ -236,6 +254,27 @@ describe("v3 root wait timer — full cycle semantics", () => {
       nowMs: t0 + 1000,
     });
     expect(merged?.deadlineAtMs).toBe(prev?.deadlineAtMs);
+  });
+
+  it("5a2. merge keeps handoff prev when next capture is null (no idle flash)", () => {
+    const t0 = 2_500_000;
+    const prev = {
+      source: "cycle" as const,
+      deadlineAtMs: t0 + 400_000,
+      totalSeconds: 720,
+      capturedAtMs: t0,
+    };
+    const merged = mergeV3RootWaitTimerSnapshot({
+      prev,
+      next: null,
+      nowMs: t0 + 1000,
+      protectTutorialHandoff: true,
+    });
+    expect(merged).toEqual(prev);
+    expect(
+      resolveV3RootWaitTimerDisplay({ snapshot: merged, nowMs: t0 + 1000 })
+        .kind,
+    ).toBe("countdown");
   });
 
   it("5b. merge rejects poll that slides deadline later (~5s reset)", () => {
@@ -465,6 +504,17 @@ describe("v3 root wait timer — full cycle semantics", () => {
     expect(cssSrc).toContain(
       ".v3-root-wait-timer--frozen .v3-root-wait-timer-hourglass__shell",
     );
+  });
+
+  it("excess grey flask follows financial elapsed, not gold wait remaining", () => {
+    expect(compSrc).toContain("financialMode");
+    expect(compSrc).toContain("resolveV3FinancialFlaskDisplay");
+    expect(compSrc).toContain('data-timer-kind=');
+    expect(compSrc).toContain('"financial"');
+    expect(pageSrc).toContain("financialMode={excessUiGrey}");
+    expect(pageSrc).toContain("!excessUiGrey");
+    expect(pageSrc).toContain("excessElapsedMs=");
+    expect(pageSrc).toContain("financialMinting=");
   });
 
   it("capsule is tall capital-hourglass; fill bottom→top", () => {

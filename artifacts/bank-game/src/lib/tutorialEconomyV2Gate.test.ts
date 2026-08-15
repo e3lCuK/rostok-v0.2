@@ -125,7 +125,8 @@ describe("RootEnergyLayer Tutorial source contracts", () => {
   });
 
   it("after Tutorial finish: awaits tutorialComplete + fresh getState (no F5)", () => {
-    expect(pageSrc).toContain("await api.tutorialComplete({ generationAnchorAt })");
+    expect(pageSrc).toContain("await api.tutorialComplete({");
+    expect(pageSrc).toContain("compensationStartedAt");
     expect(pageSrc).toContain("resolveTutorialGenerationAnchorAt");
     expect(pageSrc).toContain("await api.getState()");
     expect(pageSrc).toContain("tutorialDone: true");

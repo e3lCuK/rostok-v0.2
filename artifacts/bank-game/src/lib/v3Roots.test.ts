@@ -8,8 +8,11 @@ import {
   clampV3ReserveSeconds,
   clampV3RootSeconds,
   economyV3DebugReadout,
+  isV3CareCycleHoldingExcess,
+  isV3SharedPoolEnergyAtMaximum,
   normalizeEconomyV3RootsSnapshot,
   recommendedV3RootToCollect,
+  shouldGreyV3ExcessFlask,
   V3_ROOT_COLLECT_PULSE_MIN_SECONDS,
 } from "./v3Roots";
 
@@ -73,7 +76,7 @@ function sampleServerV3(overrides: Record<string, unknown> = {}): unknown {
       startedAt: null,
       completedAt: null,
       finishedAt: null,
-      status: "in_progress",
+      status: null,
       allCompleted: false,
       readyToFinish: false,
       totalPresetSeconds: null,
@@ -167,7 +170,7 @@ describe("normalizeEconomyV3RootsSnapshot", () => {
     expect(snap.reserves.water.seconds).toBe(5);
     expect(snap.reserves.sun.seconds).toBe(0);
     expect(snap.reserves.fertilizer.seconds).toBe(12);
-    expect(snap.careCycle.status).toBe("in_progress");
+    expect(snap.careCycle.status).toBeNull();
     expect(snap.careCycle.rewardPreview.available).toBe(false);
     expect(snap.careCycle.claim.claimed).toBe(false);
   });
@@ -383,6 +386,9 @@ describe("economyV3DebugReadout", () => {
     expect(r).toEqual({
       enabled: true,
       effectivePresetSeconds: 20,
+      currentVisitDay: 1,
+      activeDailyBonusSeconds: 0,
+      basePresetSeconds: 20,
       waterRootSeconds: 7,
       sunRootSeconds: 3,
       fertilizerRootSeconds: 0,
@@ -391,7 +397,7 @@ describe("economyV3DebugReadout", () => {
       fertilizerReserveSeconds: 12,
       frozen: false,
       accumulating: true,
-      careCycleStatus: "in_progress",
+      careCycleStatus: null,
       ordinaryFull: false,
       rootsFull: false,
       generatingExcess: false,
@@ -402,5 +408,236 @@ describe("economyV3DebugReadout", () => {
     expect(
       economyV3DebugReadout(snap, { excessAvailable: true })?.excessAvailable,
     ).toBe(true);
+  });
+});
+
+describe("shared-pool max → grey flask (roots or buttons)", () => {
+  it("water on button + sun/fert roots at cap → max; greys without generatingExcess", () => {
+    const snap = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        effectivePresetSeconds: 21,
+        dailyCapSeconds: 20,
+        roots: {
+          water: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+          sun: {
+            seconds: 21,
+            capacitySeconds: 21,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: true,
+          },
+          fertilizer: {
+            seconds: 21,
+            capacitySeconds: 21,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: true,
+          },
+        },
+        reserves: {
+          water: { seconds: 21, capacitySeconds: 21, playable: true },
+          sun: { seconds: 0, capacitySeconds: 21, playable: false },
+          fertilizer: { seconds: 0, capacitySeconds: 21, playable: false },
+        },
+        excessGate: {
+          ordinaryFull: false,
+          rootsFull: false,
+          reservesFull: { water: true, sun: false, fertilizer: false },
+          generatingExcess: false,
+        },
+      }),
+    );
+    expect(isV3SharedPoolEnergyAtMaximum(snap)).toBe(true);
+    expect(
+      shouldGreyV3ExcessFlask({
+        v3Roots: snap,
+        excessCleaning: false,
+        excessAvailable: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("fertilizer not at cap → not max; flask stays gold", () => {
+    const snap = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        effectivePresetSeconds: 21,
+        roots: {
+          water: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+          sun: {
+            seconds: 21,
+            capacitySeconds: 21,
+            playableFromRoot: true,
+            transferred: false,
+            frozen: true,
+          },
+          fertilizer: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: false,
+            frozen: true,
+          },
+        },
+        reserves: {
+          water: { seconds: 21, capacitySeconds: 21, playable: true },
+          sun: { seconds: 0, capacitySeconds: 21, playable: false },
+          fertilizer: { seconds: 0, capacitySeconds: 21, playable: false },
+        },
+        excessGate: {
+          ordinaryFull: false,
+          rootsFull: false,
+          reservesFull: { water: true, sun: false, fertilizer: false },
+          generatingExcess: false,
+        },
+      }),
+    );
+    expect(isV3SharedPoolEnergyAtMaximum(snap)).toBe(false);
+    expect(
+      shouldGreyV3ExcessFlask({
+        v3Roots: snap,
+        excessCleaning: false,
+        excessAvailable: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("Care in_progress keeps grey flask only when holdExcess latched", () => {
+    const snap = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        effectivePresetSeconds: 21,
+        careCycle: {
+          status: "in_progress",
+          holdExcess: false,
+          activities: {
+            water: { completed: true },
+            sun: { completed: false },
+            fertilizer: { completed: false },
+          },
+        },
+        roots: {
+          water: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+          sun: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+          fertilizer: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+        },
+        reserves: {
+          water: { seconds: 5, capacitySeconds: 21, playable: true },
+          sun: { seconds: 5, capacitySeconds: 21, playable: true },
+          fertilizer: { seconds: 5, capacitySeconds: 21, playable: true },
+        },
+        excessGate: {
+          ordinaryFull: false,
+          rootsFull: false,
+          reservesFull: { water: false, sun: false, fertilizer: false },
+          generatingExcess: false,
+        },
+      }),
+    );
+    expect(isV3SharedPoolEnergyAtMaximum(snap)).toBe(false);
+    expect(isV3CareCycleHoldingExcess(snap, true)).toBe(false);
+    expect(
+      shouldGreyV3ExcessFlask({
+        v3Roots: snap,
+        excessCleaning: false,
+        excessAvailable: false,
+        tutorialDone: true,
+      }),
+    ).toBe(false);
+
+    const held = normalizeEconomyV3RootsSnapshot(
+      sampleServerV3({
+        effectivePresetSeconds: 21,
+        careCycle: {
+          status: "in_progress",
+          holdExcess: true,
+          activities: {
+            water: { completed: true },
+            sun: { completed: false },
+            fertilizer: { completed: false },
+          },
+        },
+        roots: {
+          water: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+          sun: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+          fertilizer: {
+            seconds: 0,
+            capacitySeconds: 21,
+            playableFromRoot: false,
+            transferred: true,
+            frozen: true,
+          },
+        },
+        reserves: {
+          water: { seconds: 5, capacitySeconds: 21, playable: true },
+          sun: { seconds: 5, capacitySeconds: 21, playable: true },
+          fertilizer: { seconds: 5, capacitySeconds: 21, playable: true },
+        },
+        excessGate: {
+          ordinaryFull: false,
+          rootsFull: false,
+          reservesFull: { water: false, sun: false, fertilizer: false },
+          generatingExcess: false,
+        },
+      }),
+    );
+    expect(isV3CareCycleHoldingExcess(held, true)).toBe(true);
+    expect(isV3CareCycleHoldingExcess(held, false)).toBe(false);
+    expect(
+      shouldGreyV3ExcessFlask({
+        v3Roots: held,
+        excessCleaning: false,
+        excessAvailable: false,
+        tutorialDone: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldGreyV3ExcessFlask({
+        v3Roots: held,
+        excessCleaning: false,
+        excessAvailable: false,
+        tutorialDone: false,
+      }),
+    ).toBe(false);
   });
 });

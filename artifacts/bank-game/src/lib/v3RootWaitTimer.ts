@@ -138,7 +138,18 @@ export function mergeV3RootWaitTimerSnapshot(input: {
   protectTutorialHandoff?: boolean;
 }): V3RootWaitTimerSnapshot | null {
   const { prev, next, nowMs, protectTutorialHandoff } = input;
-  if (!next) return null;
+  // Between tutorial capsule → live timer, server often has no accumulating
+  // snapshot yet. Keep the handoff / previous deadline so the flask never
+  // flashes idle "—:—".
+  if (!next) {
+    if (
+      prev?.source === "cycle" &&
+      prev.deadlineAtMs > nowMs - 2000
+    ) {
+      return prev;
+    }
+    return null;
+  }
   if (!prev || prev.source !== "cycle") return next;
 
   const prevRem = Math.max(0, (prev.deadlineAtMs - nowMs) / 1000);
@@ -184,14 +195,18 @@ export function resolveV3RootWaitTimerDisplay(input: {
   const seconds = remainingV3RootWaitSeconds(input.snapshot, input.nowMs);
   if (seconds == null || !input.snapshot) return { kind: "hidden" };
   const total = input.snapshot.totalSeconds;
+  // Cap to whole-second cycle length so a fresh reset never labels as 12:01
+  // (ceil of 720.01… from float / deadline skew). Matches grey-flask 12:00 start.
+  const cycleCap = Math.max(1, Math.round(Number(total) || 0));
+  const remaining = Math.min(Math.max(0, seconds), cycleCap);
   return {
     kind: "countdown",
-    seconds,
-    timeLabel: formatRootTimer(seconds),
-    barProgress: resolveCountdownProgress(seconds, total),
+    seconds: remaining,
+    timeLabel: formatRootTimer(remaining, cycleCap),
+    barProgress: resolveCountdownProgress(remaining, cycleCap),
     pulse: shouldPulseRootTimerBar({
-      remainingSeconds: seconds,
-      totalSeconds: total,
+      remainingSeconds: remaining,
+      totalSeconds: cycleCap,
     }),
   };
 }

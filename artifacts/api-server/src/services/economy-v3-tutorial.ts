@@ -3,8 +3,10 @@
  *
  * - Grant predictable root seconds once (idempotent).
  * - Clear v3 tutorial residue on tutorial/complete; v3_generation_anchor_at
- *   continues from the tutorial 12:00 wait start (client), then settle backfills.
- * Does not touch Economy v2 Care bank, excess formulas, or Metelka.
+ *   continues from the tutorial 12:00 wait start (client), then settle backfills
+ *   ordinary roots only. Excess financial time is cleared — tutorial must not
+ *   dump wait-clock into live Metelka finance.
+ * Does not touch Economy v2 Care bank formulas or Metelka session columns.
  */
 
 import { pool } from "@workspace/db";
@@ -300,15 +302,19 @@ export async function armTutorialV3Wait(
 /**
  * After the tutorial 12:00 wait elapses — settle generation like main play
  * without completing the tutorial. Fills root energy cells.
+ * Pass startGoldFlask once: ends compensation window and zeros ordinary elapsed
+ * so the gold flask starts clean (no double-pay with tutorial compensation).
  */
 export async function syncTutorialV3WaitEnergy(
   userId: string | number,
   startedAtMs: number | null | undefined,
   nowMs: number = Date.now(),
+  options?: { startGoldFlask?: boolean },
 ): Promise<{
   synced: true;
   wholeSeconds: number;
   v3Roots: EconomyV3RootsPublicState;
+  goldFlaskStarted: boolean;
 }> {
   if (!isEconomyV3RootsEnabled()) {
     throw new EconomyV3TutorialError(
@@ -322,6 +328,7 @@ export async function syncTutorialV3WaitEnergy(
       userId,
       startedAtMs,
       nowMs,
+      options,
     );
   } catch (err) {
     if (err instanceof EconomyV3TutorialError) throw err;
@@ -385,11 +392,17 @@ export const V3_TUTORIAL_COMPLETE_CLEAR_SQL = `
   v3_care_cycle_claimed_total_income = NULL,
   pending_base_reward = 0,
   pending_bonus_reward = 0,
-  /* Keep tutorial collectibles: +1 мм / +1 яблоко / claimed skill XP.
+  /* Tutorial must not leave silent excess financial time for live play. */
+  v2_excess_seconds = 0,
+  v2_excess_elapsed_ms = 0,
+  v2_excess_base_income = 0,
+  /* Keep tutorial collectibles: compensation growth / +1 яблоко / claimed skill XP.
+   * $4 = floor(compensation ₽) from capital idle (12% APR).
    * Also keep catch counters from tutorial minigames (achievements). */
-  tree_growth_mm = 1,
+  tree_growth_mm = GREATEST(COALESCE(tree_growth_mm, 0), $4),
   tree_growth_remainder = 0,
-  total_apples = 1,
+  /* Never wipe Care/achievement apples on delayed tutorialComplete heal. */
+  total_apples = GREATEST(COALESCE(total_apples, 0), 1),
   total_sessions = 0,
   streak_days = 0,
   last_streak_date = NULL

@@ -78,13 +78,15 @@ function baseLockedRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function mockTxn(row: Record<string, unknown>) {
+function mockTxn(row: Record<string, unknown>, extraUpdates = 0) {
   queryMock
     .mockResolvedValueOnce(undefined) // BEGIN
     .mockResolvedValueOnce({ rows: [row] }) // SELECT FOR UPDATE
-    .mockResolvedValueOnce({ rows: [{ active_balance: String(REF) }] }) // capital
-    .mockResolvedValueOnce(undefined) // UPDATE
-    .mockResolvedValueOnce(undefined); // COMMIT
+    .mockResolvedValueOnce({ rows: [{ active_balance: String(REF) }] }); // capital
+  for (let i = 0; i < 1 + extraUpdates; i++) {
+    queryMock.mockResolvedValueOnce(undefined); // UPDATE(s)
+  }
+  queryMock.mockResolvedValueOnce(undefined); // COMMIT
 }
 
 describe("parseDebugWholeSeconds / parseDebugV3RootsBody", () => {
@@ -254,6 +256,7 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_reserve_sun_seconds: 0,
         v3_reserve_fertilizer_seconds: 0,
       }),
+      2,
     );
     const result = await debugMutateEconomyV3Roots(
       9,
@@ -276,6 +279,190 @@ describe("debugMutateEconomyV3Roots", () => {
     expect(result.v3Roots.generation.firstTransferredRoot).toBeNull();
     expect(result.v3Roots.careCycle.activities.water.completed).toBe(false);
     expect(result.v3Roots.careSession.status).toBeNull();
+    // Flask wait-clock restarts; financial excess ledger is preserved.
+    expect(result.v3Roots.generation.progress).toBe(0);
+    expect(result.v3Roots.generation.anchorAt).toBe(new Date(NOW).toISOString());
+    expect(result.excess?.excessSeconds).toBe(0);
+    expect(result.excess?.excessElapsedMs).toBe(0);
+    // TIMESTAMP WITHOUT TZ: fill must bind Date, not toISOString (UTC+3 → +3h).
+    const fillBind = queryMock.mock.calls[3]?.[1] as unknown[] | undefined;
+    expect(fillBind?.[7]).toBeInstanceOf(Date);
+    expect((fillBind?.[7] as Date).getTime()).toBe(NOW);
+  });
+
+  it("fillToCapacity preserves prior financial excess (does not wipe ledger)", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 5,
+        v3_root_sun_seconds: 5,
+        v3_root_fertilizer_seconds: 5,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+        v2_excess_seconds: 12,
+        v2_excess_elapsed_ms: 90_000,
+        v2_excess_base_income: 1.5,
+        v3_generation_progress: 0.7,
+        // Stale pause-era anchor (~3 min) must NOT dump into financial elapsed.
+        v3_generation_anchor_at: new Date(NOW - 180_000).toISOString(),
+        v3_care_cycle_status: "ready",
+        v3_transferred_roots: ["water", "sun", "fertilizer"],
+      }),
+      2,
+    );
+    const result = await debugMutateEconomyV3Roots(
+      9,
+      { action: "fillToCapacity", roots: true, reserves: false },
+      NOW,
+    );
+    const updateSql = String(queryMock.mock.calls[3]?.[0] ?? "");
+    expect(updateSql).not.toMatch(/v2_excess_seconds\s*=\s*0/);
+    expect(updateSql).toMatch(/v2_excess_elapsed_ms\s*=\s*\$10/);
+    expect(updateSql).toMatch(/v3_generation_progress\s*=\s*0/);
+    expect(result.excess?.excessSeconds).toBeGreaterThanOrEqual(12);
+    // Exact pin — pause wall-time must not be added on fill.
+    expect(result.excess?.excessElapsedMs).toBe(90_000);
+    expect(result.v3Roots.generation.progress).toBe(0);
+    const fillBind = queryMock.mock.calls[3]?.[1] as unknown[] | undefined;
+    expect(fillBind?.[7]).toBeInstanceOf(Date);
+    expect(fillBind?.[9]).toBe(90_000);
+  });
+
+  it("fillToCapacity pins max(db, clientExcessElapsedMs) — never wipes live", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+        v2_excess_seconds: 8,
+        v2_excess_elapsed_ms: 30_000,
+        v2_excess_base_income: 0.2,
+        v3_generation_anchor_at: new Date(NOW - 60_000).toISOString(),
+        v3_care_cycle_status: "ready",
+        v3_transferred_roots: ["water", "sun", "fertilizer"],
+      }),
+      2,
+    );
+    const result = await debugMutateEconomyV3Roots(
+      9,
+      {
+        action: "fillToCapacity",
+        roots: true,
+        reserves: false,
+        clientExcessElapsedMs: 32_000,
+      },
+      NOW,
+    );
+    expect(result.excess?.excessElapsedMs).toBe(32_000);
+    expect(result.excess?.excessSeconds).toBeGreaterThanOrEqual(8);
+    const fillBind = queryMock.mock.calls[3]?.[1] as unknown[] | undefined;
+    expect(fillBind?.[9]).toBe(32_000);
+  });
+
+  it("fillToCapacity keeps live client elapsed when DB ledger is still 0", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+        v2_excess_seconds: 0,
+        v2_excess_elapsed_ms: 0,
+        v2_excess_base_income: 0,
+        v3_generation_anchor_at: new Date(NOW - 60_000).toISOString(),
+      }),
+      2,
+    );
+    const result = await debugMutateEconomyV3Roots(
+      9,
+      {
+        action: "fillToCapacity",
+        roots: true,
+        reserves: false,
+        clientExcessElapsedMs: 45_000,
+      },
+      NOW,
+    );
+    // DB lagged — fill must not wipe live financial time.
+    expect(result.excess?.excessElapsedMs).toBe(45_000);
+  });
+
+  it("fillToCapacity ignores client hint jumps larger than lag slack", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+        v2_excess_seconds: 8,
+        v2_excess_elapsed_ms: 30_000,
+        v2_excess_base_income: 0.2,
+        v3_generation_anchor_at: new Date(NOW - 60_000).toISOString(),
+        v3_care_cycle_status: "ready",
+        v3_transferred_roots: ["water", "sun", "fertilizer"],
+      }),
+      2,
+    );
+    const result = await debugMutateEconomyV3Roots(
+      9,
+      {
+        action: "fillToCapacity",
+        roots: true,
+        reserves: false,
+        // >60s raise vs DB — reject as wait-clock dump.
+        clientExcessElapsedMs: 30_000 + 180_000,
+      },
+      NOW,
+    );
+    expect(result.excess?.excessElapsedMs).toBe(30_000);
+  });
+
+  it("fillToCapacity ignores clientExcessElapsedMs when ledger is empty (no tutorial dump)", async () => {
+    mockTxn(
+      baseLockedRow({
+        v3_daily_cap_seconds: 20,
+        streak_days: 1,
+        v3_root_water_seconds: 0,
+        v3_root_sun_seconds: 0,
+        v3_root_fertilizer_seconds: 0,
+        v3_reserve_water_seconds: 0,
+        v3_reserve_sun_seconds: 0,
+        v3_reserve_fertilizer_seconds: 0,
+        v2_excess_seconds: 0,
+        v2_excess_elapsed_ms: 0,
+        v2_excess_base_income: 0,
+        // Stale tutorial wait anchor (~90s) must not become financial time
+        // when client sends 0 / omits hint.
+        v3_generation_anchor_at: new Date(NOW - 90_000).toISOString(),
+      }),
+      2,
+    );
+    const result = await debugMutateEconomyV3Roots(
+      9,
+      {
+        action: "fillToCapacity",
+        roots: true,
+        reserves: false,
+      },
+      NOW,
+    );
+    expect(result.excess?.excessElapsedMs).toBe(0);
+    expect(result.excess?.excessSeconds ?? 0).toBe(0);
   });
 
   it("fillToCapacity respects shared pool (cannot fill roots+reserves both to cap)", async () => {
@@ -290,6 +477,7 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_reserve_sun_seconds: 0,
         v3_reserve_fertilizer_seconds: 0,
       }),
+      2,
     );
     const result = await debugMutateEconomyV3Roots(
       9,
@@ -318,6 +506,7 @@ describe("debugMutateEconomyV3Roots", () => {
         v3_reserve_sun_seconds: 21,
         v3_reserve_fertilizer_seconds: 21,
       }),
+      2,
     );
     const result = await debugMutateEconomyV3Roots(
       9,

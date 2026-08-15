@@ -90,11 +90,12 @@ describe("Economy v2 debug moved to right panel", () => {
     expect(localPanel).toContain("Финансовое время:");
     expect(localPanel).toContain("formatExcessElapsedReadout");
     expect(localPanel).toContain("liveExcessElapsedMs");
-    expect(localPanel).toContain("excessFinancialAnchorAt");
+    expect(localPanel).toContain("readMetelkaFinancialLiveMs");
+    expect(localPanel).toContain("excessFinancialMinting");
     expect(localPanel).toContain("mayLiveProjectFinancial");
-    expect(localPanel).toContain("snap.v3.generatingExcess === true");
-    expect(page).toContain("excessGate?.generatingExcess === true");
-    expect(page).toContain("excessFinancialAnchorAt: anchorMs");
+    expect(page).toContain("isV3SharedPoolEnergyAtMaximum");
+    expect(page).toContain("mintingFinancial");
+    expect(page).toContain("excessFinancialMinting: mintingFinancial");
     expect(localPanel).toContain("previewMetelkaDebugReward");
     expect(localPanel).toContain("METELKA_MAX_PRESET_STATUS");
     expect(localPanel).toContain("METELKA_MAX_PRESET_FINANCE_HINT");
@@ -154,6 +155,7 @@ describe("Economy v2 debug moved to right panel", () => {
         excessSeconds: 1,
         excessPresetSeconds: 5,
         excessElapsedMs: 0,
+        excessFinancialMinting: false,
         excessFinancialAnchorAt: null,
         capital: 1000,
         sessionActive: false,
@@ -216,12 +218,18 @@ describe("Economy v2 debug moved to right panel", () => {
     expect(localPanel).toContain("Увеличить день");
     expect(localPanel).toContain("Сброс роста");
     expect(localPanel).toContain("Сброс туториала");
+    expect(localPanel).toContain("reset-tutorial");
+    expect(localPanel).not.toContain("Сброс + пропуск обучения");
+    expect(localPanel).not.toContain("reset-skip-tutorial");
     expect(localPanel).toContain("Сброс аккаунта");
     expect(localPanel).toContain("Удалить аккаунт");
     // Must wipe F5 wait clock or the new life resumes the old ~10:xx deadline.
     expect(localPanel).toContain("clearTutorialWaitClock");
     expect(localPanel).toMatch(
       /clearStaleWaitClockBeforeAccountWipe[\s\S]*?reset-progress/,
+    );
+    expect(localPanel).toMatch(
+      /clearStaleWaitClockBeforeAccountWipe[\s\S]*?reset-tutorial/,
     );
   });
 
@@ -305,6 +313,7 @@ describe("Economy v2 debug moved to right panel", () => {
         excessSeconds: 0,
         excessPresetSeconds: 5,
         excessElapsedMs: 0,
+        excessFinancialMinting: false,
         excessFinancialAnchorAt: null,
         capital: 0,
         sessionActive: false,
@@ -332,6 +341,7 @@ describe("Economy v2 debug moved to right panel", () => {
         excessSeconds: 1,
         excessPresetSeconds: 5,
         excessElapsedMs: 0,
+        excessFinancialMinting: false,
         excessFinancialAnchorAt: null,
         capital: 1000,
         sessionActive: false,
@@ -429,6 +439,22 @@ describe("Economy v2 debug moved to right panel", () => {
     expect(localPanel).toContain("Сбросить избыток и сессию");
     expect(localPanel).toContain('action: "fillToCapacity"');
     expect(localPanel).toContain("Заполнить корни");
+    expect(localPanel).toContain("bumpEconomyV2ExcessDebugMutationSeq");
+    expect(localPanel).toMatch(
+      /fillV3RootsToCapacity[\s\S]*?bumpEconomyV2ExcessDebugMutationSeq[\s\S]*?applyExcessResponse|onExcessApplied/,
+    );
+    expect(localPanel).toContain("adoptMetelkaFinancialLiveMs");
+    expect(localPanel).toContain("clientExcessElapsedMs");
+    expect(localPanel).toContain("continueFromMs");
+    expect(localPanel).toContain("freezeMetelkaFinancialLive");
+    expect(localPanel).toContain("resetMetelkaFinancialLive");
+    expect(page).toContain("resetMetelkaFinancialLive");
+    expect(page).toContain("freezeMetelkaFinancialLive");
+    expect(page).toContain("financialMintingLive");
+    // Fill must never wipe live accumulation just because DB lag is 0.
+    expect(localPanel).not.toMatch(
+      /fillV3RootsToCapacity[\s\S]*?resetMetelkaFinancialLive\(\)/,
+    );
     expect(localPanel).not.toContain("Заполнить активности");
     expect(localPanel).not.toContain("fillV3ReservesToCapacity");
     expect(localPanel).not.toContain("setV3Reserve");
@@ -446,6 +472,9 @@ describe("Economy v2 debug moved to right panel", () => {
     );
     expect(localPanel).toContain("onExcessApplied");
     expect(localPanel).toContain("onV3RootsApplied");
+    expect(localPanel).toMatch(
+      /addExcessPresetSeconds[\s\S]*?adoptMetelkaFinancialLiveMs\([\s\S]*?force:\s*true/,
+    );
     expect(localPanel).not.toMatch(
       /addExcessPresetSeconds[\s\S]{0,300}window\.location\.reload/,
     );

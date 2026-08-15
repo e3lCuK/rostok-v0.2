@@ -1,6 +1,6 @@
 /**
- * Excess-generation path must advance generationProgress so nextWholeSecondAt
- * stays an absolute deadline (no 11:57→11:54→11:57 poll reset).
+ * Excess minting must NOT advance gold ~12:00 generationProgress.
+ * Grey flask uses financial elapsed; gold resumes from a frozen/reset save.
  */
 import { describe, expect, it } from "vitest";
 import { V2_SECONDS_PER_ENERGY_AT_REFERENCE } from "./economy-v2";
@@ -65,19 +65,17 @@ function pubFromSettle(
   );
 }
 
-describe("excess generation cycle clock continuity", () => {
-  it("polling every 5s does not slide nextWholeSecondAt forward", () => {
-    let progress = 0;
+describe("excess generation vs gold cycle progress", () => {
+  it("capacity excess keeps generationProgress at 0 across polls (fresh gold later)", () => {
     let anchor = NOW;
     let excess = 0;
     let excessElapsed = 0;
-    let deadline: number | null = null;
 
     for (let i = 0; i < 6; i++) {
       const t = NOW + i * 5000;
       const settled = settleEconomyV3Roots(
         excessBase({
-          generationProgress: progress,
+          generationProgress: 0.35,
           generationAnchorAt: anchor,
           nowMs: t,
           excessSeconds: excess,
@@ -85,58 +83,72 @@ describe("excess generation cycle clock continuity", () => {
         }),
       );
       expect(settled.ordinaryFull).toBe(true);
+      expect(settled.generatingExcess).toBe(true);
+      // Capacity excess wipes mid-cycle save so post-Care gold starts at 12:00.
+      expect(settled.generationProgress).toBe(0);
       if (i > 0) {
         expect(settled.excessGenerated).toBeGreaterThan(0);
-        expect(settled.generatingExcess).toBe(true);
       }
-      progress = settled.generationProgress;
       anchor = settled.generationAnchorAt;
       excess = settled.excessSeconds;
       excessElapsed = settled.excessElapsedMs;
 
       const pub = pubFromSettle(settled, t);
-      expect(pub.generation.nextWholeSecondAt).not.toBeNull();
-      const nextAt = Date.parse(pub.generation.nextWholeSecondAt!);
-      if (deadline == null) {
-        deadline = nextAt;
-      } else {
-        // Absolute deadline stays within 1s of the first poll (no +5s slide).
-        expect(Math.abs(nextAt - deadline)).toBeLessThan(1000);
-      }
-
       const rem = pub.generation.secondsUntilNextWholeSecond!;
-      expect(rem).toBeLessThanOrEqual(T);
-      expect(rem).toBeGreaterThan(T - 40); // ~30s elapsed across 6 polls
+      expect(rem).toBeCloseTo(T, 5);
     }
 
     expect(excess).toBeGreaterThan(0);
   });
 
-  it("long absence credits wholes and keeps fractional remainder (not fresh 12:00)", () => {
-    const elapsedSec = T + 20; // one full unit + 20s
+  it("care-hold-only freezes prior ordinary progress (partial-fill save)", () => {
+    const prior = 0.4;
     const settled = settleEconomyV3Roots(
       excessBase({
-        generationProgress: 0,
+        rootWaterSeconds: 0,
+        rootSunSeconds: 0,
+        rootFertilizerSeconds: 0,
+        reserveWaterSeconds: 5,
+        reserveSunSeconds: 5,
+        reserveFertilizerSeconds: 5,
+        generationProgress: prior,
+        generationAnchorAt: NOW - T * 1000,
+        nowMs: NOW,
+        transferredRoots: ["water", "sun", "fertilizer"],
+        careCycleHoldingExcess: true,
+        excessSeconds: 3,
+        excessElapsedMs: 20_000,
+      }),
+    );
+    expect(settled.generatingExcess).toBe(true);
+    expect(settled.excessGenerated).toBeGreaterThan(0);
+    expect(settled.generationProgress).toBe(prior);
+  });
+
+  it("long capacity excess still credits ledger but does not leave fractional gold save", () => {
+    const elapsedSec = T + 20;
+    const settled = settleEconomyV3Roots(
+      excessBase({
+        generationProgress: 0.2,
         generationAnchorAt: NOW - elapsedSec * 1000,
         nowMs: NOW,
       }),
     );
     expect(settled.excessGenerated).toBeCloseTo(1 + 20 / T, 5);
-    expect(settled.generationProgress).toBeCloseTo(20 / T, 5);
-    expect(settled.wholeSeconds).toBe(1);
+    expect(settled.generationProgress).toBe(0);
+    expect(settled.wholeSeconds).toBe(0);
 
     const pub = pubFromSettle(settled, NOW);
     const rem = pub.generation.secondsUntilNextWholeSecond!;
-    // Remaining ≈ T - 20, not a full T restart.
-    expect(rem).toBeCloseTo(T - 20, 5);
-    expect(rem).toBeLessThan(T - 5);
+    expect(rem).toBeCloseTo(T, 5);
   });
 
-  it("repeated identical now is idempotent for progress + deadline", () => {
+  it("repeated identical now is idempotent for progress + excess", () => {
     const first = settleEconomyV3Roots(
       excessBase({
         generationAnchorAt: NOW - 30_000,
         nowMs: NOW,
+        generationProgress: 0.1,
       }),
     );
     const second = settleEconomyV3Roots(
@@ -149,9 +161,7 @@ describe("excess generation cycle clock continuity", () => {
       }),
     );
     expect(second.excessGenerated).toBe(0);
-    expect(second.generationProgress).toBe(first.generationProgress);
-    const a = pubFromSettle(first, NOW).generation.nextWholeSecondAt;
-    const b = pubFromSettle(second, NOW).generation.nextWholeSecondAt;
-    expect(a).toBe(b);
+    expect(second.generationProgress).toBe(0);
+    expect(first.generationProgress).toBe(0);
   });
 });

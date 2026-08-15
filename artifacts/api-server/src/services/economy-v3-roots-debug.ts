@@ -9,7 +9,9 @@
  * Does NOT change: Economy v2 balance/XP/tree (except excess when normalizing real overflow).
  * Does NOT start Care or auto-transfer.
  * fillToCapacity clears transferred-root + Care-cycle markers so debug «fill →
- * click roots → Care» works again after a prior transfer/cycle.
+ * click roots → Care» works again after a prior transfer/cycle, and restarts the
+ * generation wait-clock — but PRESERVES the excess ledger / financial elapsed
+ * so filling roots after Care does not wipe accumulated Metelka time.
  */
 
 import { pool } from "@workspace/db";
@@ -30,9 +32,20 @@ import {
   type EconomyV3RootsRow,
   type RootKind,
 } from "./economy-v3-roots";
-import { normalizeExcessSeconds } from "./economy-v2-excess";
+import {
+  buildEconomyV2ExcessPublicState,
+  normalizeExcessSeconds,
+  type EconomyV2ExcessPublicState,
+} from "./economy-v2-excess";
+import {
+  normalizeExcessBaseIncome,
+  normalizeExcessElapsedMs,
+} from "./economy-v2-excess-income";
 import { loadCapitalForUser } from "./economy-v2-energy-settle";
-import type { EconomyV3DbClient } from "./economy-v3-roots-settle";
+import {
+  settleEconomyV3RootsInTransaction,
+  type EconomyV3DbClient,
+} from "./economy-v3-roots-settle";
 
 export class EconomyV3RootsDebugError extends Error {
   readonly status: number;
@@ -93,12 +106,19 @@ export type DebugV3RootsAction =
       /** Default true when omitted with reserves omitted. */
       roots?: boolean;
       reserves?: boolean;
+      /**
+       * Optional live financial elapsed from the client debug clock.
+       * fill pins max(db, client) so a lagging ledger cannot wipe FE progress.
+       */
+      clientExcessElapsedMs?: number;
     };
 
 export type DebugV3RootsMutateResult = {
   v3Roots: EconomyV3RootsPublicState;
   capacitySeconds: number;
   clamp: DebugV3ClampReport | null;
+  /** Present when fillToCapacity returns the (preserved) excess ledger snapshot. */
+  excess?: EconomyV2ExcessPublicState;
 };
 
 const V3_DEBUG_SELECT = `
@@ -120,6 +140,8 @@ const V3_DEBUG_SELECT = `
   v3_first_transferred_root,
   v3_transferred_roots,
   v2_excess_seconds,
+  v2_excess_elapsed_ms,
+  v2_excess_base_income,
   ${V3_CARE_SESSION_AND_CYCLE_SELECT_COLUMNS.trim()}
 `;
 
@@ -246,10 +268,20 @@ export function parseDebugV3RootsBody(
     if (!fillRoots && !fillReserves) {
       return { error: "fillToCapacity requires roots and/or reserves true" };
     }
+    const clientElapsedRaw = (o as { clientExcessElapsedMs?: unknown })
+      .clientExcessElapsedMs;
+    const clientElapsedN = Number(clientElapsedRaw);
+    const clientExcessElapsedMs =
+      clientElapsedRaw == null
+        ? undefined
+        : Number.isFinite(clientElapsedN) && clientElapsedN >= 0
+          ? Math.trunc(clientElapsedN)
+          : undefined;
     return {
       action: "fillToCapacity",
       roots: fillRoots,
       reserves: fillReserves,
+      ...(clientExcessElapsedMs != null ? { clientExcessElapsedMs } : {}),
     };
   }
 
@@ -391,6 +423,8 @@ export async function debugMutateEconomyV3Roots(
 
     const locked = gameRow.rows[0] as EconomyV3RootsRow & {
       v2_excess_seconds?: unknown;
+      v2_excess_elapsed_ms?: unknown;
+      v2_excess_base_income?: unknown;
       streak_days?: unknown;
     };
     const capital = await loadCapitalForUser(
@@ -430,6 +464,7 @@ export async function debugMutateEconomyV3Roots(
     };
 
     let clampReport: DebugV3ClampReport | null = null;
+    let fillSettledExcess: EconomyV2ExcessPublicState | undefined;
 
     if (body.action === "reset") {
       roots.water = 0;
@@ -472,6 +507,8 @@ export async function debugMutateEconomyV3Roots(
                v3_care_cycle_completed_at = NULL,
                v3_care_cycle_finished_at = NULL,
                v3_care_cycle_status = NULL,
+               v3_care_hold_excess = FALSE,
+               v3_post_collect_pause = FALSE,
                v3_care_cycle_total_preset_seconds = NULL,
                v3_care_cycle_average_skill = NULL,
                v3_care_cycle_claimed_at = NULL,
@@ -519,6 +556,8 @@ export async function debugMutateEconomyV3Roots(
                v3_care_cycle_completed_at = NULL,
                v3_care_cycle_finished_at = NULL,
                v3_care_cycle_status = NULL,
+               v3_care_hold_excess = FALSE,
+               v3_post_collect_pause = FALSE,
                v3_care_cycle_total_preset_seconds = NULL,
                v3_care_cycle_average_skill = NULL,
                v3_care_cycle_claimed_at = NULL,
@@ -551,7 +590,7 @@ export async function debugMutateEconomyV3Roots(
       locked.v3_insurance_deadline_at = null;
       locked.v3_first_transferred_root = null;
       locked.v3_transferred_roots = [];
-      locked.v3_generation_anchor_at = new Date(nowMs).toISOString();
+      locked.v3_generation_anchor_at = new Date(nowMs);
       locked.v3_care_cycle_water_completed = false;
       locked.v3_care_cycle_water_preset_seconds = null;
       locked.v3_care_cycle_water_skill = null;
@@ -695,9 +734,31 @@ export async function debugMutateEconomyV3Roots(
       ] as const;
 
       if (body.action === "fillToCapacity") {
-        // Clear transfer + Care journal so filled roots are clickable again and
-        // activities can light after reserve transfer (stale transferredRoots /
-        // completed flags previously made fill→click a no-op).
+        // Keep excess ledger / financial elapsed — fill after Care must not wipe
+        // accumulated Metelka time. Only reset wait-clock + transfer/Care markers
+        // so roots are clickable again.
+        const preservedExcessSeconds = normalizeExcessSeconds(
+          locked.v2_excess_seconds,
+        );
+        const dbExcessElapsedMs = normalizeExcessElapsedMs(
+          locked.v2_excess_elapsed_ms,
+        );
+        const clientHint = normalizeExcessElapsedMs(body.clientExcessElapsedMs);
+        // Preserve financial time across fill. Client freeze is trusted (no idle
+        // dump after Care) and covers DB lag between settles. Still reject
+        // absurd jumps above an existing DB ledger (e.g. wait-clock leftovers).
+        const CLIENT_ELAPSED_MAX_RAISE_MS = 60_000;
+        let preservedExcessElapsedMs = Math.max(dbExcessElapsedMs, clientHint);
+        if (
+          dbExcessElapsedMs > 0 &&
+          preservedExcessElapsedMs > dbExcessElapsedMs + CLIENT_ELAPSED_MAX_RAISE_MS
+        ) {
+          preservedExcessElapsedMs = dbExcessElapsedMs;
+        }
+        const preservedExcessBaseIncome = normalizeExcessBaseIncome(
+          locked.v2_excess_base_income,
+        );
+        excessSeconds = preservedExcessSeconds;
         await client.query(
           `UPDATE game_state
            SET v3_root_water_seconds = $2,
@@ -706,7 +767,8 @@ export async function debugMutateEconomyV3Roots(
                v3_reserve_water_seconds = $5,
                v3_reserve_sun_seconds = $6,
                v3_reserve_fertilizer_seconds = $7,
-               v2_excess_seconds = $8,
+               v3_generation_progress = 0,
+               v3_generation_anchor_at = $8,
                v3_first_transferred_root = NULL,
                v3_transferred_roots = '{}'::text[],
                v3_generation_frozen_at = NULL,
@@ -724,6 +786,8 @@ export async function debugMutateEconomyV3Roots(
                v3_care_cycle_completed_at = NULL,
                v3_care_cycle_finished_at = NULL,
                v3_care_cycle_status = NULL,
+               v3_care_hold_excess = FALSE,
+               v3_post_collect_pause = FALSE,
                v3_care_cycle_total_preset_seconds = NULL,
                v3_care_cycle_average_skill = NULL,
                v3_care_cycle_claimed_at = NULL,
@@ -738,12 +802,31 @@ export async function debugMutateEconomyV3Roots(
                v3_care_activity_finished_at = NULL,
                v3_care_activity_status = NULL,
                v3_care_activity_skill = NULL,
+               v2_excess_seconds = $9,
+               v2_excess_elapsed_ms = $10,
+               v2_excess_base_income = $11,
                updated_at = NOW()
            WHERE user_id = $1`,
-          [...secondsParams],
+          [
+            String(userId),
+            roots.water,
+            roots.sun,
+            roots.fertilizer,
+            reserves.water,
+            reserves.sun,
+            reserves.fertilizer,
+            // TIMESTAMP WITHOUT TZ: pass Date, never toISOString() — ISO UTC
+            // clock-face is stored naive and re-read as local (UTC+3 → +3h dump).
+            new Date(nowMs),
+            preservedExcessSeconds,
+            preservedExcessElapsedMs,
+            preservedExcessBaseIncome,
+          ],
         );
         locked.v3_first_transferred_root = null;
         locked.v3_transferred_roots = [];
+        locked.v3_generation_progress = 0;
+        locked.v3_generation_anchor_at = new Date(nowMs);
         locked.v3_generation_frozen_at = null;
         locked.v3_insurance_deadline_at = null;
         locked.v3_care_cycle_water_completed = false;
@@ -773,6 +856,85 @@ export async function debugMutateEconomyV3Roots(
         locked.v3_care_activity_finished_at = null;
         locked.v3_care_activity_status = null;
         locked.v3_care_activity_skill = null;
+        locked.v3_root_water_seconds = roots.water;
+        locked.v3_root_sun_seconds = roots.sun;
+        locked.v3_root_fertilizer_seconds = roots.fertilizer;
+        locked.v3_reserve_water_seconds = reserves.water;
+        locked.v3_reserve_sun_seconds = reserves.sun;
+        locked.v3_reserve_fertilizer_seconds = reserves.fertilizer;
+        locked.v2_excess_seconds = preservedExcessSeconds;
+        locked.v2_excess_elapsed_ms = preservedExcessElapsedMs;
+        locked.v2_excess_base_income = preservedExcessBaseIncome;
+
+        // Same transaction: settle from the fresh wait-clock anchor. Do not mint
+        // financial excess here — a stale pause-era generation_anchor would dump
+        // the wall-time spent on Care shovel / debug into excessElapsedMs.
+        const settled = await settleEconomyV3RootsInTransaction(
+          client as EconomyV3DbClient,
+          userId,
+          locked as never,
+          nowMs,
+          capital,
+          { suppressExcessMinting: true },
+        );
+        // Hard-pin financial elapsed to the pre-fill ledger (settle must not bump it).
+        const pinnedExcessElapsedMs = preservedExcessElapsedMs;
+        const pinnedExcessSeconds = normalizeExcessSeconds(
+          Math.max(
+            preservedExcessSeconds,
+            normalizeExcessSeconds(settled.excessSeconds),
+          ),
+        );
+        const pinnedExcessBaseIncome =
+          settled.excessLedger?.excessBaseIncome ?? preservedExcessBaseIncome;
+        Object.assign(locked, {
+          v3_root_water_seconds: settled.rootWaterSeconds,
+          v3_root_sun_seconds: settled.rootSunSeconds,
+          v3_root_fertilizer_seconds: settled.rootFertilizerSeconds,
+          v3_reserve_water_seconds: settled.reserveWaterSeconds,
+          v3_reserve_sun_seconds: settled.reserveSunSeconds,
+          v3_reserve_fertilizer_seconds: settled.reserveFertilizerSeconds,
+          v3_generation_progress: settled.generationProgress,
+          v3_generation_rr_cursor: settled.generationRrCursor,
+          v3_generation_anchor_at: new Date(settled.generationAnchorAt),
+          v2_excess_seconds: pinnedExcessSeconds,
+          v2_excess_elapsed_ms: pinnedExcessElapsedMs,
+          v2_excess_base_income: pinnedExcessBaseIncome,
+        });
+        // Settle may have persisted a dumped elapsed — rewrite the pin.
+        if (
+          normalizeExcessElapsedMs(settled.excessElapsedMs) !==
+            pinnedExcessElapsedMs ||
+          normalizeExcessSeconds(settled.excessSeconds) !== pinnedExcessSeconds
+        ) {
+          await client.query(
+            `UPDATE game_state
+             SET v2_excess_seconds = $2,
+                 v2_excess_elapsed_ms = $3,
+                 v2_excess_base_income = $4,
+                 updated_at = NOW()
+             WHERE user_id = $1`,
+            [
+              String(userId),
+              pinnedExcessSeconds,
+              pinnedExcessElapsedMs,
+              pinnedExcessBaseIncome,
+            ],
+          );
+        }
+        fillSettledExcess = {
+          ...(settled.excessLedger?.excess ??
+            buildEconomyV2ExcessPublicState(
+              pinnedExcessSeconds,
+              null,
+              null,
+              pinnedExcessElapsedMs,
+              pinnedExcessBaseIncome,
+            )),
+          excessSeconds: pinnedExcessSeconds,
+          excessElapsedMs: pinnedExcessElapsedMs,
+          excessBaseIncome: pinnedExcessBaseIncome,
+        };
       } else {
         await client.query(
           `UPDATE game_state
@@ -787,24 +949,28 @@ export async function debugMutateEconomyV3Roots(
            WHERE user_id = $1`,
           [...secondsParams],
         );
+        locked.v3_root_water_seconds = roots.water;
+        locked.v3_root_sun_seconds = roots.sun;
+        locked.v3_root_fertilizer_seconds = roots.fertilizer;
+        locked.v3_reserve_water_seconds = reserves.water;
+        locked.v3_reserve_sun_seconds = reserves.sun;
+        locked.v3_reserve_fertilizer_seconds = reserves.fertilizer;
+        locked.v2_excess_seconds = excessSeconds;
       }
-
-      locked.v3_root_water_seconds = roots.water;
-      locked.v3_root_sun_seconds = roots.sun;
-      locked.v3_root_fertilizer_seconds = roots.fertilizer;
-      locked.v3_reserve_water_seconds = reserves.water;
-      locked.v3_reserve_sun_seconds = reserves.sun;
-      locked.v3_reserve_fertilizer_seconds = reserves.fertilizer;
-      locked.v2_excess_seconds = excessSeconds;
     }
 
     await client.query("COMMIT");
 
-    const v3Roots = buildEconomyV3RootsPublicState(locked, { capital });
+    const v3Roots = buildEconomyV3RootsPublicState(locked, {
+      capital,
+      nowMs,
+      generatingExcess: body.action === "fillToCapacity",
+    });
     return {
       v3Roots,
       capacitySeconds: effectiveCap,
       clamp: clampReport,
+      ...(fillSettledExcess ? { excess: fillSettledExcess } : {}),
     };
   } catch (err) {
     if (err instanceof EconomyV3RootsDebugError) throw err;
