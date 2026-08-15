@@ -4,11 +4,17 @@
  * Expected values are computed from the approved formula literals only —
  * not from production constants or production helpers — so a wrong
  * implementation cannot make both sides agree by construction.
+ *
+ * Spec:
+ *   T(K) = 3600 / (1 + 4 · (K/100000)^0.15)
+ *   generated = elapsed / T(K)
+ *   M(K) = 720 / T(K)   (compat multiplier vs 12-min reference)
  */
 import { describe, expect, it } from "vitest";
 import {
   capitalMultiplier,
   generateEnergyFromElapsed,
+  secondsPerGameSecondForCapital,
 } from "./economy-v2";
 import {
   countReadySections,
@@ -18,28 +24,40 @@ import {
 /** Spec literals — intentionally local, not imported from production. */
 const SPEC_REF_CAPITAL = 100_000;
 const SPEC_EXPONENT = 0.15;
-const SPEC_SECONDS_PER_ENERGY = 720;
+const SPEC_WEIGHT = 4;
+const SPEC_SECONDS_AT_ZERO = 3600;
+const SPEC_SECONDS_AT_REF = 720;
 const SPEC_BANK_CAP = 60;
 const TOL = 1e-9;
 
+function expectedT(capital: number): number {
+  if (!Number.isFinite(capital) || capital < 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const ratio =
+    capital === 0
+      ? 0
+      : Math.pow(capital / SPEC_REF_CAPITAL, SPEC_EXPONENT);
+  return SPEC_SECONDS_AT_ZERO / (1 + SPEC_WEIGHT * ratio);
+}
+
 function expectedM(capital: number): number {
-  if (!Number.isFinite(capital) || capital <= 0) return 0;
-  return Math.pow(capital / SPEC_REF_CAPITAL, SPEC_EXPONENT);
+  const t = expectedT(capital);
+  if (!Number.isFinite(t) || t <= 0) return 0;
+  return SPEC_SECONDS_AT_REF / t;
 }
 
 function expectedGenerated(capital: number, elapsedSeconds: number): number {
   const safeElapsed =
     Number.isFinite(elapsedSeconds) && elapsedSeconds > 0 ? elapsedSeconds : 0;
-  return (safeElapsed / SPEC_SECONDS_PER_ENERGY) * expectedM(capital);
-}
-
-function expectedSecondsPerEnergy(capital: number): number {
-  const m = expectedM(capital);
-  return m === 0 ? Number.POSITIVE_INFINITY : SPEC_SECONDS_PER_ENERGY / m;
+  if (safeElapsed === 0) return 0;
+  const t = expectedT(capital);
+  if (!Number.isFinite(t) || t <= 0) return 0;
+  return safeElapsed / t;
 }
 
 function expectedMinutesPerEnergy(capital: number): number {
-  return expectedSecondsPerEnergy(capital) / 60;
+  return expectedT(capital) / 60;
 }
 
 /** Total matured root energy (ready sections + fractional progress). Bank unchanged. */
@@ -77,37 +95,38 @@ const CONTROL_CAPITALS = [
 describe("Economy v2 energy formula audit (independent expected)", () => {
   describe("control capitals vs production", () => {
     it.each(CONTROL_CAPITALS)(
-      "matches M(K), generation, and settle@cap for K=%s",
+      "matches T(K), M(K), generation, and settle@cap for K=%s",
       (capital) => {
+        const t = expectedT(capital);
         const m = expectedM(capital);
         const e12min = expectedGenerated(capital, 720);
         const e1h = expectedGenerated(capital, 3600);
         const e12h = expectedGenerated(capital, 43_200);
         const capped = Math.min(SPEC_BANK_CAP, e12h);
 
+        expect(secondsPerGameSecondForCapital(capital)).toBeCloseTo(t, 9);
         expect(capitalMultiplier(capital)).toBeCloseTo(m, 9);
         expect(generateEnergyFromElapsed(capital, 720)).toBeCloseTo(e12min, 9);
         expect(generateEnergyFromElapsed(capital, 3600)).toBeCloseTo(e1h, 9);
         expect(generateEnergyFromElapsed(capital, 43_200)).toBeCloseTo(e12h, 9);
         expect(settleFromElapsed(capital, 43_200)).toBeCloseTo(capped, 9);
 
-        if (capital > 0) {
-          const minutes = expectedMinutesPerEnergy(capital);
-          expect(minutes).toBeGreaterThan(0);
-          expect(Number.isFinite(minutes)).toBe(true);
-          // Cross-check: energy over 12 wall minutes equals M(K).
-          expect(e12min).toBeCloseTo(m, 12);
-        } else {
-          expect(m).toBe(0);
-          expect(e12min).toBe(0);
-          expect(e1h).toBe(0);
-          expect(e12h).toBe(0);
-        }
+        const minutes = expectedMinutesPerEnergy(capital);
+        expect(minutes).toBeGreaterThan(0);
+        expect(Number.isFinite(minutes)).toBe(true);
+        // Cross-check: energy over T(K) wall seconds equals 1.
+        expect(expectedGenerated(capital, t)).toBeCloseTo(1, 12);
       },
     );
   });
 
   describe("anchor reference points", () => {
+    it("K=0 → T=3600 (60 min); +3600 s → exactly 1 energy", () => {
+      expect(expectedT(0)).toBe(3600);
+      expect(generateEnergyFromElapsed(0, 3600)).toBeCloseTo(1, 9);
+      expect(capitalMultiplier(0)).toBeCloseTo(0.2, 9);
+    });
+
     it("100 000 ₽ + 720 s → exactly 1 energy", () => {
       const expected = expectedGenerated(100_000, 720);
       expect(expected).toBeCloseTo(1, 12);
@@ -156,52 +175,53 @@ describe("Economy v2 energy formula audit (independent expected)", () => {
   });
 
   describe("monotonicity", () => {
-    it("generatedEnergy strictly increases for K > 0", () => {
-      const positive = CONTROL_CAPITALS.filter((k) => k > 0);
-      for (let i = 1; i < positive.length; i++) {
-        const prev = generateEnergyFromElapsed(positive[i - 1], 720);
-        const next = generateEnergyFromElapsed(positive[i], 720);
+    it("generatedEnergy strictly increases for K ≥ 0", () => {
+      for (let i = 1; i < CONTROL_CAPITALS.length; i++) {
+        const prev = generateEnergyFromElapsed(CONTROL_CAPITALS[i - 1], 720);
+        const next = generateEnergyFromElapsed(CONTROL_CAPITALS[i], 720);
         expect(next).toBeGreaterThan(prev);
       }
     });
 
-    it("minutesPerEnergy strictly decreases for K > 0", () => {
-      const positive = CONTROL_CAPITALS.filter((k) => k > 0);
-      for (let i = 1; i < positive.length; i++) {
-        const prev = expectedMinutesPerEnergy(positive[i - 1]);
-        const next = expectedMinutesPerEnergy(positive[i]);
+    it("minutesPerEnergy strictly decreases for K ≥ 0", () => {
+      for (let i = 1; i < CONTROL_CAPITALS.length; i++) {
+        const prev = expectedMinutesPerEnergy(CONTROL_CAPITALS[i - 1]);
+        const next = expectedMinutesPerEnergy(CONTROL_CAPITALS[i]);
         expect(next).toBeLessThan(prev);
-        // Production speed matches: secondsPerEnergy = 720 / M(K)
-        const prodM = capitalMultiplier(positive[i]);
-        const prodMinutes = SPEC_SECONDS_PER_ENERGY / prodM / 60;
+        const prodMinutes =
+          secondsPerGameSecondForCapital(CONTROL_CAPITALS[i]) / 60;
         expect(prodMinutes).toBeCloseTo(next, 9);
       }
     });
   });
 
-  describe("non-linearity (exponent 0.15)", () => {
-    it("10× capital multiplies speed by 10^0.15 ≈ 1.4125, not 10×", () => {
-      const tenTo015 = Math.pow(10, SPEC_EXPONENT);
-      expect(tenTo015).toBeCloseTo(1.4125375446, 9);
-
-      const at100k = expectedGenerated(100_000, 720);
-      const at1m = expectedGenerated(1_000_000, 720);
-      const ratioExpected = at1m / at100k;
-      expect(ratioExpected).toBeCloseTo(tenTo015, 9);
-
-      const ratioActual =
-        generateEnergyFromElapsed(1_000_000, 720) /
-        generateEnergyFromElapsed(100_000, 720);
-      expect(ratioActual).toBeCloseTo(tenTo015, 9);
-      expect(ratioActual).toBeLessThan(2);
-      expect(ratioActual).not.toBeCloseTo(10, 1);
+  describe("non-linearity (weight×ratio^0.15)", () => {
+    it("10× capital does not multiply speed by 10× (dampened)", () => {
+      const at100k = generateEnergyFromElapsed(100_000, 720);
+      const at1m = generateEnergyFromElapsed(1_000_000, 720);
+      const ratio = at1m / at100k;
+      expect(ratio).toBeCloseTo(
+        expectedGenerated(1_000_000, 720) / expectedGenerated(100_000, 720),
+        9,
+      );
+      // Old pure power-law was ~1.41; weighted formula is slower growth.
+      expect(ratio).toBeLessThan(2);
+      expect(ratio).not.toBeCloseTo(10, 1);
+      expect(ratio).toBeCloseTo(
+        (1 + SPEC_WEIGHT * Math.pow(10, SPEC_EXPONENT)) /
+          (1 + SPEC_WEIGHT),
+        9,
+      );
     });
 
     it("2× capital does not double accrual speed", () => {
       const at100k = generateEnergyFromElapsed(100_000, 720);
       const at200k = generateEnergyFromElapsed(200_000, 720);
       const ratio = at200k / at100k;
-      expect(ratio).toBeCloseTo(Math.pow(2, SPEC_EXPONENT), 9);
+      expect(ratio).toBeCloseTo(
+        (1 + SPEC_WEIGHT * Math.pow(2, SPEC_EXPONENT)) / (1 + SPEC_WEIGHT),
+        9,
+      );
       expect(ratio).toBeLessThan(1.2);
       expect(ratio).not.toBeCloseTo(2, 1);
     });
@@ -219,34 +239,8 @@ describe("Economy v2 energy formula audit (independent expected)", () => {
 
       expect(a).toBeLessThan(b);
       expect(b).toBeLessThan(c);
-      // Relative gaps are tiny — continuous power law, not a step.
       expect(b - a).toBeLessThan(1e-4);
       expect(c - b).toBeLessThan(1e-4);
-    });
-  });
-
-  describe("manual observation at 100 011,55 ₽", () => {
-    it("pure 720 s expected is ~1.000017, not the observed 1.04268", () => {
-      const capital = 100_011.55;
-      const pure720Expected = expectedGenerated(capital, 720);
-      const pure720Actual = generateEnergyFromElapsed(capital, 720);
-      const observed = 1.0426847299800033;
-
-      expect(pure720Actual).toBeCloseTo(pure720Expected, 9);
-      expect(pure720Expected).toBeCloseTo(1.0000173241496195, 12);
-      expect(pure720Expected).toBeLessThan(1.001);
-      expect(pure720Expected).not.toBeCloseTo(observed, 2);
-
-      const m = expectedM(capital);
-      const elapsedActual = (observed * SPEC_SECONDS_PER_ENERGY) / m;
-      const extraSeconds = elapsedActual - SPEC_SECONDS_PER_ENERGY;
-
-      expect(elapsedActual).toBeCloseTo(750.72, 2);
-      expect(extraSeconds).toBeCloseTo(30.72, 2);
-      // ~31 s over a 12-minute manual wait is a plausible timing skew;
-      // it is not pure UPDATE→GET network latency.
-      expect(extraSeconds).toBeGreaterThan(20);
-      expect(extraSeconds).toBeLessThan(60);
     });
   });
 
@@ -331,16 +325,17 @@ describe("Economy v2 energy formula audit (independent expected)", () => {
       expect(countReadySections(result.rootReadyMask)).toBe(1);
     });
 
-    it("K=0 adds no root energy", () => {
+    it("K=0 + 3600 s → +1 root energy (60 min cycle)", () => {
       const result = settleEconomyV2Roots({
         energySeconds: 12,
-        energyAnchorAt: now - 720_000,
+        energyAnchorAt: now - 3_600_000,
         rootReadyMask: 0n,
         rootGenerationProgress: 0,
         capital: 0,
         nowMs: now,
       });
-      expect(result.generatedEnergy).toBe(0);
+      expect(result.generatedEnergy).toBeCloseTo(1, 9);
+      expect(countReadySections(result.rootReadyMask)).toBe(1);
       expect(result.energySeconds).toBe(12);
     });
 

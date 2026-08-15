@@ -147,6 +147,10 @@ describe("capitalMultiplier / generateEnergyFromElapsed", () => {
     expect(capitalMultiplier(REF)).toBeCloseTo(1, 10);
   });
 
+  it("K=0 has multiplier 0.2 (60 min vs 12 min reference)", () => {
+    expect(capitalMultiplier(0)).toBeCloseTo(0.2, 10);
+  });
+
   it("100 000 ₽ + 720 s → +1 energy", () => {
     expect(generateEnergyFromElapsed(REF, T)).toBeCloseTo(1, 10);
   });
@@ -159,22 +163,32 @@ describe("capitalMultiplier / generateEnergyFromElapsed", () => {
     expect(generateEnergyFromElapsed(REF, 12 * 60 * 60)).toBeCloseTo(60, 10);
   });
 
+  it("K=0 + 3600 s → +1 energy", () => {
+    expect(generateEnergyFromElapsed(0, 3600)).toBeCloseTo(1, 10);
+  });
+
   it("capital below reference is slower", () => {
     const low = generateEnergyFromElapsed(50_000, T);
     const ref = generateEnergyFromElapsed(REF, T);
     expect(low).toBeLessThan(ref);
-    expect(low).toBeCloseTo(Math.pow(0.5, 0.15), 10);
+    // T(50k)/T(100k) = 5 / (1+4·0.5^0.15); energy over 720 = 720/T
+    const expected =
+      T /
+      (3600 / (1 + 4 * Math.pow(0.5, 0.15)));
+    expect(low).toBeCloseTo(expected, 10);
   });
 
   it("capital above reference is faster", () => {
     const high = generateEnergyFromElapsed(200_000, T);
     const ref = generateEnergyFromElapsed(REF, T);
     expect(high).toBeGreaterThan(ref);
-    expect(high).toBeCloseTo(Math.pow(2, 0.15), 10);
+    const expected =
+      T /
+      (3600 / (1 + 4 * Math.pow(2, 0.15)));
+    expect(high).toBeCloseTo(expected, 10);
   });
 
-  it("capital 0 / negative / NaN / Infinity → 0", () => {
-    expect(generateEnergyFromElapsed(0, T)).toBe(0);
+  it("negative / NaN / Infinity capital → 0", () => {
     expect(generateEnergyFromElapsed(-1000, T)).toBe(0);
     expect(generateEnergyFromElapsed(NaN, T)).toBe(0);
     expect(generateEnergyFromElapsed(Infinity, T)).toBe(0);
@@ -249,13 +263,13 @@ describe("calculateEconomyV2", () => {
 });
 
 describe("calculateEconomyV2Activity", () => {
-  it("maps zero energy to minimum duration", () => {
+  it("maps K=0 energy (slow 60-min cycle) to minimum duration", () => {
     const result = calculateEconomyV2Activity({
       capital: 0,
       elapsedSeconds: T,
     });
 
-    expect(result.usableEnergy).toBe(0);
+    expect(result.usableEnergy).toBeCloseTo(0.2, 10);
     expect(result.activityDuration).toBe(5);
     expect(result.maxXp).toBe(20);
   });
@@ -410,7 +424,7 @@ describe("settleEconomyV2Roots (via energy settle migration)", () => {
     expect(low.generatedEnergy).toBeLessThan(ref.generatedEnergy);
   });
 
-  it("capital 0 → no generation", () => {
+  it("capital 0 → slow generation (720s → 0.2 energy)", () => {
     const result = settleEconomyV2Roots({
       energySeconds: 3,
       energyAnchorAt: now - T * 1000,
@@ -420,7 +434,7 @@ describe("settleEconomyV2Roots (via energy settle migration)", () => {
       nowMs: now,
     });
     expect(result.energySeconds).toBe(3);
-    expect(result.generatedEnergy).toBe(0);
+    expect(result.generatedEnergy).toBeCloseTo(0.2, 10);
   });
 
   it("missing anchor → no backfill, anchor set to now", () => {

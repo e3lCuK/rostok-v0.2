@@ -5,9 +5,8 @@
  */
 
 import {
-  capitalMultiplier,
   generateEnergyFromElapsed,
-  V2_SECONDS_PER_ENERGY_AT_REFERENCE,
+  secondsPerGameSecondForCapital,
 } from "./economy-v2";
 import {
   normalizeExcessSeconds,
@@ -199,7 +198,7 @@ export type V3GenerationState = {
   nextWholeSecondAt: string | null;
   /**
    * Full real-seconds length of one energy-unit cycle at current capital
-   * (`720 / M(K)`). Null when not accumulating.
+   * (`T(K)=3600/(1+4·(K/100k)^0.15)`). Null when not accumulating.
    */
   cycleDurationSeconds: number | null;
   accumulating: boolean;
@@ -677,14 +676,11 @@ function parseFirstTransferredRoot(raw: unknown): RootKind | null {
 }
 
 /**
- * Real seconds needed for +1 game-second at the given capital.
- * Same as v2 `secondsPerSectionForCapital` / `720 / M(K)`.
+ * Real seconds for +1 game-second at capital — SoT in economy-v2.
+ * Re-exported for callers that historically imported from this module.
  */
-export function secondsPerGameSecondForCapital(capital: number): number {
-  const m = capitalMultiplier(capital);
-  if (!Number.isFinite(m) || m <= 0) return Number.POSITIVE_INFINITY;
-  return V2_SECONDS_PER_ENERGY_AT_REFERENCE / m;
-}
+export { secondsPerGameSecondForCapital } from "./economy-v2";
+
 
 export function computeSecondsUntilNextWholeSecond(input: {
   progress: number;
@@ -1837,7 +1833,8 @@ export function isEconomyV3Accumulating(input: {
   capital: number;
 }): boolean {
   if (input.tutorialActive) return false;
-  return Number.isFinite(input.capital) && input.capital > 0;
+  // K=0 still accrues (T=60 min); only invalid / negative capital freezes.
+  return Number.isFinite(input.capital) && input.capital >= 0;
 }
 
 /**
@@ -1979,7 +1976,7 @@ export function buildEconomyV3RootsPublicState(
     accumulating,
   });
   const cycleDurationSeconds =
-    accumulating && capital > 0
+    accumulating && Number.isFinite(capital) && capital >= 0
       ? secondsPerGameSecondForCapital(capital)
       : null;
   const nextWholeSecondAt =

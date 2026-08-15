@@ -31,9 +31,27 @@ export const TUTORIAL_V3_FILL_MS = TUTORIAL_V3_FILL_SECONDS * 1000;
 /** Visual pop after each wait — root fills quickly, not during the timer. */
 export const TUTORIAL_V3_ROOT_POP_MS = 350;
 
-/** After all three roots are filled, keep the wait capsule and start a live ~12:00 cycle. */
+/**
+ * After all three roots are filled, keep the wait capsule and start a live
+ * energy cycle. Duration follows T(K): 60 min at K=0, 12 min at 100k.
+ * Default constants assume post-transfer tutorial capital (100k → 12:00).
+ */
 export const TUTORIAL_V3_WAIT_SECONDS = 12 * 60;
 export const TUTORIAL_V3_WAIT_MS = TUTORIAL_V3_WAIT_SECONDS * 1000;
+
+/** Same energy cycle as api-server `secondsPerGameSecondForCapital`. */
+export function tutorialWaitSecondsForCapital(capital: number): number {
+  if (!Number.isFinite(capital) || capital < 0) {
+    return 60 * 60; // safe display fallback = K=0
+  }
+  const ratio =
+    capital === 0 ? 0 : Math.pow(capital / 100_000, 0.15);
+  return 3600 / (1 + 4 * ratio);
+}
+
+export function tutorialWaitMsForCapital(capital: number): number {
+  return tutorialWaitSecondsForCapital(capital) * 1000;
+}
 
 /**
  * Epoch ms when the tutorial 12:00 wait started — for tutorial/complete handoff.
@@ -170,6 +188,9 @@ export const TUTORIAL_REWARD_TO_FINISH_MS = 1800;
 
 export type TutorialV3TimerKind = "fill" | "wait";
 
+/** Capital-transfer beat: first explain base energy, then ask to drag the vault. */
+export type CapitalTransferTutorialPhase = "energy-explain" | "drag-vault";
+
 export type TutorialStep =
   | "welcome"
   | "plant-sprout"
@@ -187,7 +208,8 @@ export type TutorialStep =
   | "complete"
   | null;
 
-/** Steps before energy fill / 12:00 wait bootstrap. */
+/** Steps before root-energy fill bootstrap (5s fills). Capital-transfer still
+ * shows T(0)=60:00 on the flask while capital stays in the vault. */
 export function isV3TutorialPreEnergyStep(step: TutorialStep): boolean {
   return (
     step === "welcome" ||
@@ -666,8 +688,12 @@ export const TUTORIAL_PLAN_ICON_COLORS = {
   /** Clock / wait beat — distinct from plant green. */
   wait: "#0f766e",
   energy: "#c9920a",
+  /** Base energy flask (no capital on the tree). */
+  energyBase: "#b4533a",
   /** Capital vault / flask gold (transfer beat). */
   vault: "#c9920a",
+  /** Tutorial skip clock on the flask. */
+  fastFill: "#7c3aed",
   care: "#92400e",
   reward: "#ca8a04",
 } as const;
@@ -687,11 +713,27 @@ export const V3_TUTORIAL_PLANT_SPROUT_OVERLAY: V3TutorialOverlayConfig = {
   accent: TUTORIAL_PLAN_ICON_COLORS.plant,
 };
 
+/** Before vault drag: red flask = energy without capital influence. */
+export const V3_TUTORIAL_ENERGY_BASE_OVERLAY: V3TutorialOverlayConfig = {
+  icon: "wait",
+  text: "Энергия копится без капитала",
+  hint: "Красная колба — базовое время. Капитал из сейфа ускорит формирование энергии.",
+  accent: TUTORIAL_PLAN_ICON_COLORS.energyBase,
+};
+
 export const V3_TUTORIAL_CAPITAL_TRANSFER_OVERLAY: V3TutorialOverlayConfig = {
   icon: "vault",
   text: "Перенесите капитал в сундук",
   hint: "Перетащите кошелёк из сейфа в сундук дерева.",
   accent: TUTORIAL_PLAN_ICON_COLORS.vault,
+};
+
+/** After capital on the tree: teach the purple clock skip. */
+export const V3_TUTORIAL_FAST_FILL_OVERLAY: V3TutorialOverlayConfig = {
+  icon: "wait",
+  text: "Нажмите на значок времени",
+  hint: "Фиолетовые часы у колбы ускорят формирование энергии в обучении.",
+  accent: TUTORIAL_PLAN_ICON_COLORS.fastFill,
 };
 
 /** Intro fill timers — wait for root energy before collect teaching. */
@@ -751,15 +793,24 @@ export function v3TutorialActivityOverlayForKind(
  */
 export function v3TutorialOverlayConfig(
   step: TutorialStep,
-  options?: { recommendedActivity?: EconomyV3RootKind | null },
+  options?: {
+    recommendedActivity?: EconomyV3RootKind | null;
+    capitalTransferPhase?: CapitalTransferTutorialPhase;
+    /** Intro: true until the player taps the purple flask clock. */
+    tutorialFastFillArmed?: boolean;
+  },
 ): V3TutorialOverlayConfig | null {
   switch (step) {
     case "plant-sprout":
       return V3_TUTORIAL_PLANT_SPROUT_OVERLAY;
     case "capital-transfer":
-      return V3_TUTORIAL_CAPITAL_TRANSFER_OVERLAY;
+      return options?.capitalTransferPhase === "drag-vault"
+        ? V3_TUTORIAL_CAPITAL_TRANSFER_OVERLAY
+        : V3_TUTORIAL_ENERGY_BASE_OVERLAY;
     case "intro":
-      return V3_TUTORIAL_WAIT_ENERGY_OVERLAY;
+      return options?.tutorialFastFillArmed === true
+        ? V3_TUTORIAL_WAIT_ENERGY_OVERLAY
+        : V3_TUTORIAL_FAST_FILL_OVERLAY;
     case "v3-root-water":
     case "v3-root-sun":
     case "v3-root-fertilizer":

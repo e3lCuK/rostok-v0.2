@@ -212,7 +212,7 @@ export interface EconomyV3GenerationState {
   secondsUntilNextWholeSecond: number | null;
   /** Absolute ISO deadline for the current full energy-unit cycle. */
   nextWholeSecondAt?: string | null;
-  /** Full cycle length in real seconds (`720 / M(K)`); null when idle. */
+  /** Full cycle length in real seconds (`T(K)`); null when idle. */
   cycleDurationSeconds?: number | null;
   accumulating: boolean;
 }

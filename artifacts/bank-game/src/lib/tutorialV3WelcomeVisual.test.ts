@@ -54,12 +54,18 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     expect(pageSrc).toContain("tutorial-welcome-steps");
     expect(pageSrc).toContain("tutorial-welcome-step-icon");
     expect(pageSrc).toContain("Посадите росток");
+    expect(pageSrc).toContain("Красная колба");
+    expect(pageSrc).toContain("Перенесите капитал из сейфа");
+    expect(pageSrc).not.toContain("Нажмите фиолетовые часы у колбы");
     expect(pageSrc).toContain("созреет энергия");
     expect(pageSrc).toContain("Соберите энергию из корней");
     expect(pageSrc).toContain("Пройдите активности");
     expect(pageSrc).toContain("Завершите уход");
     expect(pageSrc).toContain("Заберите награды");
     expect(pageSrc).toContain("<Clock size={20}");
+    expect(pageSrc).toContain("TUTORIAL_PLAN_ICON_COLORS.energyBase");
+    expect(pageSrc).toContain("tutorial-welcome-flask-icon");
+    expect(pageSrc).toContain("tutorial-welcome-vault-icon");
     expect(pageSrc).toContain("<Zap size={20}");
     expect(pageSrc).toContain("<Shovel size={20}");
     expect(pageSrc).toContain("<Gift size={20}");
@@ -76,11 +82,61 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
       /\.tutorial-welcome-title\s*\{[\s\S]*?text-align:\s*center/,
     );
     expect(cssSrc).toContain(".tutorial-welcome-step-icon");
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-steps\s*\{[\s\S]*?grid-template-columns:\s*20px/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step\s*\{[\s\S]*?display:\s*contents/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step-icon\s*\{[\s\S]*?width:\s*20px/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step-icon svg\s*\{[\s\S]*?width:\s*20px/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step-icon--trio\s*\{[\s\S]*?overflow:\s*visible/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step-icon--trio svg:nth-child\(1\)/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step-icon--trio svg:nth-child\(2\)/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-welcome-step-icon--trio svg:nth-child\(3\)/,
+    );
   });
 
   it("5–7. intro wait card; root collect has energy card + pulse (no outline)", () => {
     expect(v3TutorialOverlayConfig("intro")?.text).toBe(
-      "Дождитесь формирования энергии",
+      "Нажмите на значок времени",
+    );
+    expect(v3TutorialOverlayConfig("intro")?.hint).toContain(
+      "ускорят формирование энергии в обучении",
+    );
+    expect(cssSrc).toContain("v3-tutorial-fast-fill-blink");
+    expect(cssSrc).toMatch(
+      /\.v3-tutorial-fast-fill-btn\s*\{[\s\S]*?color:\s*#7c3aed/,
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-tutorial-fast-fill-btn\s*\{[\s\S]*?--v3-fast-fill-size:\s*12px/,
+    );
+    expect(cssSrc).toContain("stroke-width: var(--v3-hourglass-rim-width");
+    expect(cssSrc).toMatch(
+      /\.v3-tutorial-fast-fill-btn svg circle\s*\{[\s\S]*?fill:\s*#fff8ec/,
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-tutorial-fast-fill-btn svg line\s*\{/,
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-tutorial-fast-fill-btn\s*\{[\s\S]*?box-shadow:\s*none/,
+    );
+    expect(cssSrc).toMatch(
+      /\.v3-tutorial-fast-fill-btn\s*\{[\s\S]*?background:\s*transparent/,
+    );
+    expect(cssSrc).not.toMatch(
+      /\.v3-tutorial-fast-fill-btn\s*\{[^}]*box-shadow:\s*0 0/,
     );
     for (const step of [
       "v3-root-water",

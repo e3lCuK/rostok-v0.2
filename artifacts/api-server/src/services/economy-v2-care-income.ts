@@ -11,7 +11,7 @@
 
 import {
   ACTIVITY_DURATION_PRESETS,
-  capitalMultiplier,
+  secondsPerGameSecondForCapital,
   V2_REFERENCE_CAPITAL,
   V2_SECONDS_PER_ENERGY_AT_REFERENCE,
   V2_ENERGY_BANK_MAX,
@@ -90,14 +90,12 @@ export function normalizePersistedFreshness(raw: number): number {
 
 /**
  * Real seconds for a full 60-energy bank refill at capital K.
- * t60 = 60 × 720 / M(K). Capital ≤ 0 → Infinity (no decay from absence).
+ * t60 = 60 × T(K). Invalid / negative capital → Infinity (no decay).
  */
 export function t60SecondsForCapital(capital: number): number {
-  const m = capitalMultiplier(capital);
-  if (!Number.isFinite(m) || m <= 0) return Number.POSITIVE_INFINITY;
-  return (
-    (V2_ENERGY_BANK_MAX * V2_SECONDS_PER_ENERGY_AT_REFERENCE) / m
-  );
+  const t = secondsPerGameSecondForCapital(capital);
+  if (!Number.isFinite(t) || t <= 0) return Number.POSITIVE_INFINITY;
+  return V2_ENERGY_BANK_MAX * t;
 }
 
 export function computeFreshnessForReward(input: {
@@ -248,7 +246,7 @@ export function computeEconomyV2CareIncome(
 
 /**
  * Income for one completed Care mini-game of `presetSeconds` duration.
- * Financial elapsed = game-seconds × (720 / M(K)) — the wall time that
+ * Financial elapsed = game-seconds × T(K) — the wall time that
  * generated those reserve/energy seconds at current capital.
  * Uses the same APR formulas as Care cycle income.
  * `skill` is 0…1 (v3); maps to cycleSkill for bonus rate.
@@ -281,10 +279,10 @@ export function computeIncomeForOneGame(input: {
       : V2_FRESHNESS_MAX,
   );
   const bonusRate = computeBonusRate(skill, freshness);
-  const m = capitalMultiplier(capital);
+  const t = secondsPerGameSecondForCapital(capital);
   const elapsedFinancialSeconds =
-    capital > 0 && preset > 0 && Number.isFinite(m) && m > 0
-      ? preset * (V2_SECONDS_PER_ENERGY_AT_REFERENCE / m)
+    capital > 0 && preset > 0 && Number.isFinite(t) && t > 0
+      ? preset * t
       : 0;
   if (capital <= 0 || elapsedFinancialSeconds <= 0) {
     return {

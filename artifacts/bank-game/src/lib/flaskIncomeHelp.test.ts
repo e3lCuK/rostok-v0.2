@@ -27,12 +27,24 @@ describe("flask income help modal", () => {
     expect(pageSrc).toContain("FlaskIncomeHelpModal");
   });
 
-  it("explains gold main income and grey excess backlog", () => {
+  it("explains red base wait, gold main income and grey excess backlog", () => {
+    expect(modalSrc).toContain("Красная колба");
+    expect(modalSrc).toContain("Базовое время");
     expect(modalSrc).toContain("Золотая колба");
     expect(modalSrc).toContain("Серая колба");
     expect(modalSrc).toContain("Основной доход");
     expect(modalSrc).toContain("Метелкой");
+    expect(modalSrc).toContain("Три цвета колбы");
+    expect(modalSrc.indexOf("Красная колба")).toBeLessThan(
+      modalSrc.indexOf("Золотая колба"),
+    );
     expect(modalSrc).toContain("help-modal");
     expect(modalSrc).toContain("tree-stages-list");
+    const artSrc = readFileSync(
+      join(here, "../components/v2/FlaskHelpMiniArt.tsx"),
+      "utf8",
+    );
+    expect(artSrc).toContain('type Tone = "red" | "gold" | "grey"');
+    expect(artSrc).toContain("#b4533a");
   });
 });

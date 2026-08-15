@@ -28,6 +28,8 @@ type Props = {
   onDragActiveChange?: (active: boolean) => void;
   /** Called when drag ends over the chest clasp (or miss — still transfer). */
   onTransfer?: () => void;
+  /** Opens capital help — the safe itself is the button (hidden while dragging). */
+  onHelpClick?: () => void;
 };
 
 /** Compact amounts — 100000 → "100к". */
@@ -175,6 +177,7 @@ export default function VaultWidget({
   dragEnabled = false,
   onDragActiveChange,
   onTransfer,
+  onHelpClick,
 }: Props) {
   const [dragging, setDragging] = useState(false);
   const dragLockRef = useRef(false);
@@ -183,31 +186,55 @@ export default function VaultWidget({
   const total = Math.max(unused, Number(totalCapital) || 0);
   const label = formatVaultChestLabel(unused, total);
   const canDrag = dragEnabled && unused > 0 && !!onTransfer;
+  const canOpenHelp = !!onHelpClick && !canDrag;
+
+  const badge = (
+    <>
+      <VaultSafeSvg width={56} height={45} />
+      {/* Same type as apple / mm field captions (--v3-flask-*). */}
+      <span
+        className="field-caption-value vault-badge-amount"
+        data-vault-amount="true"
+        data-vault-chest-label={label}
+        aria-hidden="true"
+      >
+        {label}
+      </span>
+    </>
+  );
 
   return (
     <div
       className={`vault-badge-wrap${canDrag ? " vault-badge-wrap--draggable" : ""}${
         dragging ? " vault-badge-wrap--dragging" : ""
-      }`}
+      }${canOpenHelp ? " vault-badge-wrap--help" : ""}`}
       data-vault-widget="true"
       data-vault-drag-enabled={canDrag ? "true" : "false"}
     >
-      <div
-        className="vault-badge"
-        aria-hidden={canDrag ? undefined : true}
-        title={`Не в игре ${formatVaultAmount(unused)} / всего ${formatVaultAmount(total)}`}
-      >
-        <VaultSafeSvg width={56} height={45} />
-        {/* Same type as apple / mm field captions (--v3-flask-*). */}
-        <span
-          className="field-caption-value vault-badge-amount"
-          data-vault-amount="true"
-          data-vault-chest-label={label}
-          aria-hidden="true"
+      {canOpenHelp ? (
+        <button
+          type="button"
+          className="vault-badge vault-badge--help"
+          data-testid="vault-capital-help"
+          aria-label="Капитал и энергия — время и элементы"
+          title={`Не в игре ${formatVaultAmount(unused)} / всего ${formatVaultAmount(total)}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onHelpClick?.();
+          }}
         >
-          {label}
-        </span>
-      </div>
+          {badge}
+        </button>
+      ) : (
+        <div
+          className="vault-badge"
+          aria-hidden={canDrag ? undefined : true}
+          title={`Не в игре ${formatVaultAmount(unused)} / всего ${formatVaultAmount(total)}`}
+        >
+          {badge}
+        </div>
+      )}
 
       {canDrag ? (
         <>

@@ -12,7 +12,7 @@ import {
 } from "@/lib/v3Roots";
 import { isEconomyV3GameCycleEnabled } from "@/lib/v3GameCycle";
 import { normalizeV2Excess } from "@/components/v2/EconomyV2EnergyDebugControls";
-import { clearTutorialWaitClock } from "@/lib/tutorialWaitClock";
+import { clearTutorialFastFillUsed, clearTutorialWaitClock } from "@/lib/tutorialWaitClock";
 import { clearTutorialCompensationClock } from "@/lib/tutorialCompensationClock";
 import TreeSVG from "@/components/TreeSVG";
 import GamePage from "@/pages/GamePage";
@@ -39,6 +39,7 @@ function AppShell() {
         // Account wipe / first run — drop F5-persisted wait deadline from the
         // previous life so the new ~12:00 capsule does not resume at 10:xx.
         clearTutorialWaitClock();
+        clearTutorialFastFillUsed();
         clearTutorialCompensationClock();
         setOnboarding(true);
         setLoading(false);
@@ -93,6 +94,7 @@ function AppShell() {
   async function handleOnboardingComplete(capital: number) {
     try {
       clearTutorialWaitClock();
+      clearTutorialFastFillUsed();
       clearTutorialCompensationClock();
       await api.initAccount(capital);
     } catch (err: any) {

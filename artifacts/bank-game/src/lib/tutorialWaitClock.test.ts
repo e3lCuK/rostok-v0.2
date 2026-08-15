@@ -1,19 +1,28 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   armTutorialWaitClock,
+  clearTutorialFastFillUsed,
   clearTutorialWaitClock,
+  loadTutorialFastFillUsed,
   loadTutorialWaitClock,
+  persistTutorialFastFillUsed,
   persistTutorialWaitClock,
+  TUTORIAL_FAST_FILL_USED_STORAGE_KEY,
   TUTORIAL_WAIT_CLOCK_STORAGE_KEY,
 } from "./tutorialWaitClock";
-import { TUTORIAL_V3_WAIT_MS } from "./tutorialFlow";
+import {
+  TUTORIAL_V3_WAIT_MS,
+  tutorialWaitMsForCapital,
+  tutorialWaitSecondsForCapital,
+} from "./tutorialFlow";
 
 afterEach(() => {
   clearTutorialWaitClock();
+  clearTutorialFastFillUsed();
 });
 
-describe("tutorialWaitClock — F5-safe 12:00 wait", () => {
-  it("persists and restores the same deadline (no fresh 12:00)", () => {
+describe("tutorialWaitClock — F5-safe energy wait", () => {
+  it("persists and restores the same deadline (no fresh cycle)", () => {
     const now = 1_700_000_000_000;
     const clock = {
       startedAtMs: now - 120_000,
@@ -33,6 +42,28 @@ describe("tutorialWaitClock — F5-safe 12:00 wait", () => {
     expect(again.deadlineMs - now).toBeLessThan(TUTORIAL_V3_WAIT_MS);
   });
 
+  it("T(K): K=0 → 60:00, K=100k → 12:00", () => {
+    expect(tutorialWaitSecondsForCapital(0)).toBe(3600);
+    expect(tutorialWaitSecondsForCapital(100_000)).toBe(720);
+    const now = 1_700_000_000_000;
+    const atZero = armTutorialWaitClock(now, 0);
+    expect(atZero.deadlineMs - atZero.startedAtMs).toBe(
+      tutorialWaitMsForCapital(0),
+    );
+    clearTutorialWaitClock();
+    const atRef = armTutorialWaitClock(now, 100_000);
+    expect(atRef.deadlineMs - atRef.startedAtMs).toBe(TUTORIAL_V3_WAIT_MS);
+  });
+
+  it("fast-fill used is one-shot and clears with reset", () => {
+    expect(loadTutorialFastFillUsed()).toBe(false);
+    persistTutorialFastFillUsed();
+    expect(loadTutorialFastFillUsed()).toBe(true);
+    expect(TUTORIAL_FAST_FILL_USED_STORAGE_KEY).toContain("tutorialFastFillUsed");
+    clearTutorialFastFillUsed();
+    expect(loadTutorialFastFillUsed()).toBe(false);
+  });
+
   it("GamePage wires sessionStorage wait clock for F5 + complete handoff", async () => {
     const { readFileSync } = await import("node:fs");
     const { dirname, join } = await import("node:path");
@@ -46,6 +77,8 @@ describe("tutorialWaitClock — F5-safe 12:00 wait", () => {
     expect(pageSrc).toContain("armTutorialWaitClock");
     expect(pageSrc).toContain("loadTutorialWaitClock");
     expect(pageSrc).toContain("clearTutorialWaitClock");
+    expect(pageSrc).toContain("persistTutorialFastFillUsed");
+    expect(pageSrc).toContain("clearTutorialFastFillUsed");
     expect(gameSrc).toContain("alreadyComplete");
     expect(gameSrc).toContain("tutorial_done === true");
   });
@@ -57,6 +90,7 @@ describe("tutorialWaitClock — F5-safe 12:00 wait", () => {
     const here = dirname(fileURLToPath(import.meta.url));
     const appSrc = readFileSync(join(here, "../App.tsx"), "utf8");
     expect(appSrc).toContain("clearTutorialWaitClock");
+    expect(appSrc).toContain("clearTutorialFastFillUsed");
     expect(appSrc).toMatch(/if\s*\(\s*!data\.exists\s*\)[\s\S]*?clearTutorialWaitClock/);
     expect(appSrc).toMatch(
       /handleOnboardingComplete[\s\S]*?clearTutorialWaitClock[\s\S]*?initAccount/,

@@ -10,8 +10,7 @@
  */
 
 import {
-  capitalMultiplier,
-  V2_SECONDS_PER_ENERGY_AT_REFERENCE,
+  secondsPerGameSecondForCapital,
 } from "./economy-v2";
 import {
   roundMoneyToKopecks,
@@ -128,13 +127,11 @@ export function normalizeExcessElapsedMs(raw: unknown): number {
 
 /**
  * Wall-clock length of one financial energy-second cycle at capital K.
- * Same as grey-flask / `secondsPerGameSecondForCapital`: 720 / M(K).
- * Returns +Infinity when capital cannot mint.
+ * Same as grey-flask / `secondsPerGameSecondForCapital`: T(K).
+ * Returns +Infinity when capital cannot mint (invalid / negative).
  */
 export function financialCycleDurationMsForCapital(capital: number): number {
-  const m = capitalMultiplier(capital);
-  if (!Number.isFinite(m) || m <= 0) return Number.POSITIVE_INFINITY;
-  const sec = V2_SECONDS_PER_ENERGY_AT_REFERENCE / m;
+  const sec = secondsPerGameSecondForCapital(capital);
   if (!Number.isFinite(sec) || sec <= 0) return Number.POSITIVE_INFINITY;
   return sec * 1000;
 }
@@ -157,7 +154,7 @@ export type MetelkaPaidFinancialSplit = {
  * enter the paid snapshot. Remainder stays on live ledgers (finish deducts
  * only the paid share) and keeps accruing — no idle gap, no lost time.
  *
- * 1 financial cycle ↔ 1 game-second at current capital (720/M(K) wall ms).
+ * 1 financial cycle ↔ 1 game-second at current capital (T(K) wall ms).
  * When cycle length is unusable, pay nothing from elapsed (keep all as remainder).
  */
 export function splitMetelkaPaidFinancialCycles(input: {

@@ -38,7 +38,14 @@ export type EconomyV2ActivityCompletionResult =
 /** Reference capital where 1 game-second accumulates in exactly 12 minutes. */
 export const V2_REFERENCE_CAPITAL = 100_000;
 export const V2_CAPITAL_EXPONENT = 0.15;
-/** Real seconds needed for +1 energy at reference capital (12 minutes). */
+/**
+ * Weight in T(K)=3600/(1+W·(K/REF)^0.15).
+ * Chosen so T(REF)=720s (12 min): 3600/(1+W)=720 → W=4.
+ */
+export const V2_ENERGY_CAPITAL_WEIGHT = 4;
+/** Real seconds for +1 energy at K=0 (60 minutes). */
+export const V2_SECONDS_PER_ENERGY_AT_ZERO = 60 * 60;
+/** Real seconds for +1 energy at reference capital (12 minutes). */
 export const V2_SECONDS_PER_ENERGY_AT_REFERENCE = 12 * 60;
 export const V2_ENERGY_BANK_MIN = 0;
 export const V2_ENERGY_BANK_MAX = 60;
@@ -65,19 +72,45 @@ export function energyToActivityDuration(
 const PERFECT_ACTIVITY_XP = 100;
 
 /**
- * Capital multiplier M(K) = (K / 100000) ^ 0.15.
- * Non-finite / non-positive capital → 0 (no generation).
+ * (K/REF)^0.15 capital ratio term. Non-finite / negative → null (invalid).
+ * K=0 → 0 (base generation still runs via T(0)=3600).
  */
-export function capitalMultiplier(capital: number): number {
-  if (!Number.isFinite(capital) || capital <= 0) {
-    return 0;
-  }
+export function capitalRatioPower(capital: number): number | null {
+  if (!Number.isFinite(capital) || capital < 0) return null;
+  if (capital === 0) return 0;
   return Math.pow(capital / V2_REFERENCE_CAPITAL, V2_CAPITAL_EXPONENT);
 }
 
 /**
+ * Real seconds for +1 game-second / energy unit:
+ *   T(K) = 3600 / (1 + 4·(K/100000)^0.15)
+ * K=0 → 3600 (60 min); K=100000 → 720 (12 min); larger K → faster, dampened.
+ * Non-finite / negative capital → Infinity (no accrual).
+ */
+export function secondsPerGameSecondForCapital(capital: number): number {
+  const ratio = capitalRatioPower(capital);
+  if (ratio == null) return Number.POSITIVE_INFINITY;
+  return (
+    V2_SECONDS_PER_ENERGY_AT_ZERO /
+    (1 + V2_ENERGY_CAPITAL_WEIGHT * ratio)
+  );
+}
+
+/**
+ * Effective multiplier vs the 12-minute reference tick:
+ *   M(K) = 720 / T(K) = (1 + 4·(K/REF)^0.15) / 5
+ * At REF → 1; at 0 → 0.2. Prefer {@link secondsPerGameSecondForCapital} /
+ * {@link generateEnergyFromElapsed} for new code.
+ */
+export function capitalMultiplier(capital: number): number {
+  const t = secondsPerGameSecondForCapital(capital);
+  if (!Number.isFinite(t) || t <= 0) return 0;
+  return V2_SECONDS_PER_ENERGY_AT_REFERENCE / t;
+}
+
+/**
  * Energy generated over elapsed real time at the given capital.
- * generatedEnergy = elapsedSeconds / 720 × M(K)
+ * generatedEnergy = elapsedSeconds / T(K)
  */
 export function generateEnergyFromElapsed(
   capital: number,
@@ -87,7 +120,9 @@ export function generateEnergyFromElapsed(
     ? Math.max(0, elapsedSeconds)
     : 0;
   if (safeElapsed === 0) return 0;
-  return (safeElapsed / V2_SECONDS_PER_ENERGY_AT_REFERENCE) * capitalMultiplier(capital);
+  const t = secondsPerGameSecondForCapital(capital);
+  if (!Number.isFinite(t) || t <= 0) return 0;
+  return safeElapsed / t;
 }
 
 export function clampV2EnergyBank(value: number): number {

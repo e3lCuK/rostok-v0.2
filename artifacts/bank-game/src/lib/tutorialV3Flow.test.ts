@@ -26,7 +26,6 @@ import {
   shouldClearStaleV3CareUiAfterTutorial,
   tutorialHighlightRoot,
   TUTORIAL_PLAN_ICON_COLORS,
-  TUTORIAL_V3_FILL_SECONDS,
   TUTORIAL_V3_ROOT_POP_MS,
   TUTORIAL_V3_ROOT_SECONDS,
   TUTORIAL_V3_WAIT_SECONDS,
@@ -38,6 +37,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const pageSrc = readFileSync(join(here, "../pages/GamePage.tsx"), "utf8");
 const flowSrc = readFileSync(join(here, "tutorialFlow.ts"), "utf8");
 const apiSrc = readFileSync(join(here, "api.ts"), "utf8");
+const timerSrc = readFileSync(
+  join(here, "../components/v2/V3TutorialFillTimer.tsx"),
+  "utf8",
+);
 
 function sampleV3(
   overrides: Record<string, unknown> = {},
@@ -150,51 +153,58 @@ function sampleV3(
 }
 
 describe("Economy v3 Tutorial flow (8E)", () => {
-  it("staged fill: 2s cadence water → sun → fertilizer before collect", () => {
-    expect(TUTORIAL_V3_FILL_SECONDS).toBe(5);
+  it("flask-bound root grants: T(K) cycle → next root 10s (no free-running 5s fill)", () => {
     expect(TUTORIAL_V3_ROOT_SECONDS).toBe(10);
     expect(pageSrc).toContain("V3TutorialFillTimer");
     expect(pageSrc).toContain("tutorialFillDeadlineMs");
     expect(pageSrc).toContain("!excessUiGrey");
-    expect(pageSrc).toContain("prepareTutorialV3({ kind })");
+    expect(pageSrc).toContain("grantTutorialRootFromFlask");
+    expect(pageSrc).toContain("rearmTutorialWaitCycle");
+    expect(pageSrc).toContain("startTutorialFastFill");
+    expect(pageSrc).toContain("onFastFillClick");
+    expect(pageSrc).toContain("tutorialFastFillUsed");
+    expect(pageSrc).toContain('tutorialStep === "intro"');
+    expect(pageSrc).toContain("persistTutorialFastFillUsed");
+    expect(pageSrc).toContain("TUTORIAL_V3_FILL_MS");
+    expect(timerSrc).toContain("v3-tutorial-fast-fill");
+    expect(timerSrc).toContain("TUTORIAL_PLAN_ICON_COLORS.fastFill");
+    expect(timerSrc).toContain('<line x1="12" y1="12" x2="12" y2="6.5"');
+    expect(timerSrc).toContain('<line x1="12" y1="12" x2="17" y2="12"');
     expect(pageSrc).toContain("nextV3TutorialFillKind");
     expect(pageSrc).toContain("withTutorialRootSeconds");
     expect(pageSrc).toContain("mergeStagedTutorialPrepare");
-    expect(pageSrc).toContain("popRootFill");
+    expect(pageSrc).toContain("prepareTutorialV3({ kind })");
     expect(pageSrc).toContain("TUTORIAL_V3_ROOT_POP_MS");
-    // Timer wait first, then quick pop — not fill during the 2s countdown.
-    expect(pageSrc).toMatch(/await sleepUntil\(deadline\)[\s\S]*?await popRootFill\(kind\)/);
+    // Must not auto-fill on a detached 5s sleep loop.
+    expect(pageSrc).not.toContain("await sleepUntil(deadline)");
+    expect(pageSrc).not.toContain("keepCapitalWait");
+    expect(pageSrc).not.toContain("tutorialFillRepairNonce");
     expect(apiSrc).toContain("prepareTutorialV3:");
-    expect(apiSrc).toContain('{ kind:');
+    expect(apiSrc).toContain("{ kind:");
     expect(flowSrc).toContain("nextV3TutorialFillKind");
     expect(flowSrc).toContain("withTutorialRootSeconds");
     expect(TUTORIAL_V3_ROOT_POP_MS).toBe(350);
-    expect(TUTORIAL_V3_ROOT_POP_MS).toBeLessThan(TUTORIAL_V3_FILL_SECONDS * 1000);
-    // After third fill: keep capsule and start 12:00 wait (do not remove timer).
+    // After capital: T(K) wait (default 12:00 at 100k).
     expect(TUTORIAL_V3_WAIT_SECONDS).toBe(720);
+    expect(flowSrc).toContain("tutorialWaitSecondsForCapital");
     expect(flowSrc).toContain("TUTORIAL_V3_WAIT_SECONDS");
-    expect(pageSrc).toContain("TUTORIAL_V3_WAIT_MS");
+    expect(pageSrc).toContain("tutorialWaitMsForCapital");
     expect(pageSrc).toContain("startTutorialWaitCountdown");
+    // Pre-transfer flask must show T(0)=60:00, not idle.
+    expect(pageSrc).toMatch(
+      /capital-transfer[\s\S]*?tutorialWaitMsForCapital\(0\)/,
+    );
+    // On vault→chest transfer: re-arm full T(K) for the moved amount.
+    expect(pageSrc).toContain("armTutorialWaitClock(Date.now(), transferredCapital)");
     expect(pageSrc).toContain("tutorialWaitStartedRef");
     expect(pageSrc).toContain("tutorialWaitStartedAtRef");
     expect(pageSrc).toContain("resolveTutorialGenerationAnchorAt");
     expect(pageSrc).toContain("handoffDeadlineAtMs");
     expect(pageSrc).toContain('setTutorialTimerKind("wait")');
     expect(pageSrc).toContain('tutorialTimerKind === "wait"');
-    // Fill/wait bootstrap must survive intro → root-collect step changes
-    // (old `tutorialStep !== "intro"` gate cancelled the timer → idle "—:—").
     expect(pageSrc).toContain("tutorialEnergyBootstrap");
-    expect(pageSrc).toContain("areV3TutorialRootsEnergyReady(game.v3Roots)");
-    // Stale wait clock must not block the fill loop (idle "—:—" on intro).
     expect(pageSrc).toContain("dropStaleTutorialWaitClock");
-    expect(pageSrc).toMatch(
-      /dropStaleTutorialWaitClock[\s\S]*?setTutorialStep\("intro"\)/,
-    );
-    // Prepare must not block water→sun→fertilizer; watchdog restarts a dead loop.
-    expect(pageSrc).toContain("persistPreparedKind");
-    expect(pageSrc).toContain("tutorialFillRepairNonce");
     expect(pageSrc).toContain("mergeTutorialRootsPreserveFill");
-    // After 12:00 elapses — settle root energy like main (without ending tutorial).
     expect(apiSrc).toContain("armTutorialV3Wait");
     expect(apiSrc).toContain("syncTutorialV3WaitEnergy");
     expect(pageSrc).toContain("armTutorialV3Wait");
@@ -236,6 +246,13 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     });
     expect(nextV3TutorialFillKind(empty)).toBe("water");
     expect(areV3TutorialRootsEnergyReady(empty)).toBe(false);
+    // Collect tip must wait for the last root's 10s preset — not after water alone.
+    expect(pageSrc).toMatch(
+      /areV3TutorialRootsEnergyReady[\s\S]*?setTutorialStep\(\(s\) =>[\s\S]*?v3-root-water/,
+    );
+    expect(pageSrc).not.toMatch(
+      /await grantTutorialRootFromFlask\(fillKind\);\s*setTutorialStep\(\(s\) =>/,
+    );
 
     const onlyWater = withTutorialRootSeconds(empty, "water", 10);
     expect(onlyWater.roots.water.seconds).toBe(10);
@@ -561,6 +578,14 @@ describe("Economy v3 Tutorial flow (8E)", () => {
   it("intro wait card; then collect-roots card with energy icon", () => {
     expect(v3TutorialOverlayConfig("intro")).toEqual({
       icon: "wait",
+      text: "Нажмите на значок времени",
+      hint: "Фиолетовые часы у колбы ускорят формирование энергии в обучении.",
+      accent: TUTORIAL_PLAN_ICON_COLORS.fastFill,
+    });
+    expect(
+      v3TutorialOverlayConfig("intro", { tutorialFastFillArmed: true }),
+    ).toEqual({
+      icon: "wait",
       text: "Дождитесь формирования энергии",
       hint: "Смотрите на таймер у корней.",
       accent: TUTORIAL_PLAN_ICON_COLORS.wait,
@@ -637,7 +662,7 @@ describe("Economy v3 Tutorial flow (8E)", () => {
   it("GamePage: shovel during v3 tutorial uses v3 cycle, not legacy finish", () => {
     expect(pageSrc).toContain("void handleV3CareShovelClick()");
     expect(pageSrc).toMatch(
-      /useV3\s*\n\s*\?\s*\(\)\s*=>\s*\{\s*\n\s*void handleV3CareShovelClick\(\)/,
+      /if\s*\(\s*useV3\s*\)\s*\{\s*\r?\n\s*void handleV3CareShovelClick\(\)/,
     );
     expect(pageSrc).toContain("acknowledgeV3CareCycleOnce");
   });

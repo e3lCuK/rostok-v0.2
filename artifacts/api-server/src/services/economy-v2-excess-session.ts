@@ -164,7 +164,7 @@ async function lockExcessSessionRow(
  * Start one Metelka attempt: settle, require excess ≥ 5, no active session,
  * freeze source/preset/rate/webCount/layoutSeed/capital/sourceElapsedMs/baseIncome.
  * Leaves live ledgers unchanged. Paid snapshot uses only complete financial
- * cycles (720/M(K)); the incomplete tail stays for continued accrual.
+ * cycles (T(K)); the incomplete tail stays for continued accrual.
  */
 export async function startEconomyV2ExcessSession(
   userId: string | number,

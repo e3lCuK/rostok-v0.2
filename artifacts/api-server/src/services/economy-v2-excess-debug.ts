@@ -49,7 +49,7 @@ import type { EconomyV3DbClient } from "./economy-v3-roots-settle";
 
 /**
  * Wall-clock ms to naturally *generate* `ledgerGameSeconds` at `capital`
- * (720/M(K)). Used as the delta for debug Add and for setPreset natural path.
+ * (T(K)). Used as the delta for debug Add and for setPreset natural path.
  */
 export function debugMetelkaElapsedMsForLedger(
   ledgerGameSeconds: number,

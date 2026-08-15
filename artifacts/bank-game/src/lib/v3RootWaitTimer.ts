@@ -2,7 +2,7 @@
  * Economy v3 full-cycle wait countdown (user-facing).
  *
  * Source of truth = server full energy-unit cycle (same as v2 RootEnergyLayer):
- *   secondsUntilNextWholeSecond ≡ v2 secondsUntilNextSection ≡ (1-progress)*(720/M(K))
+ *   secondsUntilNextWholeSecond ≡ v2 secondsUntilNextSection ≡ (1-progress)*T(K)
  * Absolute deadline: generation.nextWholeSecondAt (or derived from remaining).
  *
  * Does NOT use the 60s transfer insurance window — that is a separate pause and

@@ -61,12 +61,16 @@ describe("t60SecondsForCapital / Freshness", () => {
     expect(t60SecondsForCapital(100_000)).toBeCloseTo(43_200, 9);
   });
 
-  it("capital <= 0 → Infinity t60, no decay", () => {
-    expect(t60SecondsForCapital(0)).toBe(Number.POSITIVE_INFINITY);
+  it("at K=0, t60 = 60×3600 = 216000", () => {
+    expect(t60SecondsForCapital(0)).toBeCloseTo(216_000, 9);
+  });
+
+  it("negative capital → Infinity t60, no decay", () => {
+    expect(t60SecondsForCapital(-1)).toBe(Number.POSITIVE_INFINITY);
     const f = computeFreshnessForReward({
       oldFreshness: 1,
       elapsedFinancialSeconds: 1_000_000,
-      capital: 0,
+      capital: -1,
     });
     expect(f.extraCycles).toBe(0);
     expect(f.freshnessForReward).toBe(1);

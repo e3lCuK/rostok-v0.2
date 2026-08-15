@@ -3,7 +3,6 @@ import { calculateEconomyV2Preview } from "./economy-v2-preview";
 import {
   V2_REFERENCE_CAPITAL,
   V2_SECONDS_PER_ENERGY_AT_REFERENCE,
-  capitalMultiplier,
 } from "./economy-v2";
 
 const REF = V2_REFERENCE_CAPITAL;
@@ -218,16 +217,18 @@ describe("calculateEconomyV2Preview", () => {
     expect(result.maxXp).toBe(20);
   });
 
-  it("returns minimum activity for zero capital with long elapsed time", () => {
+  it("returns energy at K=0 (60 min/sec) with long elapsed time", () => {
     const result = calculateEconomyV2Preview({
       capital: 0,
       lastSessionTime: "2026-07-01T12:00:00.000Z",
       currentTime: "2026-07-17T12:00:00.000Z",
     });
 
-    expect(result.rawEnergy).toBe(0);
-    expect(result.activityDuration).toBe(5);
-    expect(result.maxXp).toBe(20);
+    // 16 days / 3600 s per energy
+    const expected = (16 * 24 * 60 * 60) / 3600;
+    expect(result.rawEnergy).toBeCloseTo(expected, 10);
+    expect(result.activityDuration).toBe(25);
+    expect(result.maxXp).toBe(100);
   });
 
   it("does not cap elapsedSeconds at eight hours in the adapter", () => {
@@ -237,7 +238,9 @@ describe("calculateEconomyV2Preview", () => {
       currentTime: "2026-07-17T12:00:00.000Z",
     });
 
-    const expected = (12 * 60 * 60) / T * capitalMultiplier(1);
+    const t =
+      3600 / (1 + 4 * Math.pow(1 / REF, 0.15));
+    const expected = (12 * 60 * 60) / t;
     expect(result.rawEnergy).toBeCloseTo(expected, 10);
     expect(result.usableEnergy).toBeCloseTo(expected, 10);
     expect(result.activityDuration).toBe(Math.min(25, Math.max(5, Math.floor(expected))));

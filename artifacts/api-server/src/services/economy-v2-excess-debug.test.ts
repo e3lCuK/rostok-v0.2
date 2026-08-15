@@ -652,7 +652,7 @@ describe("debugMutateEconomyV2Excess", () => {
     ).rejects.toBeInstanceOf(EconomyV2ExcessDebugError);
   });
 
-  it("helper: natural elapsed = ledger * (720/M(K)) * 1000", () => {
+  it("helper: natural elapsed = ledger * T(K) * 1000", () => {
     expect(secondsPerGameSecondForCapital(REF_CAPITAL)).toBe(720);
     expect(naturalElapsedMs(5)).toBe(5 * 720 * 1000);
     expect(naturalElapsedMs(3688.88)).toBeCloseTo(3688.88 * 720 * 1000, 0);

@@ -1,13 +1,18 @@
 /**
- * Mini hourglass art for the flask help modal (gold vs grey).
+ * Mini hourglass art for the flask help modal (red / gold / grey).
  * Same silhouette family as the live capital flask.
  */
 
 import { V3_HOURGLASS_OUTER_PATH } from "@/components/v2/V3WaitTimerHourglass";
 
-type Tone = "gold" | "grey";
+type Tone = "red" | "gold" | "grey";
 
 const TONE = {
+  red: {
+    rim: "#b4533a",
+    fill: "rgba(180, 83, 58, 0.42)",
+    shell: "#fff8ec",
+  },
   gold: {
     rim: "#c9920a",
     fill: "rgba(201, 146, 10, 0.45)",

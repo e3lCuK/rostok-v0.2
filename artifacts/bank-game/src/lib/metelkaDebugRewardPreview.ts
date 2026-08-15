@@ -15,23 +15,36 @@ export const V2_YEAR_DURATION_MS = V2_SECONDS_PER_YEAR * 1000;
 export const V2_BASE_APR = 0.12;
 /** Same as api-server economy-v2.V2_SECONDS_PER_ENERGY_AT_REFERENCE (t_60 unit). */
 export const V2_SECONDS_PER_ENERGY_AT_REFERENCE = 12 * 60;
+/** Same as api-server economy-v2.V2_SECONDS_PER_ENERGY_AT_ZERO. */
+export const V2_SECONDS_PER_ENERGY_AT_ZERO = 60 * 60;
 export const V2_REFERENCE_CAPITAL = 100_000;
 export const V2_CAPITAL_EXPONENT = 0.15;
-
-/** Production M(K) — mirrored for debug rate readout only. */
-export function capitalMultiplier(capital: number): number {
-  if (!Number.isFinite(capital) || capital <= 0) return 0;
-  return Math.pow(capital / V2_REFERENCE_CAPITAL, V2_CAPITAL_EXPONENT);
-}
+export const V2_ENERGY_CAPITAL_WEIGHT = 4;
 
 /**
- * Real seconds for +1 ledger game-second at capital.
- * Same as api-server `secondsPerGameSecondForCapital` = 720 / M(K).
+ * Real seconds for +1 game-second:
+ *   T(K) = 3600 / (1 + 4·(K/100000)^0.15)
+ * Mirrors api-server `secondsPerGameSecondForCapital`.
  */
 export function secondsPerGameSecondForCapital(capital: number): number {
-  const m = capitalMultiplier(capital);
-  if (!Number.isFinite(m) || m <= 0) return Number.POSITIVE_INFINITY;
-  return V2_SECONDS_PER_ENERGY_AT_REFERENCE / m;
+  if (!Number.isFinite(capital) || capital < 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const ratio =
+    capital === 0
+      ? 0
+      : Math.pow(capital / V2_REFERENCE_CAPITAL, V2_CAPITAL_EXPONENT);
+  return (
+    V2_SECONDS_PER_ENERGY_AT_ZERO /
+    (1 + V2_ENERGY_CAPITAL_WEIGHT * ratio)
+  );
+}
+
+/** Compat M(K) = 720 / T(K). Prefer secondsPerGameSecondForCapital. */
+export function capitalMultiplier(capital: number): number {
+  const t = secondsPerGameSecondForCapital(capital);
+  if (!Number.isFinite(t) || t <= 0) return 0;
+  return V2_SECONDS_PER_ENERGY_AT_REFERENCE / t;
 }
 
 /**

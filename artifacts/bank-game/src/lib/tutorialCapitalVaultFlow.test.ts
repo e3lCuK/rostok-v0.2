@@ -20,11 +20,24 @@ describe("tutorial capital vault / plant sprout", () => {
     expect(isV3TutorialPreEnergyStep("intro")).toBe(false);
   });
 
-  it("overlays cover plant and capital-transfer", () => {
+  it("overlays cover plant, energy-base, and capital-transfer", () => {
     expect(v3TutorialOverlayConfig("plant-sprout")?.text).toBe("Посадите росток");
-    expect(v3TutorialOverlayConfig("capital-transfer")?.text).toMatch(
-      /капитал/i,
-    );
+    expect(
+      v3TutorialOverlayConfig("capital-transfer", {
+        capitalTransferPhase: "energy-explain",
+      })?.text,
+    ).toMatch(/энерги/i);
+    expect(
+      v3TutorialOverlayConfig("capital-transfer", {
+        capitalTransferPhase: "drag-vault",
+      })?.text,
+    ).toMatch(/капитал/i);
+    expect(flowSrc).not.toContain("TUTORIAL_CAPITAL_ENERGY_EXPLAIN_MS");
+    expect(pageSrc).toContain("capitalTransferPhase");
+    expect(pageSrc).toContain("v3-capital-chest-host--no-capital");
+    expect(pageSrc).toContain('capitalTransferPhase === "drag-vault"');
+    expect(pageSrc).toContain("tutorial-intro-next");
+    expect(pageSrc).toContain('setCapitalTransferPhase("drag-vault")');
   });
 
   it("resolve returns capital-transfer when sprout planted and vault full", () => {
@@ -75,6 +88,8 @@ describe("tutorial capital vault / plant sprout", () => {
 
   it("GamePage wires plant pad, vault widget, and APIs", () => {
     expect(pageSrc).toContain("VaultWidget");
+    expect(pageSrc).toContain("VaultCapitalHelpModal");
+    expect(pageSrc).toContain("onHelpClick=");
     expect(pageSrc).toContain("totalCapital=");
     expect(pageSrc).toContain("vaultBalance + Math.max(0, Number(balances.balance)");
     // Not on welcome / plant-sprout — only from capital-transfer onward.

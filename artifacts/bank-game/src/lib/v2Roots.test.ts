@@ -69,9 +69,11 @@ describe("v2Roots mask mapping", () => {
     expect(formatRootTimer(702)).toBe("11:42");
     expect(formatRootTimer(0)).toBe("0:00");
     expect(formatRootTimer(720)).toBe("12:00");
-    // Fresh cycle must not ceil past the cycle cap (12:01 glitch).
+    expect(formatRootTimer(3600)).toBe("60:00");
+    // Fresh cycle must not ceil past the cycle cap (12:01 / 60:01 glitch).
     expect(formatRootTimer(720.01, 720)).toBe("12:00");
     expect(formatRootTimer(720.9, 720)).toBe("12:00");
+    expect(formatRootTimer(3600.01, 3600)).toBe("60:00");
   });
 
   it("collect order within a root is tip → base (14 → 0)", () => {

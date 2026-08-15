@@ -32,7 +32,7 @@ import FertilizerMatchGame from "@/components/FertilizerMatchGame";
 import FertilizerIcon from "@/components/FertilizerIcon";
 import { ACHIEVEMENTS, AchievementsPanel } from "@/components/AchievementsModal";
 import ShopModal from "@/components/ShopModal";
-import { Droplets, Sun, Play, CheckCircle2, Shovel, Lock, X, TreePine, Pencil, Check, Settings, ScrollText, Star, Eye, EyeOff, Gift, Clock, Zap } from "lucide-react";
+import { Droplets, Sun, Play, CheckCircle2, Shovel, Lock, X, TreePine, Pencil, Check, Settings, ScrollText, Star, Eye, EyeOff, Gift, Clock, Zap, ChevronDown } from "lucide-react";
 import LevelWidget from "@/components/LevelWidget";
 import LevelUpAnimation from "@/components/LevelUpAnimation";
 import { getLevelProgress } from "@/lib/levels";
@@ -53,6 +53,7 @@ import CapitalChestUnderRoots from "@/components/v2/CapitalChestUnderRoots";
 import V3UndergroundWrapRoots from "@/components/v2/V3UndergroundWrapRoots";
 import V3RootWaitTimer from "@/components/v2/V3RootWaitTimer";
 import FlaskIncomeHelpModal from "@/components/v2/FlaskIncomeHelpModal";
+import VaultCapitalHelpModal from "@/components/v2/VaultCapitalHelpModal";
 import { computeAverageIncomePercent } from "@/lib/incomeHistoryAvgPercent";
 import TreeRewardToken from "@/components/v2/TreeRewardToken";
 import { INCOME_CHEST_FLOAT_MS } from "@/lib/incomeChestFeedback";
@@ -253,12 +254,15 @@ import {
   TUTORIAL_V3_ROOT_SECONDS,
   TUTORIAL_V3_WAIT_MS,
   TUTORIAL_V3_WAIT_SECONDS,
+  tutorialWaitMsForCapital,
+  tutorialWaitSecondsForCapital,
   clearV3CareUiAfterTutorial,
   resolveTutorialGenerationAnchorAt,
   shouldClearStaleV3CareUiAfterTutorial,
   tutorialStepAfterWelcome,
   TUTORIAL_PLAN_ICON_COLORS,
   V3_TUTORIAL_REWARD_OVERLAY,
+  type CapitalTransferTutorialPhase,
   type TutorialStep,
   type TutorialV3TimerKind,
   tutorialHighlightRoot,
@@ -266,11 +270,24 @@ import {
   v3TutorialOverlayConfig,
   withTutorialRootSeconds,
 } from "@/lib/tutorialFlow";
+import {
+  TUTORIAL_CARD_ANIMATE,
+  TUTORIAL_CARD_EXIT,
+  TUTORIAL_CARD_INITIAL,
+  TUTORIAL_CARD_TRANSITION,
+  TUTORIAL_OVERLAY_ANIMATE,
+  TUTORIAL_OVERLAY_EXIT,
+  TUTORIAL_OVERLAY_INITIAL,
+  TUTORIAL_OVERLAY_TRANSITION,
+} from "@/lib/tutorialOverlayMotion";
 import VaultWidget from "@/components/VaultWidget";
 import {
   armTutorialWaitClock,
+  clearTutorialFastFillUsed,
   clearTutorialWaitClock,
+  loadTutorialFastFillUsed,
   loadTutorialWaitClock,
+  persistTutorialFastFillUsed,
   persistTutorialWaitClock,
 } from "@/lib/tutorialWaitClock";
 import { computeTutorialCompensation } from "@/lib/tutorialCompensation";
@@ -288,6 +305,14 @@ import {
   undergroundRootsWipeAnimate,
   undergroundWrapRootsWipeAnimate,
 } from "@/lib/undergroundRootsWipe";
+import {
+  SPROUT_PLANT_RISE_HIDDEN,
+  SPROUT_PLANT_RISE_MS,
+  SPROUT_PLANT_RISE_TRANSITION,
+  sproutPlantHintStartMs,
+  sproutPlantRiseAnimate,
+  sproutPlantRootsStartMs,
+} from "@/lib/sproutPlantRise";
 
 interface Props {
   state: UserState;
@@ -495,11 +520,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(
     (state.game.tutorialDone ?? true) ? null : "welcome"
   );
+  /** capital-transfer: explain red flask first, then vault-drag card. */
+  const [capitalTransferPhase, setCapitalTransferPhase] =
+    useState<CapitalTransferTutorialPhase>("energy-explain");
   const [activeAnim, setActiveAnim] = useState<GameType | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animParticlesRef = useRef<number[]>([]);
   const [showTreeInfo, setShowTreeInfo] = useState(false);
   const [showFlaskIncomeHelp, setShowFlaskIncomeHelp] = useState(false);
+  const [showVaultCapitalHelp, setShowVaultCapitalHelp] = useState(false);
   /** Eye toggle: mask underground root system (clip wipe bottom → top). */
   const [undergroundRootsMasked, setUndergroundRootsMasked] = useState(false);
   const [showDepositInfo, setShowDepositInfo] = useState(false);
@@ -1551,8 +1580,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   const [vaultTransferBusy, setVaultTransferBusy] = useState(false);
   const [plantSproutBusy, setPlantSproutBusy] = useState(false);
+  const [sproutRising, setSproutRising] = useState(false);
   const plantLockRef = useRef(false);
   const plantRevealTimersRef = useRef<number[]>([]);
+  /** Blocks F5-resolve from jumping to capital-transfer mid plant scene. */
+  const plantRevealHoldRef = useRef(false);
 
   function clearPlantRevealTimers() {
     for (const id of plantRevealTimersRef.current) {
@@ -1569,6 +1601,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     earned?: number;
   }) {
     // Start underground masked so the wipe can rise after the sprout appears.
+    plantRevealHoldRef.current = true;
+    setSproutRising(true);
     setUndergroundRootsMasked(true);
     commitState({
       ...stateRef.current,
@@ -1590,16 +1624,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       },
     });
     clearPlantRevealTimers();
-    // Sprout paints first; then open the root column from the soil.
+    // Tree → pause → roots wipe → pause → next hint.
     plantRevealTimersRef.current.push(
       window.setTimeout(() => {
-        setUndergroundRootsMasked(false);
-      }, 280),
+        setSproutRising(false);
+      }, SPROUT_PLANT_RISE_MS + 40),
     );
     plantRevealTimersRef.current.push(
       window.setTimeout(() => {
+        setUndergroundRootsMasked(false);
+      }, sproutPlantRootsStartMs()),
+    );
+    plantRevealTimersRef.current.push(
+      window.setTimeout(() => {
+        plantRevealHoldRef.current = false;
+        setCapitalTransferPhase("energy-explain");
         setTutorialStep("capital-transfer");
-      }, 1100),
+      }, sproutPlantHintStartMs()),
     );
   }
 
@@ -1637,6 +1678,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setCoinDropTargetActive(false);
     try {
       const res = await api.transferTutorialCapitalVault();
+      const transferredCapital = Math.max(
+        0,
+        Number(res.balances.balance) || 0,
+      );
       commitState({
         ...stateRef.current,
         balances: {
@@ -1650,13 +1695,25 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           sproutPlanted: res.sproutPlanted === true,
         },
       });
+      // Reset energy cycle to full T(K) for the amount now on the tree
+      // (100k → 12:00; other amounts follow the same formula).
       dropStaleTutorialWaitClock();
-      setTutorialTimerKind(null);
-      setTutorialFillDeadlineMs(null);
+      const clock = armTutorialWaitClock(Date.now(), transferredCapital);
+      tutorialWaitStartedRef.current = true;
+      tutorialWaitStartedAtRef.current = clock.startedAtMs;
+      tutorialWaitDeadlineMsRef.current = clock.deadlineMs;
+      setTutorialTimerKind("wait");
+      setTutorialFillDeadlineMs(clock.deadlineMs);
+      void api.armTutorialV3Wait(clock.startedAtMs).catch((err) => {
+        if (import.meta.env.DEV) {
+          console.warn("[v3 tutorial] arm-wait after capital failed", err);
+        }
+      });
       markTutorialCompensationStarted(
         Date.now(),
-        Number(res.balances.balance) || 100_000,
+        transferredCapital > 0 ? transferredCapital : 100_000,
       );
+      setCapitalTransferPhase("energy-explain");
       setTutorialStep("intro");
     } catch {
       // stay on capital-transfer
@@ -2388,6 +2445,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   // Never regress (Care shovel can clear roots → resolve="intro" — tip must not return).
   useEffect(() => {
     if (tutorialDone || !useV3) return;
+    // Live plant scene: keep plant-sprout until the staged timers finish.
+    if (plantRevealHoldRef.current) return;
     const next = resolveV3TutorialStepFromServer({
       tutorialDone: false,
       v3Roots: game.v3Roots,
@@ -2406,15 +2465,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     useV3,
   ]);
 
-  // v3 Tutorial intro (strict sequence, not simultaneous):
-  // 5s timer (root empty) → quick pop fills two cells (10s) → next root…
-  // then switch capsule straight to 12:00 (never flash 0).
+  // v3 Tutorial: flask T(K) drives root energy grants (one root per cycle).
   const [tutorialFillDeadlineMs, setTutorialFillDeadlineMs] = useState<
     number | null
   >(null);
   const [tutorialTimerKind, setTutorialTimerKind] =
     useState<TutorialV3TimerKind | null>(null);
   const tutorialTimerKindRef = useRef<TutorialV3TimerKind | null>(null);
+  /** After capital transfer: clock button shortens each flask cycle to 5s. */
+  const [tutorialFastFill, setTutorialFastFill] = useState(false);
+  const tutorialFastFillRef = useRef(false);
+  /** One-shot: once the purple clock is pressed, never show it again this life. */
+  const [tutorialFastFillUsed, setTutorialFastFillUsed] = useState(() =>
+    loadTutorialFastFillUsed(),
+  );
+  const tutorialFastFillUsedRef = useRef(tutorialFastFillUsed);
+  tutorialFastFillUsedRef.current = tutorialFastFillUsed;
 
   // Debug fill / excess phase during live play: drop the gold tutorial capsule
   // so the grey flask binds to financial time. Never during tutorial itself.
@@ -2423,9 +2489,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setTutorialFillDeadlineMs(null);
     setTutorialTimerKind(null);
   }, [excessUiGrey, tutorialDone]);
-  const tutorialFillRunRef = useRef(0);
+  /** Absolute start of the tutorial energy wait — handed to tutorial/complete. */
   const tutorialWaitStartedRef = useRef(false);
-  /** Absolute start of the tutorial 12:00 wait — handed to tutorial/complete. */
   const tutorialWaitStartedAtRef = useRef<number | null>(null);
   /** Absolute wait deadline — seeds live V3RootWaitTimer after dismiss. */
   const tutorialWaitDeadlineMsRef = useRef<number | null>(null);
@@ -2469,18 +2534,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const dropStaleTutorialWaitClock = () => {
     clearTutorialWaitClock();
     clearTutorialCompensationClock();
+    clearTutorialFastFillUsed();
     tutorialWaitStartedRef.current = false;
     tutorialWaitStartedAtRef.current = null;
     tutorialWaitDeadlineMsRef.current = null;
+    tutorialFastFillRef.current = false;
+    setTutorialFastFill(false);
+    tutorialFastFillUsedRef.current = false;
+    setTutorialFastFillUsed(false);
   };
 
   const startTutorialWaitCountdown = () => {
-    // Idempotent + F5-safe: restore sessionStorage clock; never re-arm a fresh 12:00.
+    // Idempotent + F5-safe: restore sessionStorage clock; never re-arm a fresh cycle.
+    const waitCapital = Number(stateRef.current.balances.balance) || 0;
+    const waitMs = tutorialWaitMsForCapital(waitCapital);
     let armedStartedAt: number | null = null;
     if (!tutorialWaitStartedRef.current) {
       tutorialWaitStartedRef.current = true;
-      persistTutorialRootsAll();
-      const clock = armTutorialWaitClock(Date.now());
+      const clock = armTutorialWaitClock(Date.now(), waitCapital);
       tutorialWaitStartedAtRef.current = clock.startedAtMs;
       tutorialWaitDeadlineMsRef.current = clock.deadlineMs;
       armedStartedAt = clock.startedAtMs;
@@ -2495,7 +2566,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             tutorialWaitStartedAtRef.current ?? Date.now();
           const next = {
             startedAtMs: startedAt,
-            deadlineMs: startedAt + TUTORIAL_V3_WAIT_MS,
+            deadlineMs: startedAt + waitMs,
           };
           persistTutorialWaitClock(next);
           return next;
@@ -2525,7 +2596,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       }
       armedStartedAt = tutorialWaitStartedAtRef.current;
     }
-    // Persist wait start as generation anchor (main-game settle after 12:00).
+    // Persist wait start as generation anchor (main-game settle after cycle).
     if (armedStartedAt != null) {
       void api.armTutorialV3Wait(armedStartedAt).catch((err) => {
         if (import.meta.env.DEV) {
@@ -2533,14 +2604,141 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         }
       });
     }
-    setTutorialStep((s) =>
-      s === "intro" || s == null || s === "welcome" ? "v3-root-water" : s,
-    );
   };
 
   const tutorialWaitEnergySyncRef = useRef(false);
 
-  // When tutorial 12:00 hits 0 — fill root energy cells like main settle.
+  const rearmTutorialWaitCycle = (capital: number) => {
+    const stillStaging =
+      nextV3TutorialFillKind(stateRef.current.game.v3Roots) != null;
+    const cycleMs =
+      tutorialFastFillRef.current && stillStaging
+        ? TUTORIAL_V3_FILL_MS
+        : tutorialWaitMsForCapital(capital);
+    const startedAt =
+      tutorialWaitStartedAtRef.current != null &&
+      Number.isFinite(tutorialWaitStartedAtRef.current)
+        ? tutorialWaitStartedAtRef.current
+        : Date.now();
+    const nextAt =
+      Date.now() +
+      (Number.isFinite(cycleMs) && cycleMs > 0 ? cycleMs : TUTORIAL_V3_WAIT_MS);
+    tutorialWaitStartedAtRef.current = startedAt;
+    tutorialWaitDeadlineMsRef.current = nextAt;
+    tutorialWaitStartedRef.current = true;
+    persistTutorialWaitClock({
+      startedAtMs: startedAt,
+      deadlineMs: nextAt,
+    });
+    setTutorialTimerKind("wait");
+    setTutorialFillDeadlineMs(nextAt);
+  };
+
+  /** Clock button: remaining wait becomes 5s; each beat still grants 10s on a root. */
+  const startTutorialFastFill = () => {
+    if (tutorialDone || tutorialFastFillRef.current) return;
+    if (tutorialFastFillUsedRef.current) return;
+    if ((Number(stateRef.current.balances.balance) || 0) <= 0) return;
+    if (nextV3TutorialFillKind(stateRef.current.game.v3Roots) == null) return;
+    tutorialFastFillRef.current = true;
+    setTutorialFastFill(true);
+    tutorialFastFillUsedRef.current = true;
+    setTutorialFastFillUsed(true);
+    persistTutorialFastFillUsed();
+    const now = Date.now();
+    const nextAt = now + TUTORIAL_V3_FILL_MS;
+    tutorialWaitStartedRef.current = true;
+    if (
+      tutorialWaitStartedAtRef.current == null ||
+      !Number.isFinite(tutorialWaitStartedAtRef.current)
+    ) {
+      tutorialWaitStartedAtRef.current = now;
+    }
+    tutorialWaitDeadlineMsRef.current = nextAt;
+    persistTutorialWaitClock({
+      startedAtMs: tutorialWaitStartedAtRef.current,
+      deadlineMs: nextAt,
+    });
+    setTutorialTimerKind("wait");
+    setTutorialFillDeadlineMs(nextAt);
+  };
+
+  const grantTutorialRootFromFlask = async (kind: EconomyV3RootKind) => {
+    const popStart = Date.now();
+    const popEnd = popStart + TUTORIAL_V3_ROOT_POP_MS;
+    while (Date.now() < popEnd) {
+      const t = Math.min(
+        1,
+        (Date.now() - popStart) / TUTORIAL_V3_ROOT_POP_MS,
+      );
+      const cur = stateRef.current;
+      const snap = cur.game.v3Roots;
+      if (snap && snap.enabled === true) {
+        commitState(
+          applyEconomyV3RootsToState(
+            cur,
+            withTutorialRootSeconds(snap, kind, TUTORIAL_V3_ROOT_SECONDS * t),
+          ),
+        );
+      }
+      await new Promise<void>((r) => window.setTimeout(r, 32));
+    }
+    {
+      const cur = stateRef.current;
+      const snap = cur.game.v3Roots;
+      if (snap && snap.enabled === true) {
+        commitState(
+          applyEconomyV3RootsToState(
+            cur,
+            withTutorialRootSeconds(snap, kind, TUTORIAL_V3_ROOT_SECONDS),
+          ),
+        );
+      }
+    }
+    try {
+      const prepared = await api.prepareTutorialV3({ kind });
+      const local = stateRef.current.game.v3Roots;
+      if (local && prepared.v3Roots) {
+        commitState(
+          applyEconomyV3RootsToState(
+            stateRef.current,
+            mergeStagedTutorialPrepare(local, kind, prepared.v3Roots),
+          ),
+        );
+      }
+    } catch {
+      /* local grant is SoT; transfer path also bumps grants */
+    }
+  };
+
+  /**
+   * Before vault→chest transfer, capital on the tree is 0 → T(0)=60:00.
+   * Show that cycle on the flask (not idle "—:—") until the player moves capital.
+   */
+  useEffect(() => {
+    if (tutorialDone || !useV3) return;
+    if (tutorialStep !== "capital-transfer") return;
+    if ((Number(balances.balance) || 0) > 0) return;
+
+    const wantMs = tutorialWaitMsForCapital(0);
+    const now = Date.now();
+    let clock = loadTutorialWaitClock(now);
+    const dur = clock != null ? clock.deadlineMs - clock.startedAtMs : 0;
+    if (!clock || Math.abs(dur - wantMs) >= 2000) {
+      clearTutorialWaitClock();
+      clock = armTutorialWaitClock(now, 0);
+    }
+    tutorialWaitStartedRef.current = true;
+    tutorialWaitStartedAtRef.current = clock.startedAtMs;
+    tutorialWaitDeadlineMsRef.current = clock.deadlineMs;
+    setTutorialTimerKind("wait");
+    setTutorialFillDeadlineMs(clock.deadlineMs);
+  }, [tutorialDone, useV3, tutorialStep, balances.balance]);
+
+  /**
+   * Flask cycle hit 0 — only then grant tutorial root energy (or settle).
+   * Roots must NOT auto-fill on a separate 5s timer.
+   */
   useEffect(() => {
     if (tutorialDone || !useV3) return;
     if (tutorialTimerKind !== "wait" || tutorialFillDeadlineMs == null) return;
@@ -2552,8 +2750,47 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const startedAt = tutorialWaitStartedAtRef.current;
       void (async () => {
         try {
-          // First roots-full: end compensation + zero ordinary so gold flask
-          // starts clean (no double-pay with «Обучение»).
+          const capitalOnTree =
+            Number(stateRef.current.balances.balance) || 0;
+
+          // Pre-transfer: display-only T(0) — re-arm, do not fill roots.
+          if (
+            tutorialStep === "capital-transfer" ||
+            capitalOnTree <= 0
+          ) {
+            clearTutorialWaitClock();
+            const clock = armTutorialWaitClock(Date.now(), 0);
+            tutorialWaitStartedRef.current = true;
+            tutorialWaitStartedAtRef.current = clock.startedAtMs;
+            tutorialWaitDeadlineMsRef.current = clock.deadlineMs;
+            setTutorialTimerKind("wait");
+            setTutorialFillDeadlineMs(clock.deadlineMs);
+            return;
+          }
+
+          const fillKind = nextV3TutorialFillKind(
+            stateRef.current.game.v3Roots,
+          );
+          if (fillKind != null) {
+            await grantTutorialRootFromFlask(fillKind);
+            // Collect tip only after the last root has its 10s preset.
+            if (
+              areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)
+            ) {
+              setTutorialStep((s) =>
+                s === "intro" || s == null || s === "welcome"
+                  ? "v3-root-water"
+                  : s,
+              );
+              persistTutorialRootsAll();
+              tutorialFastFillRef.current = false;
+              setTutorialFastFill(false);
+            }
+            rearmTutorialWaitCycle(capitalOnTree);
+            return;
+          }
+
+          // All tutorial roots ready — settle like main game.
           const compClock = loadTutorialCompensationClock();
           const startGoldFlask =
             compClock != null && compClock.endedAtMs == null;
@@ -2567,12 +2804,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           if (res.v3Roots) {
             commitState(applyEconomyV3RootsToState(cur, res.v3Roots));
           }
-          // Tutorial public state keeps accumulating=false; next cycle = full T.
           const nextAtRaw = res.v3Roots?.generation?.nextWholeSecondAt;
           const parsedNext = nextAtRaw ? Date.parse(nextAtRaw) : NaN;
           const cycleSec =
             res.v3Roots?.generation?.cycleDurationSeconds ??
-            TUTORIAL_V3_WAIT_SECONDS;
+            tutorialWaitSecondsForCapital(capitalOnTree);
           const nextAt =
             Number.isFinite(parsedNext) && parsedNext > Date.now() - 2000
               ? parsedNext
@@ -2587,12 +2823,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               deadlineMs: nextAt,
             });
           }
-          tutorialWaitEnergySyncRef.current = false;
         } catch (err) {
-          tutorialWaitEnergySyncRef.current = false;
           if (import.meta.env.DEV) {
-            console.warn("[v3 tutorial] sync-wait-energy failed", err);
+            console.warn("[v3 tutorial] flask-cycle grant/sync failed", err);
           }
+        } finally {
+          tutorialWaitEnergySyncRef.current = false;
         }
       })();
     };
@@ -2601,12 +2837,25 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialDone, useV3, tutorialTimerKind, tutorialFillDeadlineMs]);
+  }, [
+    tutorialDone,
+    useV3,
+    tutorialStep,
+    tutorialTimerKind,
+    tutorialFillDeadlineMs,
+  ]);
 
-  // Repair: F5 / step advance can cancel the intro loop before 12:00 starts.
+  // Repair: F5 / step advance can cancel the wait capsule — re-arm from capital.
   useEffect(() => {
     if (tutorialDone || !useV3) {
       tutorialWaitStartedRef.current = false;
+      tutorialFastFillRef.current = false;
+      setTutorialFastFill(false);
+      if (tutorialDone) {
+        clearTutorialFastFillUsed();
+        tutorialFastFillUsedRef.current = false;
+        setTutorialFastFillUsed(false);
+      }
       // Keep tutorialWaitStartedAtRef until dismiss sends it to tutorial/complete.
       setTutorialFillDeadlineMs(null);
       setTutorialTimerKind(null);
@@ -2614,7 +2863,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
     // Excess/grey already owns the flask — do not re-arm the gold tutorial wait.
     if (tutorialDone && excessUiGrey) return;
-    if (!areV3TutorialRootsEnergyReady(game.v3Roots)) return;
     if (
       tutorialWaitStartedRef.current &&
       tutorialTimerKind === "wait" &&
@@ -2622,14 +2870,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     ) {
       return;
     }
-    startTutorialWaitCountdown();
+    const capitalOnTree = Number(balances.balance) || 0;
+    if (capitalOnTree > 0 || tutorialStep === "capital-transfer") {
+      startTutorialWaitCountdown();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialDone, useV3, game.v3Roots, tutorialTimerKind, excessUiGrey]);
+  }, [
+    tutorialDone,
+    useV3,
+    game.v3Roots,
+    tutorialTimerKind,
+    excessUiGrey,
+    balances.balance,
+    tutorialStep,
+  ]);
 
   /**
-   * Bootstrap root-energy fill / 12:00 wait after plant + capital transfer.
-   * Must NOT depend on tutorialStep identity: leaving "intro" for root-collect
-   * used to cancel the fill loop and leave the flask stuck on idle "—:—".
+   * After capital transfer: keep T(K) on the flask. Root presets fill only when
+   * that cycle hits 0 (see flask-cycle effect above) — no separate 5s auto-fill.
    */
   const tutorialEnergyBootstrap =
     !tutorialDone &&
@@ -2637,174 +2895,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     tutorialStep != null &&
     !isV3TutorialPreEnergyStep(tutorialStep);
 
-  /** Bumped by watchdog when the fill loop dies mid-sequence (e.g. after water). */
-  const [tutorialFillRepairNonce, setTutorialFillRepairNonce] = useState(0);
-  const tutorialFillWatchdogDeadlineRef = useRef<number | null>(null);
-
   useEffect(() => {
     if (!tutorialEnergyBootstrap) return;
+    const capitalOnTree = Number(stateRef.current.balances.balance) || 0;
+    if (capitalOnTree <= 0) return;
 
-    // Wait already armed — restore capsule only when roots are ready.
-    // Stale sessionStorage wait (e.g. after «Сброс туториала») must not
-    // block the 5s fill loop, or the flask stays idle on "—:—".
     if (
-      tutorialWaitStartedRef.current ||
-      tutorialTimerKindRef.current === "wait"
+      tutorialTimerKindRef.current === "wait" &&
+      tutorialFillDeadlineMs != null
     ) {
-      if (areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)) {
-        startTutorialWaitCountdown();
-        return;
-      }
-      dropStaleTutorialWaitClock();
-      if (tutorialTimerKindRef.current === "wait") {
-        setTutorialTimerKind(null);
-        setTutorialFillDeadlineMs(null);
-      }
-    }
-
-    if (areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)) {
-      startTutorialWaitCountdown();
       return;
     }
-
-    const runId = ++tutorialFillRunRef.current;
-    let cancelled = false;
-    const stillActive = () =>
-      !cancelled && tutorialFillRunRef.current === runId;
-
-    const sleepUntil = (deadlineMs: number) =>
-      new Promise<void>((resolve) => {
-        const tick = () => {
-          if (!stillActive() || Date.now() >= deadlineMs) {
-            resolve();
-            return;
-          }
-          window.setTimeout(tick, 50);
-        };
-        tick();
-      });
-
-    const sleepMs = (ms: number) =>
-      new Promise<void>((resolve) => {
-        window.setTimeout(resolve, ms);
-      });
-
-    const applyLocalRootFill = (kind: EconomyV3RootKind, seconds: number) => {
-      const cur = stateRef.current;
-      const snap = cur.game.v3Roots;
-      if (!snap || snap.enabled !== true) return;
-      commitState(
-        applyEconomyV3RootsToState(
-          cur,
-          withTutorialRootSeconds(snap, kind, seconds),
-        ),
-      );
-    };
-
-    /** Fast 0 → 10s (two cells) pop after the wait (not during the timer). */
-    const popRootFill = async (kind: EconomyV3RootKind) => {
-      const animStart = Date.now();
-      const end = animStart + TUTORIAL_V3_ROOT_POP_MS;
-      while (stillActive() && Date.now() < end) {
-        const t = Math.min(
-          1,
-          (Date.now() - animStart) / TUTORIAL_V3_ROOT_POP_MS,
-        );
-        applyLocalRootFill(kind, TUTORIAL_V3_ROOT_SECONDS * t);
-        await sleepMs(32);
-      }
-      if (!stillActive()) return;
-      applyLocalRootFill(kind, TUTORIAL_V3_ROOT_SECONDS);
-    };
-
-    const persistPreparedKind = (kind: EconomyV3RootKind) => {
-      // Never block the staged sequence on a slow/hung prepare — local pop is SoT.
-      void api
-        .prepareTutorialV3({ kind })
-        .then((prepared) => {
-          const local = stateRef.current.game.v3Roots;
-          if (!local || !prepared.v3Roots) return;
-          commitState(
-            applyEconomyV3RootsToState(
-              stateRef.current,
-              mergeStagedTutorialPrepare(local, kind, prepared.v3Roots),
-            ),
-          );
-        })
-        .catch(() => {
-          /* transfer path also bumps tutorial grants */
-        });
-    };
-
-    (async () => {
-      try {
-        if (areV3TutorialRootsEnergyReady(stateRef.current.game.v3Roots)) {
-          startTutorialWaitCountdown();
-          return;
-        }
-        // Phase A: 5s timer (root stays empty). Phase B: pop two cells. Repeat.
-        while (stillActive()) {
-          const kind = nextV3TutorialFillKind(stateRef.current.game.v3Roots);
-          if (kind == null) {
-            startTutorialWaitCountdown();
-            return;
-          }
-          const deadline = Date.now() + TUTORIAL_V3_FILL_MS;
-          setTutorialTimerKind("fill");
-          setTutorialFillDeadlineMs(deadline);
-          await sleepUntil(deadline);
-          if (!stillActive()) return;
-          await popRootFill(kind);
-          persistPreparedKind(kind);
-          if (nextV3TutorialFillKind(stateRef.current.game.v3Roots) == null) {
-            startTutorialWaitCountdown();
-            return;
-          }
-          if (!stillActive()) return;
-        }
-      } catch (err) {
-        if (
-          !tutorialWaitStartedRef.current &&
-          tutorialTimerKindRef.current !== "wait"
-        ) {
-          setTutorialFillDeadlineMs(null);
-          setTutorialTimerKind(null);
-        }
-        if (import.meta.env.DEV) console.warn("[v3 tutorial fill]", err);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    startTutorialWaitCountdown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialEnergyBootstrap, tutorialFillRepairNonce]);
-
-  /**
-   * If the fill loop dies after a root pop (cancelled effect / hung await),
-   * the flask freezes and later roots never fill. Kick one repair per deadline.
-   */
-  useEffect(() => {
-    if (!tutorialEnergyBootstrap) return;
-    if (tutorialWaitStartedRef.current) return;
-    if (tutorialTimerKind === "wait") return;
-    if (areV3TutorialRootsEnergyReady(game.v3Roots)) return;
-    if (tutorialFillDeadlineMs == null) return;
-    // Countdown still running (or just finished) — give the loop time to pop.
-    if (Date.now() - tutorialFillDeadlineMs < 2000) return;
-    // Already kicked a repair for this frozen deadline.
-    if (tutorialFillWatchdogDeadlineRef.current === tutorialFillDeadlineMs) {
-      return;
-    }
-    tutorialFillWatchdogDeadlineRef.current = tutorialFillDeadlineMs;
-    setTutorialFillRepairNonce((n) => n + 1);
-  }, [
-    tutorialEnergyBootstrap,
-    tutorialTimerKind,
-    tutorialFillDeadlineMs,
-    game.v3Roots,
-    now,
-  ]);
+  }, [tutorialEnergyBootstrap]);
 
   /** Excess must not replace Care while mid-cycle or awaiting «Уход». */
   const metelkaBlockedByCare = useV3
@@ -5103,6 +5207,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               dragEnabled={
                 !tutorialDone &&
                 tutorialStep === "capital-transfer" &&
+                capitalTransferPhase === "drag-vault" &&
                 sproutPlanted &&
                 !vaultTransferBusy
               }
@@ -5110,6 +5215,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               onTransfer={() => {
                 void handleVaultCapitalTransfer();
               }}
+              onHelpClick={() => setShowVaultCapitalHelp(true)}
             />
           )}
         </div>
@@ -5403,9 +5509,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               ref={capitalChestHostRef}
               className={`v3-capital-chest-host v3-capital-chest-host--with-hourglass${
                 excessUiGrey ? " v3-capital-chest-host--metelka-frozen" : ""
+              }${
+                !tutorialDone &&
+                !excessUiGrey &&
+                (Number(balances.balance) || 0) <= 0
+                  ? " v3-capital-chest-host--no-capital"
+                  : ""
               }${showIncomePopup ? " v3-capital-chest-host--income-flash" : ""}`}
               data-v3-capital-chest-host="true"
               data-capital-metelka-frozen={excessUiGrey ? "true" : undefined}
+              data-flask-no-capital={
+                !tutorialDone && (Number(balances.balance) || 0) <= 0
+                  ? "true"
+                  : undefined
+              }
               data-income-flash={showIncomePopup ? "true" : undefined}
             >
               <CapitalChestUnderRoots
@@ -5429,9 +5546,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     deadlineMs={tutorialFillDeadlineMs}
                     kind={tutorialTimerKind}
                     durationMs={
-                      tutorialTimerKind === "wait"
-                        ? TUTORIAL_V3_WAIT_MS
-                        : TUTORIAL_V3_FILL_MS
+                      tutorialFastFill
+                        ? TUTORIAL_V3_FILL_MS
+                        : tutorialTimerKind === "wait"
+                          ? tutorialWaitMsForCapital(balances.balance)
+                          : TUTORIAL_V3_FILL_MS
+                    }
+                    onFastFillClick={
+                      !tutorialFastFillUsed &&
+                      tutorialStep === "intro" &&
+                      (Number(balances.balance) || 0) > 0 &&
+                      nextV3TutorialFillKind(game.v3Roots) != null
+                        ? startTutorialFastFill
+                        : undefined
                     }
                   />
                 ) : (
@@ -5448,7 +5575,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     )}
                     financialMinting={financialMintingLive}
                     handoffDeadlineAtMs={tutorialWaitDeadlineMsRef.current}
-                    handoffTotalSeconds={TUTORIAL_V3_WAIT_SECONDS}
+                    handoffTotalSeconds={tutorialWaitSecondsForCapital(
+                      balances.balance,
+                    )}
                     onRefreshState={syncRootsFromServer}
                     onHelpClick={
                       tutorialDone
@@ -5466,9 +5595,23 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         {useV2MockRootsLayer && <EconomyV2MockLayer />}
 
         {/* Tutorial welcome screen — shown before anything starts */}
+        <AnimatePresence>
         {!tutorialDone && tutorialStep === "welcome" && (
-          <div className="tutorial-welcome-overlay">
-            <div className="tutorial-welcome-card">
+          <motion.div
+            key="tutorial-welcome"
+            className="tutorial-welcome-overlay"
+            initial={TUTORIAL_OVERLAY_INITIAL}
+            animate={TUTORIAL_OVERLAY_ANIMATE}
+            exit={TUTORIAL_OVERLAY_EXIT}
+            transition={TUTORIAL_OVERLAY_TRANSITION}
+          >
+            <motion.div
+              className="tutorial-welcome-card"
+              initial={TUTORIAL_CARD_INITIAL}
+              animate={TUTORIAL_CARD_ANIMATE}
+              exit={TUTORIAL_CARD_EXIT}
+              transition={TUTORIAL_CARD_TRANSITION}
+            >
               <span className="tutorial-welcome-icon" aria-hidden="true">
                 <TreePine size={48} strokeWidth={2.25} color="#166534" />
               </span>
@@ -5480,6 +5623,66 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   </span>
                   <p className="tutorial-welcome-desc">
                     Посадите росток — пусть дерево появится на поле и пустит корни.
+                  </p>
+                </div>
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon tutorial-welcome-flask-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="-4 0 88 76" fill="none">
+                      <defs>
+                        <clipPath id="tutorial-welcome-flask-clip">
+                          <rect x="0" y="0" width="80" height="72" />
+                        </clipPath>
+                        <clipPath id="tutorial-welcome-flask-body">
+                          <path d="M6 5 C2 5 2 22 8 42 C14 58 28 66 33 70 C28 74 14 82 8 98 C2 118 2 135 6 135 L74 135 C78 135 78 118 72 98 C66 82 52 74 47 70 C52 66 66 58 72 42 C78 22 78 5 74 5 Z" />
+                        </clipPath>
+                      </defs>
+                      <g clipPath="url(#tutorial-welcome-flask-clip)">
+                        <path
+                          d="M6 5 C2 5 2 22 8 42 C14 58 28 66 33 70 C28 74 14 82 8 98 C2 118 2 135 6 135 L74 135 C78 135 78 118 72 98 C66 82 52 74 47 70 C52 66 66 58 72 42 C78 22 78 5 74 5 Z"
+                          fill="#fff8ec"
+                        />
+                        <g clipPath="url(#tutorial-welcome-flask-body)">
+                          <rect
+                            x="0"
+                            y="38"
+                            width="80"
+                            height="40"
+                            fill="rgba(180, 83, 58, 0.42)"
+                          />
+                        </g>
+                        <path
+                          d="M6 5 C2 5 2 22 8 42 C14 58 28 66 33 70 C28 74 14 82 8 98 C2 118 2 135 6 135 L74 135 C78 135 78 118 72 98 C66 82 52 74 47 70 C52 66 66 58 72 42 C78 22 78 5 74 5 Z"
+                          fill="none"
+                          stroke={TUTORIAL_PLAN_ICON_COLORS.energyBase}
+                          strokeWidth="3.2"
+                          strokeLinejoin="round"
+                        />
+                      </g>
+                      <path
+                        d="M40 16 L35 32 H42 L37 50 L49 28 H42 Z"
+                        fill="none"
+                        stroke={TUTORIAL_PLAN_ICON_COLORS.energyBase}
+                        strokeWidth="2.6"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </span>
+                  <p className="tutorial-welcome-desc">
+                    Красная колба — базовое время: энергия копится и без капитала.
+                  </p>
+                </div>
+                <div className="tutorial-welcome-step">
+                  <span className="tutorial-welcome-step-icon tutorial-welcome-vault-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="6 10 44 40" fill="none">
+                      <rect x="8" y="12" width="40" height="34" rx="6" fill="rgba(255,248,236,0.92)" stroke={TUTORIAL_PLAN_ICON_COLORS.vault} strokeWidth="1.6" />
+                      <rect x="12" y="16" width="32" height="26" rx="4" fill="rgba(201,146,10,0.42)" stroke={TUTORIAL_PLAN_ICON_COLORS.vault} strokeWidth="1.1" />
+                      <circle cx="28" cy="29" r="7.5" fill="rgba(255,248,236,0.92)" stroke={TUTORIAL_PLAN_ICON_COLORS.vault} strokeWidth="1.4" />
+                      <circle cx="28" cy="29" r="2.2" fill={TUTORIAL_PLAN_ICON_COLORS.vault} />
+                    </svg>
+                  </span>
+                  <p className="tutorial-welcome-desc">
+                    Перенесите капитал из сейфа в сундук дерева — так энергия формируется быстрее.
                   </p>
                 </div>
                 <div className="tutorial-welcome-step">
@@ -5537,12 +5740,16 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               >
                 Начать обучение
               </button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Tutorial step overlay — shown between minigames / root steps */}
         {!tutorialDone && (() => {
+          // After plant: let the tree + roots play before the next card.
+          const hideForPlantReveal =
+            tutorialStep === "plant-sprout" && sproutPlanted;
           const v3Recommended =
             useV3 && tutorialStep === "v3-activities-intro"
               ? tutorialRecommendedV3Activity(
@@ -5552,6 +5759,12 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           const v3Cfg = useV3
             ? v3TutorialOverlayConfig(tutorialStep, {
                 recommendedActivity: v3Recommended,
+                capitalTransferPhase:
+                  tutorialStep === "capital-transfer"
+                    ? capitalTransferPhase
+                    : undefined,
+                tutorialFastFillArmed:
+                  tutorialFastFill || tutorialFastFillUsed,
               })
             : null;
           const legacyCfg =
@@ -5580,50 +5793,80 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     accent: V3_ACTIVITY_ACCENT_COLORS.fertilizer,
                   }
               : null;
-          const cfg = v3Cfg ?? legacyCfg;
-          if (!cfg) return null;
-          const accent = cfg.accent;
+          const cfg = hideForPlantReveal ? null : (v3Cfg ?? legacyCfg);
+          const overlayKey = cfg
+            ? `${tutorialStep}:${cfg.icon}:${cfg.text}:${
+                tutorialStep === "capital-transfer" ? capitalTransferPhase : ""
+              }`
+            : "none";
           return (
-            <div className="tutorial-intro-overlay">
-              <div
+            <AnimatePresence mode="wait">
+            {cfg ? (
+            <motion.div
+              key={overlayKey}
+              className="tutorial-intro-overlay"
+              initial={TUTORIAL_OVERLAY_INITIAL}
+              animate={TUTORIAL_OVERLAY_ANIMATE}
+              exit={TUTORIAL_OVERLAY_EXIT}
+              transition={TUTORIAL_OVERLAY_TRANSITION}
+            >
+              <motion.div
                 className="tutorial-intro-card"
-                style={{ ["--tutorial-accent" as string]: accent }}
-                data-tutorial-accent={accent}
+                style={{ ["--tutorial-accent" as string]: cfg.accent }}
+                data-tutorial-accent={cfg.accent}
+                initial={TUTORIAL_CARD_INITIAL}
+                animate={TUTORIAL_CARD_ANIMATE}
+                exit={TUTORIAL_CARD_EXIT}
+                transition={TUTORIAL_CARD_TRANSITION}
               >
                 <span className="tutorial-intro-tree" aria-hidden="true">
                   {cfg.icon === "fertilizer" ? (
-                    <FertilizerIcon size={48} color={accent} filled={false} />
+                    <FertilizerIcon size={48} color={cfg.accent} filled={false} />
                   ) : cfg.icon === "sun" ? (
-                    <Sun size={48} strokeWidth={2.25} color={accent} />
+                    <Sun size={48} strokeWidth={2.25} color={cfg.accent} />
                   ) : cfg.icon === "wait" ? (
-                    <Clock size={48} strokeWidth={2.25} color={accent} />
+                    <Clock size={48} strokeWidth={2.25} color={cfg.accent} />
                   ) : cfg.icon === "energy" ? (
-                    <Zap size={48} strokeWidth={2.25} color={accent} />
+                    <Zap size={48} strokeWidth={2.25} color={cfg.accent} />
                   ) : cfg.icon === "plant" ? (
-                    <TreePine size={48} strokeWidth={2.25} color={accent} />
+                    <TreePine size={48} strokeWidth={2.25} color={cfg.accent} />
                   ) : cfg.icon === "vault" ? (
                     <span className="tutorial-intro-vault-icon" aria-hidden="true">
                       <svg width="48" height="48" viewBox="0 0 56 56" fill="none">
-                        <rect x="8" y="12" width="40" height="34" rx="6" fill="rgba(255,248,236,0.92)" stroke={accent} strokeWidth="1.6" />
-                        <rect x="12" y="16" width="32" height="26" rx="4" fill="rgba(201,146,10,0.42)" stroke={accent} strokeWidth="1.1" />
-                        <circle cx="28" cy="29" r="7.5" fill="rgba(255,248,236,0.92)" stroke={accent} strokeWidth="1.4" />
-                        <circle cx="28" cy="29" r="2.2" fill={accent} />
+                        <rect x="8" y="12" width="40" height="34" rx="6" fill="rgba(255,248,236,0.92)" stroke={cfg.accent} strokeWidth="1.6" />
+                        <rect x="12" y="16" width="32" height="26" rx="4" fill="rgba(201,146,10,0.42)" stroke={cfg.accent} strokeWidth="1.1" />
+                        <circle cx="28" cy="29" r="7.5" fill="rgba(255,248,236,0.92)" stroke={cfg.accent} strokeWidth="1.4" />
+                        <circle cx="28" cy="29" r="2.2" fill={cfg.accent} />
                       </svg>
                     </span>
                   ) : cfg.icon === "reward" ? (
-                    <Gift size={48} strokeWidth={2.25} color={accent} />
+                    <Gift size={48} strokeWidth={2.25} color={cfg.accent} />
                   ) : cfg.icon === "care" ? (
-                    <Shovel size={48} strokeWidth={2.25} color={accent} />
+                    <Shovel size={48} strokeWidth={2.25} color={cfg.accent} />
                   ) : (
-                    <Droplets size={48} strokeWidth={2.25} color={accent} />
+                    <Droplets size={48} strokeWidth={2.25} color={cfg.accent} />
                   )}
                 </span>
                 <p className="tutorial-intro-text">{cfg.text}</p>
                 {cfg.hint ? (
                   <span className="tutorial-intro-hint">{cfg.hint}</span>
                 ) : null}
-              </div>
-            </div>
+                {tutorialStep === "capital-transfer" &&
+                capitalTransferPhase === "energy-explain" ? (
+                  <button
+                    type="button"
+                    className="tutorial-intro-next"
+                    data-testid="tutorial-energy-explain-next"
+                    aria-label="Дальше"
+                    onClick={() => setCapitalTransferPhase("drag-vault")}
+                  >
+                    <ChevronDown size={28} strokeWidth={2.2} aria-hidden="true" />
+                  </button>
+                ) : null}
+              </motion.div>
+            </motion.div>
+            ) : null}
+            </AnimatePresence>
           );
         })()}
 
@@ -5633,13 +5876,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             <motion.div
               className="tutorial-intro-overlay"
               key="tutorial-complete-card"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
+              initial={TUTORIAL_OVERLAY_INITIAL}
+              animate={TUTORIAL_OVERLAY_ANIMATE}
+              exit={TUTORIAL_OVERLAY_EXIT}
+              transition={TUTORIAL_OVERLAY_TRANSITION}
             >
-              <div
+              <motion.div
                 className="tutorial-intro-card"
+                initial={TUTORIAL_CARD_INITIAL}
+                animate={TUTORIAL_CARD_ANIMATE}
+                exit={TUTORIAL_CARD_EXIT}
+                transition={TUTORIAL_CARD_TRANSITION}
                 style={{
                   ["--tutorial-accent" as string]: TUTORIAL_PLAN_ICON_COLORS.care,
                 }}
@@ -5655,7 +5902,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <p className="tutorial-intro-text">
                   <span>Отлично! Все три</span><br/><span>этапа пройдены!</span>
                 </p>
-              </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -5667,17 +5914,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               className="tutorial-intro-overlay"
               key="tutorial-collect-hint"
               data-tutorial-collect-hint="true"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.28 }}
+              initial={TUTORIAL_OVERLAY_INITIAL}
+              animate={TUTORIAL_OVERLAY_ANIMATE}
+              exit={TUTORIAL_OVERLAY_EXIT}
+              transition={TUTORIAL_OVERLAY_TRANSITION}
             >
-              <div
+              <motion.div
                 className="tutorial-intro-card"
                 style={{
                   ["--tutorial-accent" as string]: V3_TUTORIAL_REWARD_OVERLAY.accent,
                 }}
                 data-tutorial-accent={V3_TUTORIAL_REWARD_OVERLAY.accent}
+                initial={TUTORIAL_CARD_INITIAL}
+                animate={TUTORIAL_CARD_ANIMATE}
+                exit={TUTORIAL_CARD_EXIT}
+                transition={TUTORIAL_CARD_TRANSITION}
               >
                 <span className="tutorial-intro-tree" aria-hidden="true">
                   <Gift
@@ -5690,7 +5941,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 <span className="tutorial-intro-hint">
                   {V3_TUTORIAL_REWARD_OVERLAY.hint}
                 </span>
-              </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -5700,10 +5951,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           {showTutorialComplete && (
             <motion.div
               className="tutorial-complete-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
+              initial={TUTORIAL_OVERLAY_INITIAL}
+              animate={TUTORIAL_OVERLAY_ANIMATE}
+              exit={TUTORIAL_OVERLAY_EXIT}
+              transition={TUTORIAL_OVERLAY_TRANSITION}
             >
               <motion.div
                 className="tutorial-complete-card"
@@ -5767,6 +6018,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             </button>
           ) : null}
           {sproutPlanted ? (
+          <motion.div
+            className="tree-sprout-rise"
+            data-sprout-rising={sproutRising ? "true" : "false"}
+            initial={sproutRising ? SPROUT_PLANT_RISE_HIDDEN : false}
+            animate={sproutPlantRiseAnimate(sproutRising)}
+            transition={
+              sproutRising ? SPROUT_PLANT_RISE_TRANSITION : { duration: 0 }
+            }
+            onAnimationComplete={() => setSproutRising(false)}
+            style={{ display: "inline-block" }}
+          >
           <motion.div animate={treeControls} style={{ display: "inline-block" }}>
             <button
               type="button"
@@ -5802,6 +6064,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 </AnimatePresence>
               </div>
             </button>
+          </motion.div>
           </motion.div>
           ) : null}
           {(tutorialDone || tutorialShowGrowthBadge) && (
@@ -7288,6 +7551,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
         {showFlaskIncomeHelp && (
           <FlaskIncomeHelpModal onClose={() => setShowFlaskIncomeHelp(false)} />
+        )}
+
+        {showVaultCapitalHelp && (
+          <VaultCapitalHelpModal
+            vaultBalance={vaultBalance}
+            treeCapital={Math.max(0, Number(balances.balance) || 0)}
+            onClose={() => setShowVaultCapitalHelp(false)}
+          />
         )}
 
         {showDepositInfo && (

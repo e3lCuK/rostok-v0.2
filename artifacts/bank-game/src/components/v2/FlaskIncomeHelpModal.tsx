@@ -1,5 +1,6 @@
 /**
- * Help modal: gold flask = main income, grey flask = excess backlog.
+ * Help modal: red flask = base wait without capital,
+ * gold flask = main income, grey flask = excess backlog.
  * Same shell as «Стадии роста дерева» (help-modal + row list).
  */
 
@@ -13,16 +14,28 @@ type Props = {
 
 const ROWS = [
   {
+    tone: "red" as const,
+    title: "Красная колба",
+    badge: "Базовое время",
+    body: "Пока капитал в сейфе, колба красная: энергия копится базовым временем. Перенесите капитал в сундук — колба станет золотой и ускорится.",
+    label: "60:00",
+    fill: 0.55,
+  },
+  {
     tone: "gold" as const,
     title: "Золотая колба",
     badge: "Основной доход",
     body: "Пока таймер тикает, ваш капитал работает. Это обычный доход дерева — за энергию корней и уход.",
+    label: "12:00",
+    fill: 0.62,
   },
   {
     tone: "grey" as const,
     title: "Серая колба",
     badge: "В запасе",
     body: "Если активности не успеваете отработать вовремя, доход не пропадает: он копится серым — заберите его Метелкой.",
+    label: "11:40",
+    fill: 0.48,
   },
 ] as const;
 
@@ -63,7 +76,7 @@ export default function FlaskIncomeHelpModal({ onClose }: Props) {
         </div>
 
         <p className="flask-help-lead">
-          Два цвета колбы — два вида дохода с вашего капитала.
+          Три цвета колбы — базовое время, основной доход и запас.
         </p>
 
         <div className="tree-stages-list flask-help-list">
@@ -74,8 +87,8 @@ export default function FlaskIncomeHelpModal({ onClose }: Props) {
             >
               <FlaskHelpMiniArt
                 tone={row.tone}
-                fill={row.tone === "gold" ? 0.62 : 0.48}
-                label={row.tone === "gold" ? "12:00" : "11:40"}
+                fill={row.fill}
+                label={row.label}
               />
               <div className="tree-stage-info">
                 <p className="tree-stage-name">{row.title}</p>
@@ -83,7 +96,11 @@ export default function FlaskIncomeHelpModal({ onClose }: Props) {
               </div>
               <span
                 className={`tree-stage-badge${
-                  row.tone === "grey" ? " flask-help-badge--grey" : ""
+                  row.tone === "grey"
+                    ? " flask-help-badge--grey"
+                    : row.tone === "red"
+                      ? " flask-help-badge--red"
+                      : ""
                 }`}
               >
                 {row.badge}

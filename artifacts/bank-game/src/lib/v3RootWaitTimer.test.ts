@@ -546,7 +546,7 @@ describe("v3 root wait timer — full cycle semantics", () => {
   it("server exposes nextWholeSecondAt + cycleDurationSeconds (v2 section parity)", () => {
     expect(apiRootsSrc).toContain("nextWholeSecondAt");
     expect(apiRootsSrc).toContain("cycleDurationSeconds");
-    expect(apiRootsSrc).toContain("720 / M(K)");
+    expect(apiRootsSrc).toContain("T(K)=3600/(1+4·(K/100k)^0.15)");
     expect(libSrc).toContain("nextWholeSecondAt");
   });
 });

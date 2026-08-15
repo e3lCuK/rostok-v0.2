@@ -2,7 +2,8 @@
  * Economy v2 root energy — matured sections awaiting manual collection.
  *
  * Generation formula matches bank accrual:
- *   generated = elapsedSeconds / 720 × M(K)
+ *   generated = elapsedSeconds / T(K)
+ *   T(K) = 3600 / (1 + 4·(K/100000)^0.15)
  *
  * Generated energy fills a 60-bit ready mask (one bit = one game-second section).
  * Collected bank (v2_energy_seconds) is NOT increased by settle — only by collect.
@@ -12,11 +13,10 @@
  */
 
 import {
-  capitalMultiplier,
   clampV2EnergyBank,
   generateEnergyFromElapsed,
+  secondsPerGameSecondForCapital,
   V2_ENERGY_BANK_MAX,
-  V2_SECONDS_PER_ENERGY_AT_REFERENCE,
 } from "./economy-v2";
 import {
   CAPACITY_EPSILON,
@@ -190,9 +190,7 @@ export function placeMaturedSections(
 }
 
 export function secondsPerSectionForCapital(capital: number): number {
-  const m = capitalMultiplier(capital);
-  if (!Number.isFinite(m) || m <= 0) return Number.POSITIVE_INFINITY;
-  return V2_SECONDS_PER_ENERGY_AT_REFERENCE / m;
+  return secondsPerGameSecondForCapital(capital);
 }
 
 export function buildEconomyV2RootsPublicState(input: {
@@ -215,7 +213,7 @@ export function buildEconomyV2RootsPublicState(input: {
     generationProgress: progress,
   });
   const secondsPerSection = secondsPerSectionForCapital(input.capital);
-  const capitalOk = Number.isFinite(input.capital) && input.capital > 0;
+  const capitalOk = Number.isFinite(input.capital) && input.capital >= 0;
 
   let secondsUntilNextSection: number | null = null;
   if (
