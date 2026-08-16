@@ -65,6 +65,11 @@ export const ECONOMY_V3_ROOT_MIGRATION_SQL: readonly string[] = [
   `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS sprout_planted BOOLEAN NOT NULL DEFAULT FALSE`,
   /** Starting capital parked in vault until drag-to-chest (accounts). */
   `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vault_balance NUMERIC(15,2) NOT NULL DEFAULT 0`,
+  /**
+   * Lifetime successful Care cycle claims (N for LongCare).
+   * Never daily-reset; increments once per production claim award.
+   */
+  `ALTER TABLE game_state ADD COLUMN IF NOT EXISTS v3_long_care_cycles INTEGER NOT NULL DEFAULT 0`,
 ];
 
 export type EconomyV3MigrationClient = {

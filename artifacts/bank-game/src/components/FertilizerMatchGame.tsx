@@ -158,22 +158,30 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
   const matchRef = useRef(0);
   const doneRef = useRef(false);
   const procRef = useRef(false);
+  const startedAtRef = useRef(performance.now());
   const onDoneRef = useRef(onComplete);
   useEffect(() => { onDoneRef.current = onComplete; }, [onComplete]);
 
   function forceClose() {
-    endGame();
+    endGame(true);
   }
 
-  function endGame() {
+  function endGame(forced = false) {
     if (doneRef.current) return;
     doneRef.current = true;
     procRef.current = false;
     setGameOver(true);
     setProcessing(false);
     const m = matchRef.current;
-    const skillFactor = Math.min(1, m / maxMatches);
-    const skillScore = Math.round(skillFactor * 100);
+    const catchSkill = Math.round(Math.min(1, m / maxMatches) * 100);
+    const elapsedRatio = Math.min(
+      1,
+      Math.max(0, (performance.now() - startedAtRef.current) / totalMs),
+    );
+    const timeSkill = Math.round(elapsedRatio * 50);
+    const skillScore = forced
+      ? Math.max(catchSkill, timeSkill)
+      : catchSkill;
     setResult({ matchCount: m, skillScore });
   }
 

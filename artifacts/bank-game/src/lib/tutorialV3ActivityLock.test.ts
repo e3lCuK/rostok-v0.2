@@ -346,8 +346,8 @@ describe("tutorial v3: all roots then all activities", () => {
   it("activity-phase overlay remains; root-phase has collect-energy card", () => {
     expect(v3TutorialOverlayConfig("v3-root-water")).toEqual({
       icon: "energy",
-      text: "Соберите энергию из корней",
-      hint: "Нажмите на корневые ячейки по очереди.",
+      text: "Соберите энергию из\u00A0корней",
+      hint: "Нажмите на\u00A0корневые ячейки по\u00A0очереди.",
       accent: "#c9920a",
     });
     expect(
@@ -377,7 +377,7 @@ describe("tutorial v3: all roots then all activities", () => {
     ).toEqual({
       icon: "fertilizer",
       text: "Пройдите активность",
-      hint: "Собирайте гранулы в ряд.",
+      hint: "Собирайте гранулы в\u00A0ряд.",
       accent: "#f0a020",
     });
     expect(pageSrc).toContain(

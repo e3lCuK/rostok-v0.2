@@ -44,6 +44,8 @@ function finishedTrioState(overrides: Record<string, unknown> = {}) {
     pending_bonus_reward: 1,
     total_apples: 7,
     tree_growth_mm: 40,
+    tree_growth_remainder: 0,
+    v3_long_care_cycles: 0,
     v3_root_water_seconds: 3,
     v3_root_sun_seconds: 4,
     v3_root_fertilizer_seconds: 5,
@@ -165,6 +167,8 @@ describe("claimEconomyV3CareCyclePure", () => {
     expect(first.alreadyClaimed).toBe(false);
     expect(first.applyAwards).toBe(true);
     expect(first.snapshot.xp).toBe(preview.xp);
+    expect(first.snapshot.treeGrowth).toBe(preview.treeGrowth);
+    expect(first.snapshot.treeGrowth).toBeGreaterThan(0);
     expect(first.snapshot.income.total).toBe(preview.income.total);
 
     const second = claimEconomyV3CareCyclePure({
@@ -214,7 +218,7 @@ describe("claimEconomyV3CareCycle", () => {
     expect(poolConnectMock).not.toHaveBeenCalled();
   });
 
-  it("awards XP + pending once; apples/tree unchanged; repeat/parallel idempotent", async () => {
+  it("awards XP + tree mm once; pending/apples unchanged; repeat/parallel idempotent", async () => {
     process.env.ENABLE_ECONOMY_V3_ROOTS = "true";
     const state = finishedTrioState();
 
@@ -245,9 +249,14 @@ describe("claimEconomyV3CareCycle", () => {
         // $10 is BIGINT ms — must not share the TIMESTAMP bind ($4).
         state.v2_income_anchor_at = Number(params?.[9]);
         state.v2_ordinary_income_elapsed_ms = 0;
+        state.tree_growth_mm = Number(params?.[10]);
+        state.tree_growth_remainder = Number(params?.[11]);
+        state.v3_long_care_cycles = Number(params?.[12]);
         expect(params?.[3]).toBeInstanceOf(Date);
         expect(typeof params?.[9]).toBe("number");
         expect(String(text)).toMatch(/v2_income_anchor_at\s*=\s*\$10/);
+        expect(String(text)).toMatch(/tree_growth_mm\s*=\s*\$11/);
+        expect(String(text)).toMatch(/v3_long_care_cycles\s*=\s*\$13/);
         expect(String(text)).not.toMatch(/pending_base_reward/);
         return { rows: [] };
       }
@@ -259,6 +268,7 @@ describe("claimEconomyV3CareCycle", () => {
       nowMs: NOW,
     }).rewardPreview;
     expect(expectedPreview.available).toBe(true);
+    expect(expectedPreview.treeGrowth).toBeGreaterThan(0);
 
     const first = await claimEconomyV3CareCycle("42", NOW);
     expect(first.alreadyClaimed).toBe(false);
@@ -269,11 +279,16 @@ describe("claimEconomyV3CareCycle", () => {
     expect(first.pendingBaseReward).toBe(2);
     expect(first.pendingBonusReward).toBe(1);
     expect(first.totalApples).toBe(7);
-    expect(first.treeGrowthMm).toBe(40);
+    expect(first.treeGrowth).toBe(expectedPreview.treeGrowth);
+    expect(first.treeGrowthMm).toBe(40 + expectedPreview.treeGrowth);
     expect(state.total_apples).toBe(7);
-    expect(state.tree_growth_mm).toBe(40);
+    expect(state.tree_growth_mm).toBe(40 + expectedPreview.treeGrowth);
+    expect(state.v3_long_care_cycles).toBe(1);
     expect(first.v3Roots.careCycle.claim.claimed).toBe(true);
     expect(first.v3Roots.careCycle.claim.xp).toBe(expectedPreview.xp);
+    expect(first.v3Roots.careCycle.claim.treeGrowth).toBe(
+      expectedPreview.treeGrowth,
+    );
     expect(first.v3Roots.reserves.water.seconds).toBe(8);
     expect(first.v3Roots.roots.water.seconds).toBe(3);
     expect(awardUpdates).toBe(1);
@@ -284,6 +299,8 @@ describe("claimEconomyV3CareCycle", () => {
     expect(second.playerXp).toBe(first.playerXp);
     expect(second.pendingBaseReward).toBe(first.pendingBaseReward);
     expect(second.pendingBonusReward).toBe(first.pendingBonusReward);
+    expect(second.treeGrowthMm).toBe(first.treeGrowthMm);
+    expect(state.v3_long_care_cycles).toBe(1);
     expect(awardUpdates).toBe(1);
 
     const [p1, p2] = await Promise.all([

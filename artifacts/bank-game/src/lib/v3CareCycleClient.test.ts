@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { EconomyV3RootsState } from "./api";
 import { normalizeEconomyV3RootsSnapshot } from "./v3Roots";
 import {
+  growthMmFromV3CareCycle,
   resolveV3CareCycleRecovery,
   resolveV3CareShovelAction,
   sessionScoresFromV3Claim,
@@ -13,6 +14,7 @@ import {
   shouldShowV3CareShovel,
   shouldShowV3RewardPreview,
 } from "./v3CareClient";
+import { computeEconomyV3TreeGrowth } from "./v3TreeGrowth";
 import { mayStartLegacyCareFromActivityCard } from "./v3ActivityCards";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -305,7 +307,7 @@ describe("v3 Care cycle — shovel / preview / claim helpers", () => {
     });
   });
 
-  it("sessionScoresFromV3Claim maps pending/xp/growth from claim response", () => {
+  it("sessionScoresFromV3Claim maps xp/income; mm from treeGrowth, journal, or absolute delta", () => {
     expect(
       sessionScoresFromV3Claim({
         xp: 15,
@@ -329,16 +331,97 @@ describe("v3 Care cycle — shovel / preview / claim helpers", () => {
         pendingBaseReward: 3,
         pendingBonusReward: 1,
       }),
-    ).toMatchObject({ mm: 4, xp: 15 });
+    ).toMatchObject({ mm: 0, xp: 15 });
+    // Second Care cycle: claim.treeGrowth may be 0 while absolute mm advanced.
     expect(
-      sessionScoresFromV3Claim({
-        xp: 15,
-        treeGrowth: 0,
-        income: { base: 10, bonus: 9, total: 19 },
-        pendingBaseReward: 20,
-        pendingBonusReward: 18,
+      sessionScoresFromV3Claim(
+        {
+          xp: 15,
+          treeGrowth: 0,
+          treeGrowthMm: 68,
+          income: { base: 10, bonus: 9, total: 19 },
+        },
+        null,
+        34,
+      ),
+    ).toMatchObject({ mm: 34 });
+    expect(
+      sessionScoresFromV3Claim(
+        {
+          xp: 15,
+          treeGrowth: 0,
+          income: { base: 10, bonus: 9, total: 19 },
+        },
+        {
+          startedAt: null,
+          completedAt: null,
+          finishedAt: null,
+          status: "finished",
+          allCompleted: true,
+          readyToFinish: false,
+          totalPresetSeconds: 30,
+          averageSkill: 1,
+          activities: {
+            water: { completed: true, presetSeconds: 10, skill: 1 },
+            sun: { completed: true, presetSeconds: 10, skill: 1 },
+            fertilizer: { completed: true, presetSeconds: 10, skill: 1 },
+          },
+          rewardPreview: {
+            available: true,
+            xp: 15,
+            apples: 0,
+            treeGrowth: 0,
+            income: { base: 10, bonus: 9, total: 19 },
+          },
+          claim: {
+            claimed: false,
+            claimedAt: null,
+            xp: 0,
+            treeGrowth: 0,
+            income: { base: 0, bonus: 0, total: 0 },
+          },
+        },
+        0,
+      ),
+    ).toMatchObject({ mm: 34 });
+    expect(
+      growthMmFromV3CareCycle({
+        startedAt: null,
+        completedAt: null,
+        finishedAt: null,
+        status: "finished",
+        allCompleted: true,
+        readyToFinish: false,
+        totalPresetSeconds: 30,
+        averageSkill: 0.8,
+        activities: {
+          water: { completed: true, presetSeconds: 10, skill: null },
+          sun: { completed: true, presetSeconds: 10, skill: null },
+          fertilizer: { completed: true, presetSeconds: 10, skill: null },
+        },
+        rewardPreview: {
+          available: true,
+          xp: 15,
+          apples: 0,
+          treeGrowth: 0,
+          income: { base: 10, bonus: 9, total: 19 },
+        },
+        claim: {
+          claimed: false,
+          claimedAt: null,
+          xp: 0,
+          treeGrowth: 0,
+          income: { base: 0, bonus: 0, total: 0 },
+        },
       }),
-    ).toMatchObject({ mm: 19 });
+    ).toBe(
+      computeEconomyV3TreeGrowth({
+        water: { presetSeconds: 10, skill: 0.8 },
+        sun: { presetSeconds: 10, skill: 0.8 },
+        fertilizer: { presetSeconds: 10, skill: 0.8 },
+        longCareCycles: 0,
+      }).awardedMm,
+    );
   });
 
   it("v2 flow remains when v3 snapshot is absent", () => {

@@ -1,6 +1,7 @@
 /**
  * Economy v3 Care reward preview — XP from cycle journal; money = sum of
  * per-game incomes (preset × skill) so income tracks chosen durations.
+ * Tree mm = T × Skill × Care × LongCare (not rub→mm).
  */
 
 import { computeIncomeForOneGame } from "./economy-v2-care-income";
@@ -10,6 +11,7 @@ import type {
   V3CareCycleState,
   V3CareCycleStatus,
 } from "./economy-v3-roots";
+import { computeEconomyV3TreeGrowth } from "./economy-v3-tree-growth";
 
 export type EconomyV3CareRewardEconomyContext = {
   capital: number;
@@ -23,6 +25,11 @@ export type EconomyV3CareRewardEconomyContext = {
    * Kept for call-site compatibility.
    */
   ordinaryIncomeElapsedMs?: number | null;
+  /**
+   * Lifetime successful Care claims before this cycle (LongCare N).
+   * Defaults to 0 when omitted.
+   */
+  longCareCycles?: number;
 };
 
 export type EconomyV3CareRewardPreviewIncome = {
@@ -36,7 +43,7 @@ export type EconomyV3CareRewardPreview = {
   xp: number;
   /** Care does not award apples in v2 — always 0 when available. */
   apples: number;
-  /** Claim conversion preview: 1 RUB → 1 mm (floor of total income). */
+  /** Integer mm from Growth_mm = T×Skill×Care×LongCare (floor). */
   treeGrowth: number;
   income: EconomyV3CareRewardPreviewIncome;
 };
@@ -126,12 +133,27 @@ export function buildEconomyV3CareRewardPreview(
   const bonus = roundKopecks(parts.reduce((s, p) => s + p.bonus, 0));
   const total = roundKopecks(parts.reduce((s, p) => s + p.total, 0));
 
+  const growth = computeEconomyV3TreeGrowth({
+    water: {
+      presetSeconds: water.presetSeconds!,
+      skill: water.skill!,
+    },
+    sun: {
+      presetSeconds: sun.presetSeconds!,
+      skill: sun.skill!,
+    },
+    fertilizer: {
+      presetSeconds: fertilizer.presetSeconds!,
+      skill: fertilizer.skill!,
+    },
+    longCareCycles: economyContext.longCareCycles ?? 0,
+  });
+
   return {
     available: true,
     xp,
     apples: 0,
-    // Tree mm is applied per finished activity together with money.
-    treeGrowth: 0,
+    treeGrowth: growth.awardedMm,
     income: { base, bonus, total },
   };
 }

@@ -26,6 +26,7 @@ import {
 import { api, type LeaderboardPlayer } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import TreeSVG, { STAGE_DIMS } from "@/components/TreeSVG";
+import RostokTreeIcon from "@/components/RostokTreeIcon";
 import FallingGameWater, { GameType } from "@/components/FallingGameWater";
 import ClickGameSun from "@/components/ClickGameSun";
 import FertilizerMatchGame from "@/components/FertilizerMatchGame";
@@ -144,6 +145,8 @@ import {
   ROOTS_COLLECTION_INCOMPLETE_HINT,
   sessionScoresFromV3Claim,
   sessionScoresFromV3RewardPreview,
+  pickV3CareCycleForGrowth,
+  resolveV3CareGrowthMmDelta,
   shouldAcknowledgeV3CareCycle,
   shouldShowV3CareShovel,
   shouldShowV3RewardPreview,
@@ -261,6 +264,7 @@ import {
   shouldClearStaleV3CareUiAfterTutorial,
   tutorialStepAfterWelcome,
   TUTORIAL_PLAN_ICON_COLORS,
+  V3_TUTORIAL_CARE_OVERLAY,
   V3_TUTORIAL_REWARD_OVERLAY,
   type CapitalTransferTutorialPhase,
   type TutorialStep,
@@ -915,6 +919,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     newRemainder: number;
     /** When set (v2 Care), apply absolute playerXP instead of += xpGained. */
     playerXpAbsolute?: number;
+  } | null>(null);
+  /** Claim already wrote tree_growth_mm; freeze badge until the growth spectacle. */
+  const deferTreeGrowthUntilSpectacleRef = useRef(false);
+  /** Cycle mm frozen at claim time — Step 5 must not re-read a poll-advanced badge. */
+  const pendingCareGrowthRef = useRef<{
+    fromMm: number;
+    delta: number;
+    toMm: number;
+    remainder: number;
   } | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const prevLevelRef = useRef(state.game.playerLevel ?? 1);
@@ -2148,6 +2161,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const mm = game.treeGrowthMM ?? 0;
+    // While Care growth spectacle is queued, keep the badge frozen even if
+    // game.treeGrowthMM briefly matches the server absolute.
+    if (
+      deferTreeGrowthUntilSpectacleRef.current ||
+      showGrowthAnimRef.current
+    ) {
+      return;
+    }
 
     // Sync display counter (animates if different from current display)
     if (mm !== displayGrowthMMRef.current) {
@@ -2427,6 +2448,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     v3CycleRecoveredRef.current = key;
 
     if (recovery.type === "acknowledge-cycle") {
+      // Claim already acks with skipUiExit so the XP → growth → +мм queue
+      // can run. A second ack here would reset chrome and kill the timer.
+      if (
+        deferTreeGrowthUntilSpectacleRef.current ||
+        showGrowthAnimRef.current
+      ) {
+        return;
+      }
       void acknowledgeV3CareCycleOnce();
       return;
     }
@@ -3366,14 +3395,22 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setFadeActivities(false);
     setCareSyncError(null);
     setPendingActivitySync(null);
-    if (growthIntervalRef.current) {
-      clearInterval(growthIntervalRef.current);
-      growthIntervalRef.current = null;
+    // Never abort a running Care growth spectacle (timer / +N мм).
+    if (
+      !deferTreeGrowthUntilSpectacleRef.current &&
+      !showGrowthAnimRef.current
+    ) {
+      if (growthIntervalRef.current) {
+        clearInterval(growthIntervalRef.current);
+        growthIntervalRef.current = null;
+      }
+      growthTimeoutsRef.current.forEach(clearTimeout);
+      growthTimeoutsRef.current = [];
+      setShowGrowthAnim(false);
+      setGrowthCountdown(null);
+      setShowMmPopup(false);
+      setMmPopupAmount(0);
     }
-    growthTimeoutsRef.current.forEach(clearTimeout);
-    growthTimeoutsRef.current = [];
-    setShowGrowthAnim(false);
-    setGrowthCountdown(null);
     setShowApples(false);
     collectedAppleIndicesRef.current = [];
     setCollectedAppleIndices([]);
@@ -3525,10 +3562,17 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       ) {
         const local = stateRef.current;
         // Never let a stale poll replace tutorial collectibles with zeros.
-        const syncedMm = Math.max(
-          Number(serverGame.treeGrowthMM) || 0,
-          Number(local.game.treeGrowthMM) || 0,
-        );
+        // While the growth spectacle is queued, keep local mm — claim already
+        // wrote tree_growth_mm on the server and must not jump the badge.
+        const freezeMm =
+          deferTreeGrowthUntilSpectacleRef.current ||
+          showGrowthAnimRef.current;
+        const syncedMm = freezeMm
+          ? Number(local.game.treeGrowthMM) || 0
+          : Math.max(
+              Number(serverGame.treeGrowthMM) || 0,
+              Number(local.game.treeGrowthMM) || 0,
+            );
         // Mid reward-wave: keep basket at locally dragged apples — claimAll may
         // already have persisted undragged reds on the server.
         const syncedApples = rewardAppleWaveActiveRef.current
@@ -3581,8 +3625,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           if (Array.isArray(next.game.purchasedItems)) {
             setPurchasedItems(next.game.purchasedItems);
           }
-          displayGrowthMMRef.current = next.game.treeGrowthMM ?? 0;
-          setDisplayGrowthMM(next.game.treeGrowthMM ?? 0);
+          if (
+            !deferTreeGrowthUntilSpectacleRef.current &&
+            !showGrowthAnimRef.current
+          ) {
+            displayGrowthMMRef.current = next.game.treeGrowthMM ?? 0;
+            setDisplayGrowthMM(next.game.treeGrowthMM ?? 0);
+          }
         }
         let synced = applyEconomyV3FromServerGame(next, serverGame);
         // During staged tutorial fill, keep fuller local root cells so a poll
@@ -3965,7 +4014,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     if (!shouldShowV3RewardPreview(v3Roots)) {
       return;
     }
-    const scores = sessionScoresFromV3RewardPreview(v3Roots.careCycle?.rewardPreview);
+    const scores = sessionScoresFromV3RewardPreview(
+      v3Roots.careCycle?.rewardPreview,
+      v3Roots.careCycle,
+    );
     if (!scores) {
       return;
     }
@@ -4072,26 +4124,48 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     setV3CareBusy(true);
     try {
       const claimed = await api.claimV3CareCycle();
-      const scores = sessionScoresFromV3Claim(claimed);
-      setSessionScores(scores);
+      // Freeze badge immediately — claim already wrote tree_growth_mm on server.
+      deferTreeGrowthUntilSpectacleRef.current = true;
       const cur = stateRef.current;
-      const prevLevel = cur.game.playerLevel ?? 1;
-      // Money stays in pending_* until the coin → claimAll; claim grants XP only.
-      // Growth-timer / +N мм use THIS cycle's income only — not cumulative pending.
-      const rewardForMm = Math.max(0, Number(claimed.income?.total) || 0);
-      const { newMM: growthMM, newRemainder: growthRem } = applyTreeGrowth(
-        rewardForMm,
-        cur.game.treeGrowthMM ?? 0,
-        cur.game.treeGrowthRemainder ?? 0,
+      const currentMm = Math.max(
+        0,
+        Math.floor(Number(cur.game.treeGrowthMM) || 0),
       );
-      const scoresForQueue = {
-        ...scores,
-        mm: Math.max(
-          scores.mm,
-          Math.max(0, growthMM - (cur.game.treeGrowthMM ?? 0)),
-        ),
-      };
+      const cycleForMm = pickV3CareCycleForGrowth(
+        snap?.careCycle,
+        claimed.v3Roots?.careCycle,
+      );
+      const mmDelta = resolveV3CareGrowthMmDelta({
+        claimTreeGrowth: claimed.treeGrowth,
+        claimTreeGrowthMm: claimed.treeGrowthMm,
+        currentTreeGrowthMm: currentMm,
+        cycle: cycleForMm,
+        fillPercents: {
+          water: waterResultPct ?? waterScoreRef.current,
+          sun: lightResultPct ?? sunScoreRef.current,
+          fertilizer: fertilizerResultPct ?? fertilizerScoreRef.current,
+        },
+      });
+      const scores = sessionScoresFromV3Claim(
+        claimed,
+        cycleForMm,
+        currentMm,
+      );
+      const scoresForQueue = { ...scores, mm: mmDelta };
       setSessionScores(scoresForQueue);
+      const prevLevel = cur.game.playerLevel ?? 1;
+      const growthMM = currentMm + mmDelta;
+      const growthRem =
+        claimed.treeGrowthRemainder != null &&
+        Number.isFinite(Number(claimed.treeGrowthRemainder))
+          ? Math.max(0, Number(claimed.treeGrowthRemainder))
+          : (cur.game.treeGrowthRemainder ?? 0);
+      pendingCareGrowthRef.current = {
+        fromMm: currentMm,
+        delta: mmDelta,
+        toMm: growthMM,
+        remainder: growthRem,
+      };
       const normalized =
         normalizeEconomyV3RootsSnapshot(claimed.v3Roots) ?? claimed.v3Roots;
       // Defer treeGrowthMM until the growth-timer → +N мм spectacle so the badge
@@ -4127,6 +4201,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           },
         });
         pendingXpRef.current = null;
+        pendingCareGrowthRef.current = null;
+        deferTreeGrowthUntilSpectacleRef.current = false;
         setCareSyncError(null);
         if (useV3) {
           setTutorialStep("complete");
@@ -4141,7 +4217,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       }
 
       // Feed the legacy reward queue (same as v1/v2 shovel → handleGoToRewards).
-      // newMM matches claimAll's tree growth from pending income.
+      // newMM is the server absolute after Growth_mm award (not 1₽→1мм).
       pendingXpRef.current = {
         xpGained: scoresForQueue.xp,
         playerXpAbsolute: claimed.playerXp,
@@ -4163,6 +4239,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       return "ok";
     } catch (err) {
       setCareClicked(false);
+      deferTreeGrowthUntilSpectacleRef.current = false;
+      pendingCareGrowthRef.current = null;
       if (isV3CareStateConflict(err)) {
         setCareSyncError(null);
         await recoverCareFromServer();
@@ -4533,7 +4611,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     if (!tutorialDone) return;
     const px = pendingXpRef.current;
     pendingXpRef.current = null;
+    const pendingGrowth = pendingCareGrowthRef.current;
+    pendingCareGrowthRef.current = null;
     const scores = scoresOverride ?? sessionScores;
+
+    // Drop any leftover timer from a prior cycle so Step 5 always runs.
+    if (growthIntervalRef.current) {
+      clearInterval(growthIntervalRef.current);
+      growthIntervalRef.current = null;
+    }
 
     // Step 1 — immediately freeze care button, show XP popup, apply XP
     setCareClicked(true);
@@ -4570,7 +4656,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     growthTimeoutsRef.current.push(ghostTimer);
 
     // Step 3 — countdown timer (1s per mm, min 5s, no upper cap)
-    const timerSecs = Math.max(5, scores?.mm ?? 9);
+    const timerSecs = Math.max(
+      5,
+      pendingGrowth?.delta ?? scores?.mm ?? 9,
+    );
     const avgPct = resolveCareShovelFillPercent({
       waterPct: waterResultPct,
       sunPct: lightResultPct,
@@ -4599,16 +4688,25 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
         // Step 5 — after growth timer: apply мм + left-of-tree +N мм accrual
         // (same beat as tutorial; not on coin/claimAll).
+        // Prefer the absolute target frozen at claim time — displayGrowthMMRef may
+        // already match the server after a poll race on a later Care cycle.
         const fromMM = displayGrowthMMRef.current;
-        const mmAmt = Math.max(0, scores?.mm ?? 0);
+        const mmAmt = Math.max(
+          0,
+          pendingGrowth?.delta ?? scores?.mm ?? 0,
+        );
         const toMM =
-          px != null && Number(px.newMM) > fromMM
-            ? Number(px.newMM)
-            : fromMM + mmAmt;
+          pendingGrowth != null
+            ? pendingGrowth.toMm
+            : px != null && Number(px.newMM) > fromMM
+              ? Number(px.newMM)
+              : fromMM + mmAmt;
         const toRem =
-          px != null && Number(px.newMM) > fromMM
-            ? px.newRemainder
-            : (stateRef.current.game.treeGrowthRemainder ?? 0);
+          pendingGrowth != null
+            ? pendingGrowth.remainder
+            : px != null && Number(px.newMM) >= toMM
+              ? px.newRemainder
+              : (stateRef.current.game.treeGrowthRemainder ?? 0);
         if (toMM > fromMM) {
           const cur = stateRef.current;
           commitState({
@@ -4619,11 +4717,25 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               treeGrowthRemainder: toRem,
             },
           });
+          displayGrowthMMRef.current = toMM;
+          setDisplayGrowthMM(toMM);
           animateGrowth(fromMM, toMM);
+        } else if (toMM > (stateRef.current.game.treeGrowthMM ?? 0)) {
+          // Display already advanced; still persist absolute if state lagged.
+          const cur = stateRef.current;
+          commitState({
+            ...cur,
+            game: {
+              ...cur.game,
+              treeGrowthMM: toMM,
+              treeGrowthRemainder: toRem,
+            },
+          });
         }
-        const showAmt = mmAmt > 0 ? mmAmt : Math.max(0, toMM - fromMM);
-        if (showAmt > 0) {
-          setMmPopupAmount(showAmt);
+        // Release poll freeze only after local mm is committed.
+        deferTreeGrowthUntilSpectacleRef.current = false;
+        if (mmAmt > 0) {
+          setMmPopupAmount(mmAmt);
           setShowMmPopup(true);
           const mmPopupTimer = setTimeout(() => {
             setShowMmPopup(false);
@@ -4948,7 +5060,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       if ((result.baseAmount ?? 0) > 0)
         newEntries.push({ date: today, amount: result.baseAmount, type: "base" });
       const newHistory = [...newEntries, ...cur.history];
-      const curMM = stateRef.current.game.treeGrowthMM ?? 0;
+      // Money + apples only. Tree mm is applied after the growth-timer spectacle
+      // (handleGoToRewards Step 5) — never with the income coin / claimAll.
       // Prefer server absolute apple total after claim — but never jump the
       // basket while red apples are still on the tree (coin-first path).
       const redsInWave = Math.max(0, appleCountRef.current - 1);
@@ -4978,8 +5091,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           ...cur.game,
           pendingBaseReward: 0,
           pendingBonusReward: 0,
-          treeGrowthMM: Math.max(result.treeGrowthMM ?? 0, curMM),
-          treeGrowthRemainder: result.treeGrowthRemainder ?? cur.game.treeGrowthRemainder,
           totalApples: claimedApples,
         },
         history: newHistory.slice(0, 30),
@@ -5613,7 +5724,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               transition={TUTORIAL_CARD_TRANSITION}
             >
               <span className="tutorial-welcome-icon" aria-hidden="true">
-                <TreePine size={48} strokeWidth={2.25} color="#166534" />
+                <RostokTreeIcon size={56} />
               </span>
               <h3 className="tutorial-welcome-title">Ухаживайте за деревом</h3>
               <div className="tutorial-welcome-steps">
@@ -5669,7 +5780,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     </svg>
                   </span>
                   <p className="tutorial-welcome-desc">
-                    Красная колба — базовое время: энергия копится и без капитала.
+                    {"Красная колба — базовое время: энергия копится и\u00A0без\u00A0капитала."}
                   </p>
                 </div>
                 <div className="tutorial-welcome-step">
@@ -5682,7 +5793,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     </svg>
                   </span>
                   <p className="tutorial-welcome-desc">
-                    Перенесите капитал из сейфа в сундук дерева — так энергия формируется быстрее.
+                    {"Перенесите капитал из\u00A0сейфа в\u00A0сундук дерева — так энергия формируется быстрее."}
                   </p>
                 </div>
                 <div className="tutorial-welcome-step">
@@ -5690,7 +5801,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     <Clock size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.wait} />
                   </span>
                   <p className="tutorial-welcome-desc">
-                    Дождитесь, пока в корнях созреет энергия.
+                    {"Дождитесь, пока в\u00A0корнях созреет энергия."}
                   </p>
                 </div>
                 <div className="tutorial-welcome-step">
@@ -5698,7 +5809,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     <Zap size={20} strokeWidth={2.25} color={TUTORIAL_PLAN_ICON_COLORS.energy} />
                   </span>
                   <p className="tutorial-welcome-desc">
-                    Соберите энергию из корней, когда они будут готовы.
+                    {"Соберите энергию из\u00A0корней, когда они будут готовы."}
                   </p>
                 </div>
                 <div className="tutorial-welcome-step">
@@ -5888,20 +5999,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 exit={TUTORIAL_CARD_EXIT}
                 transition={TUTORIAL_CARD_TRANSITION}
                 style={{
-                  ["--tutorial-accent" as string]: TUTORIAL_PLAN_ICON_COLORS.care,
+                  ["--tutorial-accent" as string]: V3_TUTORIAL_CARE_OVERLAY.accent,
                 }}
-                data-tutorial-accent={TUTORIAL_PLAN_ICON_COLORS.care}
+                data-tutorial-accent={V3_TUTORIAL_CARE_OVERLAY.accent}
               >
                 <span className="tutorial-intro-tree" aria-hidden="true">
                   <Shovel
                     size={48}
                     strokeWidth={2.25}
-                    color={TUTORIAL_PLAN_ICON_COLORS.care}
+                    color={V3_TUTORIAL_CARE_OVERLAY.accent}
                   />
                 </span>
-                <p className="tutorial-intro-text">
-                  <span>Отлично! Все три</span><br/><span>этапа пройдены!</span>
-                </p>
+                <p className="tutorial-intro-text">{V3_TUTORIAL_CARE_OVERLAY.text}</p>
+                <span className="tutorial-intro-hint">
+                  {V3_TUTORIAL_CARE_OVERLAY.hint}
+                </span>
               </motion.div>
             </motion.div>
           )}
@@ -5965,7 +6077,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               >
                 <button className="tutorial-complete-close" onClick={handleTutorialDismiss}>✕</button>
                 <span className="tutorial-complete-icon" aria-hidden="true">
-                  <TreePine size={48} strokeWidth={2.25} color="#166534" />
+                  <RostokTreeIcon size={56} />
                 </span>
                 <h3 className="tutorial-complete-title">Обучение пройдено!</h3>
                 <p className="tutorial-complete-desc">Ухаживайте за деревом каждый день — оно будет расти, а ваш вклад приносить доход.</p>

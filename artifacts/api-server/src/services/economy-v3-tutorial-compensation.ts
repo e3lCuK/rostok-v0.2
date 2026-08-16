@@ -33,7 +33,7 @@ export type TutorialCompensationResult = {
   elapsedMs: number;
   elapsedSeconds: number;
   amountRub: number;
-  /** floor(amount) for tree growth (at least 1 when amount > 0). */
+  /** Tutorial demo mm only — compensation ₽ never converts to growth. */
   growthMm: number;
   usedFallback: boolean;
 };
@@ -120,7 +120,7 @@ export function computeTutorialCompensation(
     elapsedMs,
     elapsedSeconds,
     amountRub,
-    growthMm: Math.max(1, Math.floor(amountRub)),
+    growthMm: 1,
     usedFallback: false,
   };
 }

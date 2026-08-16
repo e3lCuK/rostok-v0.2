@@ -198,7 +198,7 @@ describe("v3 Care final reward animation queue", () => {
       bonus: 1,
       mm: 3,
     });
-    // v3 preview treeGrowth is 0 — mm from THIS cycle income (not cumulative pending).
+    // mm from server treeGrowth only — never 1₽→1мм from income / pending.
     expect(
       sessionScoresFromV3Claim({
         xp: 45,
@@ -207,24 +207,43 @@ describe("v3 Care final reward animation queue", () => {
         pendingBaseReward: 2.4,
         pendingBonusReward: 0.7,
       }),
-    ).toMatchObject({ mm: 3, xp: 45, base: 2.4, bonus: 0.7 });
-    // Stacked pending from a prior unclaimed cycle must not inflate the timer.
+    ).toMatchObject({ mm: 0, xp: 45, base: 2.4, bonus: 0.7 });
     expect(
       sessionScoresFromV3Claim({
         xp: 45,
-        treeGrowth: 0,
+        treeGrowth: 26,
         income: { base: 10, bonus: 9, total: 19 },
         pendingBaseReward: 20,
         pendingBonusReward: 18,
       }),
-    ).toMatchObject({ mm: 19 });
+    ).toMatchObject({ mm: 26 });
     expect(pageSrc).toContain("setCareClicked(true)");
     expect(pageSrc).toMatch(
       /if \(\(!tutorialDone && !liveTutorial\) \|\| careClicked\) return/,
     );
     expect(pageSrc).toContain("v3ClaimCycleInFlightRef");
-    expect(pageSrc).toContain("applyTreeGrowth(");
+    expect(pageSrc).toContain("claimed.treeGrowthMm");
     expect(pageSrc).toContain("scoresForQueue");
+    expect(pageSrc).toContain("deferTreeGrowthUntilSpectacleRef");
+  });
+
+  it("10. claimAll / coin never writes treeGrowthMM; mm only after growth timer", () => {
+    const claimAll =
+      pageSrc.match(
+        /async function handleClaimAll\(applesCollected = 0\) \{[\s\S]*?\n  \}/,
+      )?.[0] ?? "";
+    expect(claimAll).toContain("Money + apples only");
+    expect(claimAll).not.toMatch(/treeGrowthMM:/);
+    expect(claimAll).not.toMatch(/result\.treeGrowthMM/);
+    const goToRewards =
+      pageSrc.match(
+        /function handleGoToRewards\([\s\S]*?\n  \}/,
+      )?.[0] ?? "";
+    expect(goToRewards).toContain("after growth timer: apply мм");
+    expect(goToRewards).toContain("treeGrowthMM: toMM");
+    expect(goToRewards).toMatch(
+      /setShowMmPopup\(true\)[\s\S]*?setShowApples\(true\)/,
+    );
   });
 
   it("9–10. post-care exits only after rewards claimed (showRewards + pending 0)", () => {

@@ -125,6 +125,8 @@ export default function VaultCapitalHelpModal({
               key={t.id}
               type="button"
               role="tab"
+              id={`vault-capital-help-tab-${t.id}`}
+              aria-controls={`vault-capital-help-panel-${t.id}`}
               aria-selected={tab === t.id}
               className={`vault-capital-help-tab${
                 tab === t.id ? " vault-capital-help-tab--active" : ""
@@ -136,14 +138,22 @@ export default function VaultCapitalHelpModal({
           ))}
         </div>
 
-        {tab === "time" ? (
-          <div role="tabpanel" className="vault-capital-help-panel">
+        <div className="vault-capital-help-panels">
+          <div
+            role="tabpanel"
+            id="vault-capital-help-panel-time"
+            aria-labelledby="vault-capital-help-tab-time"
+            aria-hidden={tab !== "time"}
+            className={`vault-capital-help-panel${
+              tab !== "time" ? " vault-capital-help-panel--inactive" : ""
+            }`}
+          >
             <div className="tree-stages-list">
               {VAULT_CAPITAL_CURVE_MARKS.map((m) => (
                 <div key={m.capital} className="tree-stage-row">
                   <div className="tree-stage-info">
                     <p className="tree-stage-name">{m.label}</p>
-                    <p className="tree-stage-range">Капитал в элементе</p>
+                    <p className="tree-stage-range">{"Капитал в\u00A0элементе"}</p>
                   </div>
                   <span className="tree-stage-badge">
                     {formatEnergyWaitMinutes(m.capital)}
@@ -152,10 +162,17 @@ export default function VaultCapitalHelpModal({
               ))}
             </div>
           </div>
-        ) : (
-          <div role="tabpanel" className="vault-capital-help-panel">
+          <div
+            role="tabpanel"
+            id="vault-capital-help-panel-elements"
+            aria-labelledby="vault-capital-help-tab-elements"
+            aria-hidden={tab !== "elements"}
+            className={`vault-capital-help-panel${
+              tab !== "elements" ? " vault-capital-help-panel--inactive" : ""
+            }`}
+          >
             <p className="flask-help-lead">
-              Капитал, лежащий в элементах, значительно ускоряет получение энергии.
+              {"Капитал, лежащий в\u00A0элементах, значительно ускоряет получение энергии."}
             </p>
             <div className="tree-stages-list">
               <div className="tree-stage-row">
@@ -165,7 +182,7 @@ export default function VaultCapitalHelpModal({
                 <div className="tree-stage-info">
                   <p className="tree-stage-name">Сейф</p>
                   <p className="tree-stage-range">
-                    Капитал ещё не в игре — энергия копится базовым временем.
+                    {"Капитал ещё не\u00A0в\u00A0игре — энергия копится базовым временем."}
                   </p>
                 </div>
                 <span className="tree-stage-badge">{formatRub(vault)}</span>
@@ -181,7 +198,7 @@ export default function VaultCapitalHelpModal({
                 <div className="tree-stage-info">
                   <p className="tree-stage-name">Сундук дерева</p>
                   <p className="tree-stage-range">
-                    Капитал в элементе — ускоряет колбу и доход.
+                    {"Капитал в\u00A0элементе — ускоряет колбу и\u00A0доход."}
                   </p>
                 </div>
                 <span className="tree-stage-badge">{formatRub(tree)}</span>
@@ -200,7 +217,7 @@ export default function VaultCapitalHelpModal({
               </div>
             </div>
           </div>
-        )}
+        </div>
       </motion.div>
     </motion.div>
   );

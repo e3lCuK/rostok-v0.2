@@ -37,6 +37,9 @@ describe("apple counter sync (Care reward wave)", () => {
     expect(claim).toContain("result.totalApples");
     expect(claim).toContain("totalApples: claimedApples");
     expect(claim).toContain("setTotalApples(claimedApples)");
+    // Coin / claimAll must not accrue tree mm (that is growth-timer Step 5 only).
+    expect(claim).not.toContain("treeGrowthMM:");
+    expect(claim).not.toContain("treeGrowthRemainder:");
   });
 
   it("claimApplesAndIncome credits apples only when creditRemainingApples is set", () => {

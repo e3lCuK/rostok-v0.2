@@ -396,8 +396,8 @@ export const V3_TUTORIAL_COMPLETE_CLEAR_SQL = `
   v2_excess_seconds = 0,
   v2_excess_elapsed_ms = 0,
   v2_excess_base_income = 0,
-  /* Keep tutorial collectibles: compensation growth / +1 яблоко / claimed skill XP.
-   * $4 = floor(compensation ₽) from capital idle (12% APR).
+  /* Keep tutorial collectibles: demo +1 мм / +1 яблоко / claimed skill XP.
+   * $4 = fixed tutorial demo mm (not 1₽→1мм from compensation).
    * Also keep catch counters from tutorial minigames (achievements). */
   tree_growth_mm = GREATEST(COALESCE(tree_growth_mm, 0), $4),
   tree_growth_remainder = 0,

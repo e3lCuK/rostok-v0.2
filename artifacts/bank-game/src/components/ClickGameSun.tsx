@@ -136,26 +136,34 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
     let timeSinceLastSpawn = SPAWN_MAX;
     let nextSpawnDelay = SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN);
 
-    function finish() {
+    function finish(forced = false) {
       if (doneRef.current) return;
 
       doneRef.current = true;
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
 
-      const skillScore = Math.min(
+      const catchSkill = Math.min(
         100,
         Math.round((catches / skillDenom) * 100),
       );
+      const elapsedRatio = Math.min(
+        1,
+        Math.max(0, (performance.now() - start) / totalMs),
+      );
+      const timeSkill = Math.round(elapsedRatio * 50);
+      const skillScore = forced
+        ? Math.max(catchSkill, timeSkill)
+        : catchSkill;
 
       console.log(
-        `[ClickGameSun] catches: ${catches} skillScore: ${skillScore}/100`,
+        `[ClickGameSun] catches: ${catches} skillScore: ${skillScore}/100${forced ? " (forced)" : ""}`,
       );
 
       setResult({ catches, skillScore });
     }
 
-    forceFinishRef.current = finish;
+    forceFinishRef.current = () => finish(true);
 
     function handlePointer(e: MouseEvent | TouchEvent) {
       if (doneRef.current || !sun) return;

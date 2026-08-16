@@ -416,7 +416,7 @@ type Props = {
 export const V3_ROOT_METELKA_LOCKED_FILL = "#8a847c";
 
 const V3_ROOT_METELKA_TRANSFER_HINT =
-  "Сначала пройдите Метёлку — потом собирайте энергию из корней";
+  "Сначала пройдите Метёлку — потом собирайте энергию из\u00A0корней";
 
 function EconomyV3RootColumn({
   kind,

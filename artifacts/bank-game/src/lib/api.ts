@@ -1214,7 +1214,7 @@ export const api = {
       body: JSON.stringify({}),
     }),
 
-  /** Economy v3 Care — claim cycle rewards (XP; money stays pending for coin/claimAll). */
+  /** Economy v3 Care — claim cycle rewards (XP + Growth_mm; money stays pending). */
   claimV3CareCycle: () =>
     request<{
       claimed: true;
@@ -1228,6 +1228,7 @@ export const api = {
       pendingBonusReward: number;
       totalApples: number;
       treeGrowthMm: number;
+      treeGrowthRemainder: number;
       v3Roots: EconomyV3RootsState;
     }>("/game/v3/care/claim-cycle", {
       method: "POST",

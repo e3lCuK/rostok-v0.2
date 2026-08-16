@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import TreeSVG from "@/components/TreeSVG";
+import RostokTreeIcon from "@/components/RostokTreeIcon";
 import { DEFAULT_CAPITAL, formatCapital } from "@/lib/engine";
 
 interface Props {
@@ -41,7 +41,7 @@ export default function OnboardingPage({ onComplete }: Props) {
       <div className="onboarding-center">
         <div className="onboarding-header">
           <span className="onboarding-icon" aria-hidden="true">
-            <TreeSVG stage={0} size={110} />
+            <RostokTreeIcon size={64} />
           </span>
           <div>
             <h1 className="onboarding-title">Открыть демо-счёт</h1>
@@ -50,7 +50,7 @@ export default function OnboardingPage({ onComplete }: Props) {
         </div>
 
         <p className="onboarding-info-text">
-          Вкладывать ничего не нужно — это демо-счёт. Энергия корней накапливается непрерывно: собирайте её, ухаживайте за деревом и получайте доход.
+          Вкладывать ничего не нужно — это демо-счёт.
         </p>
 
         <span className="onboarding-rate-badge">До <strong>15%</strong> годовых</span>

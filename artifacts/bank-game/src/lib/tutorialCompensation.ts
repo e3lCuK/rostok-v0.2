@@ -96,7 +96,7 @@ export function computeTutorialCompensation(
   return {
     elapsedMs,
     amountRub,
-    growthMm: Math.max(1, Math.floor(amountRub)),
+    growthMm: 1,
     usedFallback: false,
   };
 }

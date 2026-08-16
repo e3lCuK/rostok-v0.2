@@ -14,7 +14,7 @@ import { isEconomyV3GameCycleEnabled } from "@/lib/v3GameCycle";
 import { normalizeV2Excess } from "@/components/v2/EconomyV2EnergyDebugControls";
 import { clearTutorialFastFillUsed, clearTutorialWaitClock } from "@/lib/tutorialWaitClock";
 import { clearTutorialCompensationClock } from "@/lib/tutorialCompensationClock";
-import TreeSVG from "@/components/TreeSVG";
+import RostokTreeIcon from "@/components/RostokTreeIcon";
 import GamePage from "@/pages/GamePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AuthPage from "@/pages/AuthPage";
@@ -115,7 +115,7 @@ function AppShell() {
       <div className="bank-app">
         <div className="bank-loading">
           <span className="bank-loading-icon" aria-hidden="true">
-            <TreeSVG stage={0} size={110} />
+            <RostokTreeIcon size={104} />
           </span>
           <p>Загрузка...</p>
         </div>
@@ -171,7 +171,7 @@ function Root() {
       <div className="bank-app">
         <div className="bank-loading">
           <span className="bank-loading-icon" aria-hidden="true">
-            <TreeSVG stage={0} size={110} />
+            <RostokTreeIcon size={104} />
           </span>
           <p>Загрузка...</p>
         </div>

@@ -88,6 +88,15 @@ router.post("/game/v3/care/finish-activity", requireAuth, async (req: any, res) 
       Date.now(),
       collected,
     );
+    req.log?.info?.(
+      {
+        activity: result.activity,
+        skill: result.skill,
+        alreadyCompleted: result.alreadyCompleted,
+        incomeTotal: result.income?.total,
+      },
+      "v3 Care activity finished",
+    );
     return res.json(result);
   } catch (err) {
     if (err instanceof EconomyV3CareFinishError) {
@@ -167,6 +176,22 @@ router.post("/game/v3/care/finish-cycle", requireAuth, async (req: any, res) => 
 router.post("/game/v3/care/claim-cycle", requireAuth, async (req: any, res) => {
   try {
     const result = await claimEconomyV3CareCycle(req.userId);
+    const cycle = result.v3Roots?.careCycle;
+    req.log?.info?.(
+      {
+        treeGrowth: result.treeGrowth,
+        treeGrowthMm: result.treeGrowthMm,
+        alreadyClaimed: result.alreadyClaimed,
+        xp: result.xp,
+        waterSkill: cycle?.activities?.water?.skill ?? null,
+        sunSkill: cycle?.activities?.sun?.skill ?? null,
+        fertilizerSkill: cycle?.activities?.fertilizer?.skill ?? null,
+        averageSkill: cycle?.averageSkill ?? null,
+        previewTreeGrowth: cycle?.rewardPreview?.treeGrowth ?? null,
+        claimSnapshotTreeGrowth: cycle?.claim?.treeGrowth ?? null,
+      },
+      "v3 Care cycle claimed",
+    );
     return res.json(result);
   } catch (err) {
     if (err instanceof EconomyV3CareClaimCycleError) {

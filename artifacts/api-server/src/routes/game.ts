@@ -688,23 +688,16 @@ router.post("/game/session/claimAll", requireAuth, async (req: any, res) => {
 
     const earnedDate = new Date().toLocaleDateString("ru-RU");
 
-    // Apply tree growth for combined amount
-    const wholeMM = Math.floor(totalAmount);
-    const growRemainder = totalAmount - wholeMM;
-    let newGrowthMM = (parseInt(g.tree_growth_mm) || 0) + wholeMM;
-    let newGrowthRemainder = (parseFloat(g.tree_growth_remainder) || 0) + growRemainder;
-    if (newGrowthRemainder >= 1) {
-      const extraMM = Math.floor(newGrowthRemainder);
-      newGrowthMM += extraMM;
-      newGrowthRemainder -= extraMM;
-    }
+    // Money claim only — tree mm comes from Care Growth formula, not rub→mm.
+    const newGrowthMM = parseInt(g.tree_growth_mm) || 0;
+    const newGrowthRemainder = parseFloat(g.tree_growth_remainder) || 0;
 
     const applesCollected = Math.max(0, parseInt(req.body?.applesCollected, 10) || 0);
     const prevApples = parseInt(g.total_apples, 10) || 0;
     const totalApples = prevApples + applesCollected;
     await pool.query(
-      `UPDATE game_state SET pending_base_reward = 0, pending_bonus_reward = 0, tree_growth_mm = $2, tree_growth_remainder = $3, total_apples = $4, updated_at = NOW() WHERE user_id = $1`,
-      [userId, newGrowthMM, newGrowthRemainder, totalApples],
+      `UPDATE game_state SET pending_base_reward = 0, pending_bonus_reward = 0, total_apples = $2, updated_at = NOW() WHERE user_id = $1`,
+      [userId, totalApples],
     );
     await pool.query(
       `UPDATE accounts SET active_balance = active_balance + $1, active_earned = active_earned + $1 WHERE user_id = $2`,
@@ -772,20 +765,13 @@ router.post("/game/session/claim", requireAuth, async (req: any, res) => {
 
     const earnedDate = new Date().toLocaleDateString("ru-RU");
 
-    // Apply tree growth: 1 RUB = 1 mm, max 10000 mm
-    const wholeMM = Math.floor(amount);
-    const growRemainder = amount - wholeMM;
-    let newGrowthMM = (parseInt(g.tree_growth_mm) || 0) + wholeMM;
-    let newGrowthRemainder = (parseFloat(g.tree_growth_remainder) || 0) + growRemainder;
-    if (newGrowthRemainder >= 1) {
-      const extraMM = Math.floor(newGrowthRemainder);
-      newGrowthMM += extraMM;
-      newGrowthRemainder -= extraMM;
-    }
+    // Money claim only — tree mm comes from Care Growth formula, not rub→mm.
+    const newGrowthMM = parseInt(g.tree_growth_mm) || 0;
+    const newGrowthRemainder = parseFloat(g.tree_growth_remainder) || 0;
 
     await pool.query(
-      `UPDATE game_state SET ${col} = 0, tree_growth_mm = $2, tree_growth_remainder = $3, updated_at = NOW() WHERE user_id = $1`,
-      [userId, newGrowthMM, newGrowthRemainder],
+      `UPDATE game_state SET ${col} = 0, updated_at = NOW() WHERE user_id = $1`,
+      [userId],
     );
     await pool.query(
       `UPDATE accounts SET active_balance = active_balance + $1, active_earned = active_earned + $1

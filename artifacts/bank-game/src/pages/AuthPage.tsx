@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
+import RostokTreeIcon from "@/components/RostokTreeIcon";
 
 type Mode = "login" | "register" | "forgot" | "reset";
 
@@ -83,10 +84,12 @@ export default function AuthPage({ initialMode, onBack }: AuthPageProps = {}) {
         )}
 
         <div className="auth-logo">
-          <span style={{ fontSize: "2.8rem", lineHeight: 1 }}>🌳</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1, alignItems: "center" }}>
+          <span className="auth-logo-emoji" aria-hidden="true">
+            <RostokTreeIcon size={52} />
+          </span>
+          <div className="auth-logo-text-wrap">
             <span className="auth-logo-text">Росток</span>
-            <span style={{ fontSize: "0.72rem", color: "#5a7a40", fontWeight: 500, }}>Растите капитал играючи</span>
+            <span className="landing-logo-tagline">Растите капитал играючи</span>
           </div>
         </div>
 

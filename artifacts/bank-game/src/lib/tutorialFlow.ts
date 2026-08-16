@@ -709,30 +709,30 @@ export type V3TutorialOverlayConfig = {
 export const V3_TUTORIAL_PLANT_SPROUT_OVERLAY: V3TutorialOverlayConfig = {
   icon: "plant",
   text: "Посадите росток",
-  hint: "Коснитесь пунктирного овала под деревом.",
+  hint: "Коснитесь пунктирного овала под\u00A0деревом.",
   accent: TUTORIAL_PLAN_ICON_COLORS.plant,
 };
 
 /** Before vault drag: red flask = energy without capital influence. */
 export const V3_TUTORIAL_ENERGY_BASE_OVERLAY: V3TutorialOverlayConfig = {
   icon: "wait",
-  text: "Энергия копится без капитала",
-  hint: "Красная колба — базовое время. Капитал из сейфа ускорит формирование энергии.",
+  text: "Энергия копится без\u00A0капитала",
+  hint: "Красная колба — базовое время. Капитал из\u00A0сейфа ускорит формирование энергии.",
   accent: TUTORIAL_PLAN_ICON_COLORS.energyBase,
 };
 
 export const V3_TUTORIAL_CAPITAL_TRANSFER_OVERLAY: V3TutorialOverlayConfig = {
   icon: "vault",
-  text: "Перенесите капитал в сундук",
-  hint: "Перетащите кошелёк из сейфа в сундук дерева.",
+  text: "Перенесите капитал в\u00A0сундук",
+  hint: "Перетащите кошелёк из\u00A0сейфа в\u00A0сундук дерева.",
   accent: TUTORIAL_PLAN_ICON_COLORS.vault,
 };
 
 /** After capital on the tree: teach the purple clock skip. */
 export const V3_TUTORIAL_FAST_FILL_OVERLAY: V3TutorialOverlayConfig = {
   icon: "wait",
-  text: "Нажмите на значок времени",
-  hint: "Фиолетовые часы у колбы ускорят формирование энергии в обучении.",
+  text: "Нажмите на\u00A0значок времени",
+  hint: "Фиолетовые часы у\u00A0колбы ускорят формирование энергии в\u00A0обучении.",
   accent: TUTORIAL_PLAN_ICON_COLORS.fastFill,
 };
 
@@ -740,16 +740,24 @@ export const V3_TUTORIAL_FAST_FILL_OVERLAY: V3TutorialOverlayConfig = {
 export const V3_TUTORIAL_WAIT_ENERGY_OVERLAY: V3TutorialOverlayConfig = {
   icon: "wait",
   text: "Дождитесь формирования энергии",
-  hint: "Смотрите на таймер у корней.",
+  hint: "Смотрите на\u00A0таймер у\u00A0корней.",
   accent: TUTORIAL_PLAN_ICON_COLORS.wait,
 };
 
 /** After wait — teach collecting filled root cells (pulse on highlighted root). */
 export const V3_TUTORIAL_COLLECT_ROOTS_OVERLAY: V3TutorialOverlayConfig = {
   icon: "energy",
-  text: "Соберите энергию из корней",
-  hint: "Нажмите на корневые ячейки по очереди.",
+  text: "Соберите энергию из\u00A0корней",
+  hint: "Нажмите на\u00A0корневые ячейки по\u00A0очереди.",
   accent: TUTORIAL_PLAN_ICON_COLORS.energy,
+};
+
+/** After three Care activities: point at the merged shovel «Уход». */
+export const V3_TUTORIAL_CARE_OVERLAY: V3TutorialOverlayConfig = {
+  icon: "care",
+  text: "Отлично! Все три этапа пройдены!",
+  hint: "Нажмите на\u00A0кнопку «Уход».",
+  accent: TUTORIAL_PLAN_ICON_COLORS.care,
 };
 
 export const V3_TUTORIAL_REWARD_OVERLAY: V3TutorialOverlayConfig = {
@@ -775,7 +783,7 @@ export function v3TutorialActivityOverlayForKind(
     return {
       icon: "fertilizer",
       text: "Пройдите активность",
-      hint: "Собирайте гранулы в ряд.",
+      hint: "Собирайте гранулы в\u00A0ряд.",
       accent: V3_ACTIVITY_ACCENT_COLORS.fertilizer,
     };
   }

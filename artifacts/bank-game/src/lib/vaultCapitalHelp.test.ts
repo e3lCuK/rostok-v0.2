@@ -15,6 +15,7 @@ const modalSrc = readFileSync(
   join(here, "../components/v2/VaultCapitalHelpModal.tsx"),
   "utf8",
 );
+const cssSrc = readFileSync(join(here, "../bank.css"), "utf8");
 
 describe("vault capital energy-wait help", () => {
   it("T(K) landmarks: 0 → 60 мин, 100k → 12 мин", () => {
@@ -45,6 +46,23 @@ describe("vault capital energy-wait help", () => {
     expect(modalSrc).toContain("Сейф");
     expect(modalSrc).toContain("Сундук дерева");
     expect(modalSrc).toContain("Новые элементы");
+    expect(modalSrc).toContain("vault-capital-help-panels");
+    expect(modalSrc).toContain("vault-capital-help-panel--inactive");
+    expect(modalSrc).toContain("aria-hidden=");
+    expect(modalSrc).not.toMatch(/^\s*hidden=\{/m);
+    expect(modalSrc).not.toMatch(/\nhidden=\{/);
+    expect(cssSrc).toMatch(
+      /\.vault-capital-help-panels\s*\{[^}]*display:\s*grid/s,
+    );
+    expect(cssSrc).toMatch(
+      /\.vault-capital-help-panel\s*\{[^}]*grid-area:\s*1\s*\/\s*1/s,
+    );
+    expect(cssSrc).toMatch(
+      /\.vault-capital-help-panel--inactive\s*\{[^}]*visibility:\s*hidden/s,
+    );
+    expect(cssSrc).not.toMatch(
+      /\.vault-capital-help-panel\[hidden\]/,
+    );
     expect(modalSrc).not.toContain("Гнёзда");
     expect(modalSrc).not.toContain("vaultEnergyWaitCurvePoints");
     expect(modalSrc).not.toContain("CurveChart");

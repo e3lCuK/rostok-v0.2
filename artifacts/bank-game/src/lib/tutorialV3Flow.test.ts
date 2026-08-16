@@ -578,8 +578,8 @@ describe("Economy v3 Tutorial flow (8E)", () => {
   it("intro wait card; then collect-roots card with energy icon", () => {
     expect(v3TutorialOverlayConfig("intro")).toEqual({
       icon: "wait",
-      text: "Нажмите на значок времени",
-      hint: "Фиолетовые часы у колбы ускорят формирование энергии в обучении.",
+      text: "Нажмите на\u00A0значок времени",
+      hint: "Фиолетовые часы у\u00A0колбы ускорят формирование энергии в\u00A0обучении.",
       accent: TUTORIAL_PLAN_ICON_COLORS.fastFill,
     });
     expect(
@@ -587,13 +587,13 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     ).toEqual({
       icon: "wait",
       text: "Дождитесь формирования энергии",
-      hint: "Смотрите на таймер у корней.",
+      hint: "Смотрите на\u00A0таймер у\u00A0корней.",
       accent: TUTORIAL_PLAN_ICON_COLORS.wait,
     });
     const collect = {
       icon: "energy",
-      text: "Соберите энергию из корней",
-      hint: "Нажмите на корневые ячейки по очереди.",
+      text: "Соберите энергию из\u00A0корней",
+      hint: "Нажмите на\u00A0корневые ячейки по\u00A0очереди.",
       accent: TUTORIAL_PLAN_ICON_COLORS.energy,
     };
     expect(v3TutorialOverlayConfig("v3-root-water")).toEqual(collect);
@@ -613,7 +613,7 @@ describe("Economy v3 Tutorial flow (8E)", () => {
       v3TutorialOverlayConfig("v3-activities-intro", {
         recommendedActivity: "fertilizer",
       })?.hint,
-    ).toBe("Собирайте гранулы в ряд.");
+    ).toBe("Собирайте гранулы в\u00A0ряд.");
     expect(flowSrc).not.toContain("Нажмите на синий корень");
     expect(flowSrc).not.toContain("корня Воды");
     expect(pageSrc).toContain('cfg.icon === "wait"');

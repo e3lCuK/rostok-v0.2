@@ -17,6 +17,7 @@ import {
   buildV3CareCycle,
   type V3CareCycleState,
 } from "./economy-v3-roots";
+import { computeEconomyV3TreeGrowth } from "./economy-v3-tree-growth";
 
 const NOW = 1_700_000_000_000;
 const ANCHOR = NOW - 3_600_000;
@@ -148,10 +149,38 @@ describe("buildEconomyV3CareRewardPreview", () => {
     };
     expect(preview.xp).toBe(expectedXp);
     expect(preview.income).toEqual(expectedIncome);
-    expect(preview.treeGrowth).toBe(0);
+    expect(preview.treeGrowth).toBe(
+      computeEconomyV3TreeGrowth({
+        water: { presetSeconds: 5, skill: 0.5 },
+        sun: { presetSeconds: 10, skill: 0.8 },
+        fertilizer: { presetSeconds: 15, skill: 1 },
+        longCareCycles: 0,
+      }).awardedMm,
+    );
+    expect(preview.treeGrowth).toBeGreaterThan(0);
     expect(
       computeCycleSkill(scores.water, scores.sun, scores.fertilizer),
     ).toBeCloseTo((0.5 + 0.8 + 1) / 3, 10);
+  });
+
+  it("treeGrowth rises with LongCare N and is independent of capital", () => {
+    const cycle = readyCycle();
+    const at0 = buildEconomyV3CareRewardPreview(cycle, {
+      ...CTX,
+      longCareCycles: 0,
+    });
+    const at500 = buildEconomyV3CareRewardPreview(cycle, {
+      ...CTX,
+      capital: 1,
+      longCareCycles: 500,
+    });
+    expect(at500.treeGrowth).toBeGreaterThan(at0.treeGrowth);
+    const sameCapitalDifferent = buildEconomyV3CareRewardPreview(cycle, {
+      ...CTX,
+      capital: 1,
+      longCareCycles: 0,
+    });
+    expect(sameCapitalDifferent.treeGrowth).toBe(at0.treeGrowth);
   });
 
   it("available at status=finished", () => {

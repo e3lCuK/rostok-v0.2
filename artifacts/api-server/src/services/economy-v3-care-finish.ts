@@ -341,7 +341,7 @@ export async function finishEconomyV3CareActivity(
     }
 
     // First successful finish: calculate income into pending (do not credit balance).
-    // Coin click → claimAll applies pending to accounts + history + tree growth.
+    // Coin click → claimAll applies pending to accounts + history (mm is Care claim).
     // Tutorial (trusted tutorial_done === false): compute for response only — never persist.
     let pendingBase =
       parseFloat(String(locked.pending_base_reward ?? "0")) || 0;

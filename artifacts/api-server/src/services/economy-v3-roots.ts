@@ -316,6 +316,8 @@ export type EconomyV3RootsRow = {
   total_apples?: unknown;
   tree_growth_mm?: unknown;
   tree_growth_remainder?: unknown;
+  /** Lifetime successful Care claims (LongCare N). */
+  v3_long_care_cycles?: unknown;
   /** Visit streak — drives daily preset bonus (0…5). */
   streak_days?: unknown;
 };
@@ -340,6 +342,8 @@ export type BuildEconomyV3RootsPublicStateOptions = {
   metelkaCompletedForCycle?: boolean;
   /** Override streak_days from row when computing effective capacity. */
   streakDays?: unknown;
+  /** Override LongCare N when building Care rewardPreview. */
+  longCareCycles?: number;
 };
 
 export type EconomyV3InvariantIssue = {
@@ -1004,12 +1008,22 @@ export function resolveEconomyV3CareRewardEconomyContext(
     options?.ordinaryIncomeElapsedMs !== undefined
       ? options.ordinaryIncomeElapsedMs
       : parseOrdinaryIncomeElapsedMs(row?.v2_ordinary_income_elapsed_ms);
+  const longCareCycles =
+    options?.longCareCycles != null && Number.isFinite(options.longCareCycles)
+      ? Math.max(0, Math.trunc(Number(options.longCareCycles)))
+      : (() => {
+          const raw = row?.v3_long_care_cycles;
+          if (raw == null || raw === "") return 0;
+          const n = typeof raw === "number" ? raw : Number(raw);
+          return Number.isFinite(n) && n > 0 ? Math.trunc(n) : 0;
+        })();
   return {
     capital,
     incomeAnchorAt,
     nowMs,
     freshness,
     ordinaryIncomeElapsedMs,
+    longCareCycles,
   };
 }
 

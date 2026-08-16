@@ -1,6 +1,6 @@
 /**
- * Economy v3 Care cycle claim — apply XP once under FOR UPDATE.
- * Money is awarded on finish-activity (per completed mini-game). Apples stay 0.
+ * Economy v3 Care cycle claim — apply XP + tree growth once under FOR UPDATE.
+ * Money stays in pending until coin / claimAll. Apples stay 0.
  */
 
 import { pool } from "@workspace/db";
@@ -23,6 +23,10 @@ import {
   type EconomyV3RootsRow,
 } from "./economy-v3-roots";
 import type { EconomyV3DbClient } from "./economy-v3-roots-settle";
+import {
+  applyTreeGrowthAward,
+  computeEconomyV3TreeGrowth,
+} from "./economy-v3-tree-growth";
 
 export class EconomyV3CareClaimCycleError extends Error {
   readonly status: number;
@@ -48,6 +52,7 @@ export type ClaimEconomyV3CareCycleResponse = {
   pendingBonusReward: number;
   totalApples: number;
   treeGrowthMm: number;
+  treeGrowthRemainder: number;
   v3Roots: EconomyV3RootsPublicState;
 };
 
@@ -59,6 +64,8 @@ const V3_CARE_CLAIM_CYCLE_SELECT = `
   pending_bonus_reward,
   total_apples,
   tree_growth_mm,
+  tree_growth_remainder,
+  v3_long_care_cycles,
   v3_root_water_seconds,
   v3_root_sun_seconds,
   v3_root_fertilizer_seconds,
@@ -118,7 +125,7 @@ function readStoredClaim(
 
 /**
  * Claim finished Care cycle rewards under FOR UPDATE.
- * Applies XP + pending income once; does not grow the tree or award apples.
+ * Applies XP + tree mm (Growth formula) once; money stays pending; no apples.
  */
 export async function claimEconomyV3CareCycle(
   userId: string | number,
@@ -189,8 +196,11 @@ export async function claimEconomyV3CareCycle(
     let pendingBase = asFloat(locked.pending_base_reward);
     let pendingBonus = asFloat(locked.pending_bonus_reward);
     const totalApples = asInt(locked.total_apples);
-    const treeGrowthMm = asInt(locked.tree_growth_mm);
+    let treeGrowthMm = asInt(locked.tree_growth_mm);
+    let treeGrowthRemainder = asFloat(locked.tree_growth_remainder);
+    let longCareCycles = asInt(locked.v3_long_care_cycles);
     const snapshot = decided.snapshot;
+    let responseTreeGrowth = snapshot.treeGrowth;
     const tutorialActive = isEconomyV2TutorialActive(locked.tutorial_done);
 
     if (decided.applyAwards) {
@@ -199,8 +209,10 @@ export async function claimEconomyV3CareCycle(
 
       if (tutorialActive) {
         // Persist skill XP; income / growth / anchors stay demo until tutorial/complete.
+        // Do not increment LongCare N in tutorial.
         playerXp = playerXp + snapshot.xp;
         playerLevel = calcPlayerLevel(playerXp);
+        responseTreeGrowth = 0;
         await client.query(
           `UPDATE game_state
            SET player_xp = $2,
@@ -232,8 +244,43 @@ export async function claimEconomyV3CareCycle(
       } else {
         playerXp = playerXp + snapshot.xp;
         playerLevel = calcPlayerLevel(playerXp);
-        // Money is pending until coin / claimAll. Claim only grants XP.
 
+        const cycle = buildV3CareCycle(locked, { capital, nowMs: now });
+        const avgSkill = cycle.averageSkill;
+        const growthInput = {
+          water: {
+            presetSeconds: cycle.activities.water.presetSeconds ?? 5,
+            skill: cycle.activities.water.skill ?? avgSkill ?? 0,
+          },
+          sun: {
+            presetSeconds: cycle.activities.sun.presetSeconds ?? 5,
+            skill: cycle.activities.sun.skill ?? avgSkill ?? 0,
+          },
+          fertilizer: {
+            presetSeconds: cycle.activities.fertilizer.presetSeconds ?? 5,
+            skill: cycle.activities.fertilizer.skill ?? avgSkill ?? 0,
+          },
+          longCareCycles,
+        };
+        const growth = computeEconomyV3TreeGrowth(growthInput);
+        // Integer SoT award (includes 1 mm floor at Skill 0); max with preview.
+        const previewMm = Math.max(
+          0,
+          Math.floor(Number(snapshot.treeGrowth) || 0),
+        );
+        const growthMmForApply = Math.max(growth.awardedMm, previewMm);
+        const applied = applyTreeGrowthAward({
+          currentMm: treeGrowthMm,
+          currentRemainder: treeGrowthRemainder,
+          growthMm: growthMmForApply,
+        });
+        treeGrowthMm = applied.treeGrowthMm;
+        treeGrowthRemainder = applied.treeGrowthRemainder;
+        const awardedTreeGrowth = applied.awardedMm;
+        responseTreeGrowth = awardedTreeGrowth;
+        longCareCycles = longCareCycles + 1;
+
+        // Money stays pending until coin / claimAll. Claim grants XP + mm.
         await client.query(
           `UPDATE game_state
            SET player_xp = $2,
@@ -246,6 +293,9 @@ export async function claimEconomyV3CareCycle(
                v3_care_cycle_claimed_total_income = $9,
                v2_income_anchor_at = $10,
                v2_ordinary_income_elapsed_ms = 0,
+               tree_growth_mm = $11,
+               tree_growth_remainder = $12,
+               v3_long_care_cycles = $13,
                updated_at = NOW()
            WHERE user_id = $1`,
           [
@@ -254,11 +304,14 @@ export async function claimEconomyV3CareCycle(
             playerLevel,
             claimedAtDate,
             snapshot.xp,
-            snapshot.treeGrowth,
+            awardedTreeGrowth,
             snapshot.income.base,
             snapshot.income.bonus,
             snapshot.income.total,
             claimedAtMs,
+            treeGrowthMm,
+            treeGrowthRemainder,
+            longCareCycles,
           ],
         );
 
@@ -266,12 +319,15 @@ export async function claimEconomyV3CareCycle(
         locked.player_level = playerLevel;
         locked.v3_care_cycle_claimed_at = claimedAtDate;
         locked.v3_care_cycle_claimed_xp = snapshot.xp;
-        locked.v3_care_cycle_claimed_tree_growth = snapshot.treeGrowth;
+        locked.v3_care_cycle_claimed_tree_growth = awardedTreeGrowth;
         locked.v3_care_cycle_claimed_base_income = snapshot.income.base;
         locked.v3_care_cycle_claimed_bonus_income = snapshot.income.bonus;
         locked.v3_care_cycle_claimed_total_income = snapshot.income.total;
         locked.v2_income_anchor_at = claimedAtMs;
         locked.v2_ordinary_income_elapsed_ms = 0;
+        locked.tree_growth_mm = treeGrowthMm;
+        locked.tree_growth_remainder = treeGrowthRemainder;
+        locked.v3_long_care_cycles = longCareCycles;
       }
     }
 
@@ -280,7 +336,7 @@ export async function claimEconomyV3CareCycle(
     // Tutorial: return real XP for the LevelWidget flash; keep growth/income demo-only.
     const responseXp = snapshot.xp;
     const responseTree =
-      tutorialActive && decided.applyAwards ? 0 : snapshot.treeGrowth;
+      tutorialActive && decided.applyAwards ? 0 : responseTreeGrowth;
     const responseIncome =
       tutorialActive && decided.applyAwards
         ? { base: 0, bonus: 0, total: 0 }
@@ -298,6 +354,7 @@ export async function claimEconomyV3CareCycle(
       pendingBonusReward: pendingBonus,
       totalApples,
       treeGrowthMm,
+      treeGrowthRemainder,
       v3Roots: buildEconomyV3RootsPublicState(locked, {
         capital,
         nowMs: now,

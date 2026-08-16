@@ -28,6 +28,7 @@ describe("computeTutorialCompensation (client)", () => {
       ) / 100;
     expect(r.usedFallback).toBe(false);
     expect(r.amountRub).toBe(expected);
+    expect(r.growthMm).toBe(1);
   });
 
   it("falls back without timestamps", () => {

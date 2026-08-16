@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   nextV3TutorialStepAfterRootTransfer,
   tutorialHighlightRoot,
+  V3_TUTORIAL_CARE_OVERLAY,
   v3TutorialOverlayConfig,
 } from "./tutorialFlow";
 import { isV3TutorialActivitiesInteractionLocked } from "./tutorialFlow";
@@ -26,21 +27,26 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     expect(pageSrc).toContain(">Ухаживайте за деревом<");
     expect(pageSrc).not.toContain("Как ухаживать за деревом");
     expect(pageSrc).not.toContain(">Уход за деревом<");
-    // Outline TreePine — same stroke language as Droplets / Sun / FertilizerIcon
+    expect(pageSrc).toContain("V3_TUTORIAL_CARE_OVERLAY");
+    expect(V3_TUTORIAL_CARE_OVERLAY.hint).toBe("Нажмите на\u00A0кнопку «Уход».");
+    // Brand tree PNG — same asset as auth / landing / complete
     expect(pageSrc).toMatch(
-      /tutorial-welcome-icon[\s\S]{0,160}<TreePine size=\{48\} strokeWidth=\{2\.25\}/,
+      /tutorial-welcome-icon[\s\S]{0,120}<RostokTreeIcon size=\{56\}/,
     );
     expect(pageSrc).toMatch(
-      /tutorial-complete-icon[\s\S]{0,160}<TreePine size=\{48\} strokeWidth=\{2\.25\}/,
+      /tutorial-complete-icon[\s\S]{0,120}<RostokTreeIcon size=\{56\}/,
     );
     expect(pageSrc).not.toMatch(
-      /tutorial-welcome-icon[^>]*>🌳<\/span>/,
+      /tutorial-welcome-icon[\s\S]{0,160}<TreePine/,
     );
     expect(pageSrc).not.toMatch(
       /tutorial-welcome-icon[\s\S]{0,120}<Shovel/,
     );
     expect(pageSrc).not.toMatch(
       /tutorial-welcome-icon[^>]*>\s*🌱/,
+    );
+    expect(pageSrc).not.toMatch(
+      /tutorial-welcome-icon[^>]*>\s*🌳/,
     );
     expect(cssSrc).toMatch(
       /\.tutorial-welcome-icon\s*\{[\s\S]*?font-size:\s*2\.8rem/,
@@ -55,10 +61,10 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     expect(pageSrc).toContain("tutorial-welcome-step-icon");
     expect(pageSrc).toContain("Посадите росток");
     expect(pageSrc).toContain("Красная колба");
-    expect(pageSrc).toContain("Перенесите капитал из сейфа");
+    expect(pageSrc).toContain("Перенесите капитал из\\u00A0сейфа");
     expect(pageSrc).not.toContain("Нажмите фиолетовые часы у колбы");
     expect(pageSrc).toContain("созреет энергия");
-    expect(pageSrc).toContain("Соберите энергию из корней");
+    expect(pageSrc).toContain("Соберите энергию из\\u00A0корней");
     expect(pageSrc).toContain("Пройдите активности");
     expect(pageSrc).toContain("Завершите уход");
     expect(pageSrc).toContain("Заберите награды");
@@ -92,7 +98,7 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
       /\.tutorial-welcome-step-icon\s*\{[\s\S]*?width:\s*20px/,
     );
     expect(cssSrc).toMatch(
-      /\.tutorial-welcome-step-icon svg\s*\{[\s\S]*?width:\s*20px/,
+      /\.tutorial-welcome-step-icon svg,\s*\n?\.tutorial-welcome-step-icon img\s*\{[\s\S]*?width:\s*20px/,
     );
     expect(cssSrc).toMatch(
       /\.tutorial-welcome-step-icon--trio\s*\{[\s\S]*?overflow:\s*visible/,
@@ -110,10 +116,10 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
 
   it("5–7. intro wait card; root collect has energy card + pulse (no outline)", () => {
     expect(v3TutorialOverlayConfig("intro")?.text).toBe(
-      "Нажмите на значок времени",
+      "Нажмите на\u00A0значок времени",
     );
     expect(v3TutorialOverlayConfig("intro")?.hint).toContain(
-      "ускорят формирование энергии в обучении",
+      "ускорят формирование энергии в\u00A0обучении",
     );
     expect(cssSrc).toContain("v3-tutorial-fast-fill-blink");
     expect(cssSrc).toMatch(
@@ -145,10 +151,10 @@ describe("tutorial v3 welcome + root pulse visuals", () => {
     ] as const) {
       expect(v3TutorialOverlayConfig(step)?.icon).toBe("energy");
       expect(v3TutorialOverlayConfig(step)?.text).toBe(
-        "Соберите энергию из корней",
+        "Соберите энергию из\u00A0корней",
       );
       expect(v3TutorialOverlayConfig(step)?.hint).toBe(
-        "Нажмите на корневые ячейки по очереди.",
+        "Нажмите на\u00A0корневые ячейки по\u00A0очереди.",
       );
     }
     expect(cssSrc).toMatch(

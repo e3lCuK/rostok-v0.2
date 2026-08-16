@@ -5,10 +5,15 @@
 
 import type {
   EconomyV2ExcessState,
+  EconomyV3CareCycleState,
   EconomyV3CareRewardPreview,
   EconomyV3RootKind,
   EconomyV3RootsState,
 } from "@/lib/api";
+import {
+  coerceV3CareSkill,
+  computeEconomyV3TreeGrowth,
+} from "@/lib/v3TreeGrowth";
 
 /** Minimum reserve / preset seconds (matches server careAvailability). */
 export const V3_CARE_PLAYABLE_MIN_SECONDS = 5;
@@ -325,9 +330,146 @@ export type V3CareSessionScoreUi = {
   mm: number;
 };
 
-/** Map server rewardPreview into existing sessionScores (no local formulas). */
+/** Minigame fill 0–100 (or 0–1) → skill ∈ [0, 1]. */
+export function skillFromActivityFillPercent(
+  pct: number | null | undefined,
+): number | null {
+  if (pct == null || !Number.isFinite(Number(pct))) return null;
+  const n = Number(pct);
+  if (n < 0) return 0;
+  return coerceV3CareSkill(n);
+}
+
+function resolveCycleActivitySkill(
+  activity: { skill?: number | null } | null | undefined,
+  averageSkill: number | null | undefined,
+  fillPct?: number | null,
+): number {
+  if (activity?.skill != null && Number.isFinite(Number(activity.skill))) {
+    return coerceV3CareSkill(Number(activity.skill));
+  }
+  const fromFill = skillFromActivityFillPercent(fillPct);
+  if (fromFill != null) return fromFill;
+  if (averageSkill != null && Number.isFinite(Number(averageSkill))) {
+    return coerceV3CareSkill(Number(averageSkill));
+  }
+  return 0;
+}
+
+/** Growth_mm from the cycle journal (same SoT as the server). */
+export function growthMmFromV3CareCycle(
+  cycle: EconomyV3CareCycleState | null | undefined,
+  longCareCycles: number = 0,
+  fillPercents?: {
+    water?: number | null;
+    sun?: number | null;
+    fertilizer?: number | null;
+  },
+): number {
+  const previewMm = Math.max(
+    0,
+    Math.floor(Number(cycle?.rewardPreview?.treeGrowth) || 0),
+  );
+  const a = cycle?.activities;
+  if (
+    !a?.water?.completed ||
+    !a.sun?.completed ||
+    !a.fertilizer?.completed
+  ) {
+    return previewMm;
+  }
+  const fromJournal = computeEconomyV3TreeGrowth({
+    water: {
+      presetSeconds: a.water.presetSeconds ?? 5,
+      skill: resolveCycleActivitySkill(
+        a.water,
+        cycle?.averageSkill,
+        fillPercents?.water,
+      ),
+    },
+    sun: {
+      presetSeconds: a.sun.presetSeconds ?? 5,
+      skill: resolveCycleActivitySkill(
+        a.sun,
+        cycle?.averageSkill,
+        fillPercents?.sun,
+      ),
+    },
+    fertilizer: {
+      presetSeconds: a.fertilizer.presetSeconds ?? 5,
+      skill: resolveCycleActivitySkill(
+        a.fertilizer,
+        cycle?.averageSkill,
+        fillPercents?.fertilizer,
+      ),
+    },
+    longCareCycles,
+  }).awardedMm;
+  return Math.max(previewMm, fromJournal);
+}
+
+/**
+ * Pick the cycle journal that still has three completed activities
+ * (pre-claim snap or claim response — ack clears the journal).
+ */
+export function pickV3CareCycleForGrowth(
+  ...cycles: Array<EconomyV3CareCycleState | null | undefined>
+): EconomyV3CareCycleState | null {
+  for (const c of cycles) {
+    const a = c?.activities;
+    if (
+      a?.water?.completed &&
+      a.sun?.completed &&
+      a.fertilizer?.completed
+    ) {
+      return c ?? null;
+    }
+  }
+  return cycles.find((c) => c != null) ?? null;
+}
+
+/**
+ * Integer mm to show after the growth timer for this Care claim.
+ * Uses claim.treeGrowth, journal formula, and absolute treeGrowthMm − current.
+ */
+export function resolveV3CareGrowthMmDelta(input: {
+  claimTreeGrowth?: number | null;
+  claimTreeGrowthMm?: number | null;
+  currentTreeGrowthMm: number;
+  cycle?: EconomyV3CareCycleState | null;
+  longCareCycles?: number;
+  fillPercents?: {
+    water?: number | null;
+    sun?: number | null;
+    fertilizer?: number | null;
+  };
+}): number {
+  const fromClaim = Math.max(
+    0,
+    Math.floor(Number(input.claimTreeGrowth) || 0),
+  );
+  const fromJournal = growthMmFromV3CareCycle(
+    input.cycle,
+    input.longCareCycles ?? 0,
+    input.fillPercents,
+  );
+  const current = Math.max(
+    0,
+    Math.floor(Number(input.currentTreeGrowthMm) || 0),
+  );
+  const absolute = Math.max(
+    0,
+    Math.floor(Number(input.claimTreeGrowthMm) || 0),
+  );
+  const fromAbsolute =
+    absolute > current ? absolute - current : 0;
+  return Math.max(fromClaim, fromJournal, fromAbsolute);
+}
+
+/** Map server rewardPreview into existing sessionScores. */
 export function sessionScoresFromV3RewardPreview(
   preview: EconomyV3CareRewardPreview | null | undefined,
+  cycle?: EconomyV3CareCycleState | null,
 ): V3CareSessionScoreUi | null {
   if (!preview || !preview.available) return null;
   return {
@@ -337,30 +479,25 @@ export function sessionScoresFromV3RewardPreview(
     xp: Math.max(0, Math.floor(Number(preview.xp) || 0)),
     base: Math.max(0, Number(preview.income?.base) || 0),
     bonus: Math.max(0, Number(preview.income?.bonus) || 0),
-    mm: Math.max(0, Math.floor(Number(preview.treeGrowth) || 0)),
+    mm: Math.max(
+      Math.max(0, Math.floor(Number(preview.treeGrowth) || 0)),
+      growthMmFromV3CareCycle(cycle),
+    ),
   };
 }
 
-export function sessionScoresFromV3Claim(claim: {
-  xp: number;
-  treeGrowth: number;
-  income?: { base: number; bonus: number; total: number };
-  pendingBaseReward?: number;
-  pendingBonusReward?: number;
-}): V3CareSessionScoreUi {
-  // Preview treeGrowth is currently always 0 — drive growth-timer / +N мм from
-  // THIS cycle's income.total. Do not use cumulative pending_* (stacks across
-  // Care cycles until claimAll) or two sessions become one 38s timer.
-  const fromTree = Math.max(0, Math.floor(Number(claim.treeGrowth) || 0));
-  const incomeTotal = Math.max(0, Math.floor(Number(claim.income?.total) || 0));
-  const pendingTotal = Math.max(
-    0,
-    Math.floor(
-      (Math.max(0, Number(claim.pendingBaseReward) || 0) +
-        Math.max(0, Number(claim.pendingBonusReward) || 0)),
-    ),
-  );
-  const fromMoney = incomeTotal > 0 ? incomeTotal : pendingTotal;
+export function sessionScoresFromV3Claim(
+  claim: {
+    xp: number;
+    treeGrowth: number;
+    treeGrowthMm?: number;
+    income?: { base: number; bonus: number; total: number };
+    pendingBaseReward?: number;
+    pendingBonusReward?: number;
+  },
+  cycle?: EconomyV3CareCycleState | null,
+  currentTreeGrowthMm: number = 0,
+): V3CareSessionScoreUi {
   return {
     water: 0,
     sun: 0,
@@ -368,7 +505,12 @@ export function sessionScoresFromV3Claim(claim: {
     xp: Math.max(0, Math.floor(Number(claim.xp) || 0)),
     base: Math.max(0, Number(claim.income?.base) || 0),
     bonus: Math.max(0, Number(claim.income?.bonus) || 0),
-    mm: fromTree > 0 ? fromTree : fromMoney,
+    mm: resolveV3CareGrowthMmDelta({
+      claimTreeGrowth: claim.treeGrowth,
+      claimTreeGrowthMm: claim.treeGrowthMm,
+      currentTreeGrowthMm,
+      cycle,
+    }),
   };
 }
 

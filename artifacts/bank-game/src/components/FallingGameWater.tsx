@@ -185,21 +185,30 @@ export default function FallingGameWater({
       ctx.closePath();
     }
 
-    function finish() {
+    function finish(forced = false) {
       if (doneRef.current) return;
       doneRef.current = true;
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
-      const skillScore = Math.min(
+      const catchSkill = Math.min(
         100,
         Math.round((Math.min(catches, totalDrops) / totalDrops) * 100),
       );
+      // Early ✕: credit time spent (up to 50%) so Care still yields XP/mm.
+      const elapsedRatio = Math.min(
+        1,
+        Math.max(0, (performance.now() - start) / totalMs),
+      );
+      const timeSkill = Math.round(elapsedRatio * 50);
+      const skillScore = forced
+        ? Math.max(catchSkill, timeSkill)
+        : catchSkill;
       console.log(
-        `[FallingGame:${type}] catches: ${catches}/${totalDrops}  skillScore: ${skillScore}/100  preset: ${activePreset.id}`,
+        `[FallingGame:${type}] catches: ${catches}/${totalDrops}  skillScore: ${skillScore}/100  preset: ${activePreset.id}${forced ? " (forced)" : ""}`,
       );
       setResult({ catches, skillScore });
     }
-    forceFinishRef.current = finish;
+    forceFinishRef.current = () => finish(true);
 
     function frame(ts: number) {
       if (doneRef.current) return;

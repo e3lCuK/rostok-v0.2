@@ -28,7 +28,7 @@ describe("computeTutorialCompensation", () => {
     );
     expect(r.usedFallback).toBe(false);
     expect(r.amountRub).toBe(expected);
-    expect(r.growthMm).toBe(Math.max(1, Math.floor(expected)));
+    expect(r.growthMm).toBe(1);
     expect(r.elapsedMs).toBe(10 * 60 * 1000);
   });
 

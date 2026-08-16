@@ -1,6 +1,147 @@
+import {
+  Clock,
+  Gamepad2,
+  HeartHandshake,
+  MessageCircle,
+  Phone,
+  PiggyBank,
+  Repeat,
+  Shovel,
+  Sparkles,
+  Sprout,
+  TreePine,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react";
+import RostokTreeIcon from "@/components/RostokTreeIcon";
+import rostokTree from "@/assets/rostok-tree.png";
+import { TUTORIAL_PLAN_ICON_COLORS } from "@/lib/tutorialFlow";
+
 interface Props {
   onLogin: () => void;
   onRegister: () => void;
+}
+
+const BANK_REASONS = [
+  {
+    text: "Игровой формат повышает лояльность и\u00A0вовлечённость клиентов",
+    Icon: HeartHandshake,
+  },
+  {
+    text: "Клиенты дольше держат деньги на\u00A0счетах, формируя стабильную ресурсную базу",
+    Icon: PiggyBank,
+  },
+  {
+    text: "Ежедневное взаимодействие создаёт возможности для\u00A0кросс-продаж",
+    Icon: Repeat,
+  },
+  {
+    text: "Банк выделяется на\u00A0рынке и\u00A0привлекает молодую аудиторию",
+    Icon: Users,
+  },
+] as const;
+
+const CLIENT_REASONS = [
+  {
+    text: "Накопление становится ежедневным игровым ритуалом, а\u00A0не\u00A0скучной обязанностью",
+    Icon: Gamepad2,
+  },
+  {
+    text: "Видимый прогресс (дерево растёт вместе с\u00A0капиталом) мотивирует продолжать",
+    Icon: Sprout,
+  },
+  {
+    text: "Проценты по\u00A0вкладу работают, а\u00A0игра даёт дополнительный бонус",
+    Icon: TrendingUp,
+  },
+  {
+    text: "Копить становится легко и\u00A0интересно",
+    Icon: Sparkles,
+  },
+] as const;
+
+const FLOW_STEPS = [
+  {
+    label: "Капитал и\u00A0время",
+    Icon: Clock,
+    color: TUTORIAL_PLAN_ICON_COLORS.wait,
+  },
+  {
+    label: "Игровая энергия",
+    Icon: Zap,
+    color: TUTORIAL_PLAN_ICON_COLORS.energy,
+  },
+  {
+    label: "Игра",
+    Icon: Gamepad2,
+    color: "#2b7fff",
+  },
+  {
+    label: "Уход",
+    Icon: Shovel,
+    color: TUTORIAL_PLAN_ICON_COLORS.care,
+  },
+  {
+    label: "Рост дерева",
+    Icon: TreePine,
+    color: TUTORIAL_PLAN_ICON_COLORS.plant,
+  },
+] as const;
+
+function AudienceEulerDiagram() {
+  return (
+    <div className="landing-euler-wrap">
+      <svg
+        className="landing-euler"
+        viewBox="0 0 320 200"
+        role="img"
+        aria-label="Два пересекающихся круга: интерес к накоплению и любовь к играм. В пересечении — Росток."
+      >
+        <circle
+          className="landing-euler-circle landing-euler-circle--save"
+          cx="118"
+          cy="100"
+          r="78"
+        />
+        <circle
+          className="landing-euler-circle landing-euler-circle--play"
+          cx="202"
+          cy="100"
+          r="78"
+        />
+        <text className="landing-euler-label" x="88" y="96" textAnchor="middle">
+          <tspan x="88" dy="0">
+            Интерес к
+          </tspan>
+          <tspan x="88" dy="14">
+            накоплению
+          </tspan>
+        </text>
+        <text className="landing-euler-label" x="242" y="96" textAnchor="middle">
+          <tspan x="242" dy="0">
+            Любовь
+          </tspan>
+          <tspan x="242" dy="14">
+            к играм
+          </tspan>
+        </text>
+        <g className="landing-euler-center" transform="translate(160 100)">
+          <image
+            href={rostokTree}
+            x={-16}
+            y={-26}
+            width={32}
+            height={32}
+            preserveAspectRatio="xMidYMid meet"
+          />
+          <text y="38" textAnchor="middle">
+            Росток
+          </text>
+        </g>
+      </svg>
+    </div>
+  );
 }
 
 export default function LandingPage({ onLogin, onRegister }: Props) {
@@ -8,297 +149,158 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
     <div className="bank-app">
       <div className="landing-wrap">
         <div className="landing-card">
-
-          {/* Логотип */}
           <div className="auth-logo">
-            <span style={{ fontSize: "2.8rem", lineHeight: 1 }}>🌳</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, alignItems: "center" }}>
+            <span className="landing-logo-tree" aria-hidden="true">
+              <RostokTreeIcon size={64} />
+            </span>
+            <div className="landing-logo-text-wrap">
               <span className="auth-logo-text">Росток</span>
-              <span style={{ fontSize: "0.72rem", color: "#5a7a40", fontWeight: 500 }}>Растите капитал играючи</span>
+              <span className="landing-logo-tagline">
+                Растите капитал играючи
+              </span>
             </div>
           </div>
 
-          {/* Кнопки входа вверху */}
-          <div className="landing-auth-row">
-            <button className="landing-auth-outline" onClick={onLogin}>Войти</button>
-            <button className="auth-submit landing-auth-register" onClick={onRegister}>Создать аккаунт</button>
-          </div>
+          <button type="button" className="auth-submit" onClick={onRegister}>
+            Начать играть
+          </button>
 
           <div className="landing-divider" />
 
-          {/* 1. Описание игры */}
           <section className="landing-section">
-            <h2 className="landing-section-h">Что такое Росток?</h2>
+            <h2 className="landing-section-h">Что такое «Росток»</h2>
             <p className="landing-text">
-              Росток — это игровой интерфейс поверх накопительного счёта, созданный
-              с разрешения клиента банка. Приложение отслеживает рост вклада и превращает
-              ежедневный уход за капиталом в увлекательную игру: вы ухаживаете за
-              виртуальным деревом, и оно растёт вместе с вашими накоплениями.
+              «Росток» — мобильная игра, которая превращает накопление денег
+              в{"\u00A0"}игровой процесс.
             </p>
             <p className="landing-text">
-              Идея простая: <strong>Duolingo в мире накопительных счетов.</strong> Так же,
-              как языковое приложение превращает скучную учёбу в ежедневный ритуал —
-              Росток превращает слежение за вкладом в привычку. Вы открываете приложение
-              каждый день не потому что «надо», а потому что интересно посмотреть,
-              как вырос ваш капитал и дерево.
+              «Росток» формирует привычку регулярно откладывать и{"\u00A0"}сохранять
+              настоящие деньги, также как игра «Дуолинго» формирует привычку
+              регулярно изучать языки.
             </p>
             <p className="landing-text">
-              В результате формируется финансовая дисциплина: привычка сберегать,
-              регулярно пополнять вклад и следить за ростом накоплений, чтобы
-              достигать своих финансовых целей.
+              В{"\u00A0"}основе — ферма: вы{"\u00A0"}выращиваете дерево, ухаживаете
+              за{"\u00A0"}ним и{"\u00A0"}развиваете свой сад.
+            </p>
+            <p className="landing-text">
+              Чем дольше ваши деньги находятся в{"\u00A0"}накоплении, тем быстрее
+              формируется игровая энергия для{"\u00A0"}ухода за{"\u00A0"}деревом.{" "}
+              <strong>
+                При этом играть можно и{"\u00A0"}без капитала
+              </strong>{" "}
+              — он{"\u00A0"}не{"\u00A0"}обязателен, а{"\u00A0"}лишь ускоряет накопление
+              энергии.
             </p>
           </section>
 
           <div className="landing-divider" />
 
-          {/* 2. Три мини-игры */}
           <section className="landing-section">
-            <h2 className="landing-section-h">Три мини-игры каждый день</h2>
+            <h2 className="landing-section-h">Как это работает</h2>
+            <ol className="landing-flow" aria-label="Цепочка игрового цикла">
+              {FLOW_STEPS.map(({ label, Icon, color }, i) => (
+                <li key={label} className="landing-flow-step">
+                  {i > 0 ? (
+                    <span className="landing-flow-arrow" aria-hidden="true">
+                      ↓
+                    </span>
+                  ) : null}
+                  <span className="landing-flow-chip" style={{ color }}>
+                    <Icon size={16} strokeWidth={2.25} aria-hidden="true" />
+                    <span>{label}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
             <p className="landing-text">
-              Каждая сессия состоит из трёх активностей. Можно проходить их в любом
-              порядке — все три нужно выполнить, чтобы завершить сессию и получить доход.
-            </p>
-            <div className="landing-minigames">
-              <div className="landing-minigame">
-                <span className="landing-minigame-icon">💧</span>
-                <div>
-                  <div className="landing-minigame-name">Вода</div>
-                  <div className="landing-minigame-desc">Капли падают сверху — двигайте корзину и ловите как можно больше. Чем выше процент попаданий, тем лучше результат.</div>
-                </div>
-              </div>
-              <div className="landing-minigame">
-                <span className="landing-minigame-icon">☀️</span>
-                <div>
-                  <div className="landing-minigame-name">Свет</div>
-                  <div className="landing-minigame-desc">Солнечные лучи появляются в случайных местах экрана — нажимайте на них пока не закончится время. Скорость решает.</div>
-                </div>
-              </div>
-              <div className="landing-minigame">
-                <span className="landing-minigame-icon">🫘</span>
-                <div>
-                  <div className="landing-minigame-name">Удобрение</div>
-                  <div className="landing-minigame-desc">Гранулы удобрения на поле — собирайте три одного цвета в ряд. Чем длиннее серия, тем выше очки.</div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <div className="landing-divider" />
-
-          {/* 3. Дерево растёт */}
-          <section className="landing-section">
-            <h2 className="landing-section-h">Дерево растёт вместе с вами</h2>
-            <p className="landing-text">
-              По мере роста капитала дерево переходит через 5 стадий — от маленького
-              ростка до большого дерева. Каждый миллиметр роста отражает реальный
-              прирост вклада: чем больше накопленный доход, тем выше и пышнее дерево.
-            </p>
-            <p className="landing-text">
-              В конце каждой сессии дерево растёт в прямом эфире — вы видите анимацию
-              роста и получаете яблоки (символы дохода), которые нужно собрать вручную.
-              Это небольшой ритуал, который делает каждый день запоминающимся.
+              Капитал и{"\u00A0"}время дают игровую энергию. Энергией вы{"\u00A0"}играете
+              и{"\u00A0"}ухаживаете за{"\u00A0"}деревом — сад растёт.
             </p>
           </section>
 
           <div className="landing-divider" />
 
-          {/* 4. Зачем возвращаться */}
           <section className="landing-section">
-            <h2 className="landing-section-h">Зачем возвращаться каждый день</h2>
-            <ul className="landing-perk-list">
-              <li><span className="landing-perk-icon">🔥</span>Серия не прерывается — бонусный множитель держится на максимуме</li>
-              <li><span className="landing-perk-icon">🏆</span>Опыт и уровни за каждую сессию — таблица рейтинга среди всех игроков</li>
-              <li><span className="landing-perk-icon">📈</span>Сложный процент: доход каждый день начисляется на уже выросший капитал</li>
-              <li><span className="landing-perk-icon">🎯</span>Улучшение навыка: со временем мини-игры даются легче, бонус растёт</li>
-            </ul>
+            <h2 className="landing-section-h">Зачем это игрокам?</h2>
+            <div className="landing-benefit-list">
+              {CLIENT_REASONS.map(({ text, Icon }) => (
+                <div key={text} className="landing-benefit">
+                  <span className="landing-benefit-icon" aria-hidden="true">
+                    <Icon size={20} strokeWidth={2.25} />
+                  </span>
+                  <p className="landing-text landing-benefit-text">{text}</p>
+                </div>
+              ))}
+            </div>
           </section>
 
           <div className="landing-divider" />
 
-          {/* 5. Как начисляется доход */}
           <section className="landing-section">
-            <h2 className="landing-section-h">Как начисляется доход</h2>
+            <h2 className="landing-section-h">
+              Две привычки встречаются в{"\u00A0"}одном месте
+            </h2>
             <p className="landing-text">
-              Доход делится на два вида: базовый и бонусный.
+              «Росток» — для{"\u00A0"}тех, кому нравятся игры, и{"\u00A0"}для{"\u00A0"}тех,
+              кто хочет научиться копить. Играть можно даже без капитала. Если
+              капитал работает — он{"\u00A0"}ускоряет игровой прогресс.
             </p>
-            <div className="landing-income-list">
-              <div className="landing-income-item landing-income-base">
-                <div className="landing-income-top">
-                  <span className="landing-income-emoji">🌿</span>
-                  <span className="landing-income-name">Базовый — 12% годовых</span>
-                </div>
-                <p className="landing-income-desc">
-                  Начисляется каждый день автоматически — независимо от того,
-                  насколько хорошо вы сыграли. Это гарантированная часть дохода,
-                  которую вы получаете просто за то, что проводите сессию.
-                </p>
-              </div>
-              <div className="landing-income-item landing-income-bonus">
-                <div className="landing-income-top">
-                  <span className="landing-income-emoji">⭐</span>
-                  <span className="landing-income-name">Бонусный — до +3% годовых</span>
-                </div>
-                <p className="landing-income-desc">
-                  Зависит от вашего результата в мини-играх, размера капитала и
-                  регулярности сессий. Чем точнее играете и чем реже пропускаете —
-                  тем выше бонус. При длинной серии без пропусков бонусный множитель
-                  сохраняется на максимуме.
-                </p>
-              </div>
-            </div>
-
-            {/* Супер-сессия */}
-            <div className="landing-supersession">
-              <div className="landing-supersession-left">
-                <span className="landing-supersession-icon">⚡</span>
-              </div>
-              <div className="landing-supersession-body">
-                <span className="landing-supersession-title">Супер-сессия</span>
-                <p className="landing-supersession-text">
-                  Пропущенные дни не сгорают: сессии накапливаются, и при следующем
-                  входе вы получите всё сразу — с повышенным множителем. Вернулись
-                  через три дня? Один вход закроет все пропуски.
-                </p>
-              </div>
-            </div>
-
-            <div className="landing-note">
-              <span className="landing-note-icon">ℹ️</span>
-              <p className="landing-note-text">
-                <strong>О процентной ставке.</strong> Текущие ставки (12% + до 3%) —
-                тестовые, используются для демонстрации механики. В боевой версии
-                ставки будут привязаны к реальным ставкам ЦБ РФ и условиям
-                конкретного банка-партнёра.
-              </p>
-            </div>
+            <AudienceEulerDiagram />
           </section>
 
           <div className="landing-divider" />
 
-          {/* 6. Как банки становятся партнёрами */}
-          <section className="landing-section">
-            <h2 className="landing-section-h">Как банки становятся партнёрами</h2>
-            <p className="landing-text">
-              Росток разработан как игровой слой поверх реального накопительного счёта.
-              Банк-партнёр предоставляет API-доступ к счёту — с явного разрешения
-              клиента — и игра начинает отслеживать реальный баланс вместо
-              демонстрационного. Для клиента ничего не меняется: тот же вклад,
-              тот же банк, но теперь с игровым интерфейсом.
-            </p>
-            <div className="landing-api-flow">
-              <div className="landing-api-step">
-                <span className="landing-api-num">1</span>
-                <div>
-                  <strong>Клиент даёт разрешение</strong>
-                  <p>При подключении клиент авторизует доступ к своему накопительному счёту через OAuth-протокол банка — по аналогии с открытым банкингом (Open Banking).</p>
-                </div>
-              </div>
-              <div className="landing-api-step">
-                <span className="landing-api-num">2</span>
-                <div>
-                  <strong>Игра читает реальный баланс</strong>
-                  <p>Росток подключается к API банка и отображает актуальный баланс вклада — дерево растёт вместе с настоящими накоплениями, доход начисляется по реальным ставкам банка.</p>
-                </div>
-              </div>
-              <div className="landing-api-step">
-                <span className="landing-api-num">3</span>
-                <div>
-                  <strong>Банк получает вовлечённых клиентов</strong>
-                  <p>Ежедневный ритуал в игре удерживает средства на счёте и снижает отток: клиент видит рост своих реальных накоплений каждый день и реже снимает деньги.</p>
-                </div>
-              </div>
-            </div>
-            <div className="landing-note" style={{ marginTop: 14 }}>
-              <span className="landing-note-icon">🏦</span>
-              <p className="landing-note-text">
-                <strong>Для банков:</strong> интеграция возможна через открытый API с OAuth 2.0.
-                Росток работает с любым банком, предоставляющим API-доступ к накопительным счетам
-                с разрешения клиентов — стандарт Open Banking / ПСД2-совместимые интерфейсы.
-              </p>
-            </div>
-          </section>
-
-          <div className="landing-divider" />
-
-          {/* 7. Зачем клиентам */}
-          <section className="landing-section">
-            <h2 className="landing-section-h">Зачем это клиентам банка?</h2>
-            <p className="landing-text">
-              Большинство людей понимают, что копить важно — но редко делают это
-              регулярно. Причина не в нехватке денег, а в отсутствии привычки
-              и видимого прогресса.
-            </p>
-            <div className="landing-income-list">
-              <div className="landing-income-item landing-income-base">
-                <div className="landing-income-top">
-                  <span className="landing-income-emoji">🎯</span>
-                  <span className="landing-income-name">Финансовая дисциплина через игру</span>
-                </div>
-                <p className="landing-income-desc">
-                  Игровой интерфейс формирует ежедневный ритуал: зайти, пройти мини-игры,
-                  увидеть рост дерева и капитала. Привычка складывается сама — без
-                  напоминаний и самодисциплины.
-                </p>
-              </div>
-              <div className="landing-income-item landing-income-bonus">
-                <div className="landing-income-top">
-                  <span className="landing-income-emoji">📈</span>
-                  <span className="landing-income-name">Видимый прогресс мотивирует</span>
-                </div>
-                <p className="landing-income-desc">
-                  Дерево растёт, уровень повышается, капитал увеличивается —
-                  всё это видно каждый день. Наглядный результат мотивирует
-                  пополнять вклад и не снимать накопленное.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <div className="landing-divider" />
-
-          {/* 8. Зачем банкам */}
           <section className="landing-section">
             <h2 className="landing-section-h">Зачем это банкам?</h2>
-            <p className="landing-text">
-              Чем больше клиентов сберегают деньги — тем меньше средств выводится
-              из системы. Это напрямую выгодно банку: стабильная база вкладчиков
-              снижает потребность в дорогом привлечении ликвидности.
-            </p>
-            <ul className="landing-perk-list">
-              <li>
-                <span className="landing-perk-icon">🏦</span>
-                Больше вкладчиков, дольше держат деньги — банк получает
-                стабильную и дешёвую ресурсную базу
-              </li>
-              <li>
-                <span className="landing-perk-icon">📱</span>
-                Ежедневное присутствие клиента в приложении — ценный
-                актив: внимание аудитории можно монетизировать через
-                партнёрские предложения и финансовые продукты
-              </li>
-              <li>
-                <span className="landing-perk-icon">🤝</span>
-                Лояльность и вовлечённость клиентов выше — игровой формат
-                создаёт эмоциональную привязанность к бренду банка
-              </li>
-            </ul>
+            <div className="landing-benefit-list">
+              {BANK_REASONS.map(({ text, Icon }) => (
+                <div key={text} className="landing-benefit">
+                  <span className="landing-benefit-icon" aria-hidden="true">
+                    <Icon size={20} strokeWidth={2.25} />
+                  </span>
+                  <p className="landing-text landing-benefit-text">{text}</p>
+                </div>
+              ))}
+            </div>
           </section>
 
           <div className="landing-divider" />
 
-          {/* CTA */}
+          <section className="landing-section">
+            <h2 className="landing-section-h">Контакты</h2>
+            <div className="landing-contacts">
+              <p className="landing-contacts-name">Егор Алексеевич Капица</p>
+              <a className="landing-contacts-row" href="tel:+79216443069">
+                <span className="landing-contacts-icon" aria-hidden="true">
+                  <Phone size={16} strokeWidth={2.25} />
+                </span>
+                <span>79216443069 — мобильный</span>
+              </a>
+              <a
+                className="landing-contacts-row"
+                href="https://t.me/kot_begemot_egor_kapitsa"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span className="landing-contacts-icon" aria-hidden="true">
+                  <MessageCircle size={16} strokeWidth={2.25} />
+                </span>
+                <span>@kot_begemot_egor_kapitsa — телеграм</span>
+              </a>
+            </div>
+          </section>
+
+          <div className="landing-divider" />
+
           <section className="landing-cta-section">
-            <p className="landing-cta-text">
-              Пройдите короткий туториал, выберите стартовый капитал и посадите своё первое дерево — это займёт меньше трёх минут.
-            </p>
-            <button className="auth-submit" onClick={onRegister} style={{ marginBottom: 8 }}>
-              Создать аккаунт и начать
+            <p className="landing-cta-text">Посадите своё первое дерево.</p>
+            <button type="button" className="auth-submit" onClick={onRegister}>
+              Начать играть
             </button>
-            <button className="landing-login-link" onClick={onLogin}>
+            <button type="button" className="landing-login-link" onClick={onLogin}>
               Уже есть аккаунт — войти
             </button>
           </section>
-
         </div>
       </div>
     </div>
