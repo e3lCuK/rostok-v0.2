@@ -47,5 +47,11 @@ describe("tutorialOverlayMotion", () => {
     expect(cssSrc).not.toMatch(
       /\.tutorial-intro-overlay\s*\{[\s\S]*?padding-top:\s*clamp\(118px/,
     );
+    expect(cssSrc).toMatch(
+      /\.tutorial-intro-card\s*\{[\s\S]*?width:\s*fit-content/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-intro-card\s*\{[\s\S]*?max-width:\s*min\(188px/,
+    );
   });
 });

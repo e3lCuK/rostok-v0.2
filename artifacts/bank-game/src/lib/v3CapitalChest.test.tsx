@@ -104,6 +104,10 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(pageSrc).toContain("setShowDepositInfo(true)");
     expect(pageSrc).toContain("sessionHistory");
     expect(pageSrc).toContain("Начисления появятся после первой сессии");
+    expect(pageSrc).toContain('inc-modal-brand-name">История</span>');
+    expect(pageSrc).not.toContain("История начислений");
+    expect(pageSrc).not.toContain("Активности и избыток");
+    expect(pageSrc).not.toContain("inc-modal-brand-icon");
     expect(pageSrc).not.toContain("incomeByPreset");
     expect(pageSrc).not.toContain("progress-row-deposit");
     expect(pageSrc).not.toContain("<Wallet");
@@ -117,6 +121,12 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(cssSrc).toContain("v3-capital-badge-bump");
     expect(cssSrc).toContain("v3-capital-chest-host--income-flash");
     expect(pageSrc).toContain("v3-capital-chest-host--income-flash");
+    expect(underRootsSrc).toContain("ResizeObserver");
+    expect(underRootsSrc).toContain("fitCapitalFontSize");
+    expect(cssSrc).toContain("--capital-label-fs");
+    expect(cssSrc).toMatch(
+      /\.v3-capital-badge--in-bulb\s*\{[\s\S]*?container-type:\s*inline-size/,
+    );
     const html = renderToStaticMarkup(
       createElement(CapitalChestUnderRoots, {
         capital: 100_012,

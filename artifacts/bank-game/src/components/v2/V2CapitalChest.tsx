@@ -33,9 +33,15 @@ function estimateLabelWidth(label: string, fontSize: number): number {
   return w;
 }
 
-function fitCapitalFontSize(label: string, maxWidth: number): number {
-  let fs = 9.5;
-  while (fs > 6.2 && estimateLabelWidth(label, fs) > maxWidth) {
+/** Shrink capital type until it fits `maxWidth` (SVG face or HTML bulb). */
+export function fitCapitalFontSize(
+  label: string,
+  maxWidth: number,
+  maxFs = 9.5,
+  minFs = 6.2,
+): number {
+  let fs = maxFs;
+  while (fs > minFs && estimateLabelWidth(label, fs) > maxWidth) {
     fs -= 0.3;
   }
   return fs;

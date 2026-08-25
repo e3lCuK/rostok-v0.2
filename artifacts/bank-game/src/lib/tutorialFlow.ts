@@ -835,3 +835,15 @@ export function v3TutorialOverlayConfig(
       return null;
   }
 }
+
+/** AnimatePresence key: collect-energy stays mounted across all three roots. */
+export function v3TutorialOverlayPresenceKey(
+  step: TutorialStep,
+  cfg: Pick<V3TutorialOverlayConfig, "icon" | "text">,
+  capitalTransferPhase?: CapitalTransferTutorialPhase | "",
+): string {
+  const stepKey = isV3TutorialRootStep(step) ? "v3-collect-roots" : step;
+  const phase =
+    step === "capital-transfer" ? String(capitalTransferPhase ?? "") : "";
+  return `${stepKey}:${cfg.icon}:${cfg.text}:${phase}`;
+}

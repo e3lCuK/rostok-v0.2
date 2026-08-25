@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import { formatRub } from "@/lib/engine";
+import { formatVaultAmount } from "@/components/VaultWidget";
 import {
   formatEnergyWaitMinutes,
   VAULT_CAPITAL_CURVE_MARKS,
@@ -29,7 +29,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
 
 function VaultMiniIcon() {
   return (
-    <svg width="28" height="22" viewBox="7.5 11.5 41 33.3" fill="none" aria-hidden="true">
+    <svg width="44" height="36" viewBox="7.5 11.5 41 33.3" fill="none" aria-hidden="true">
       <path
         d="M14 12H42Q48 12 48 18V40Q48 44 46.2 44.2H9.8Q8 44 8 40V18Q8 12 14 12Z"
         fill="rgba(255,248,236,0.92)"
@@ -59,7 +59,7 @@ function VaultMiniIcon() {
 
 function TreeChestMiniIcon() {
   return (
-    <svg width="22" height="26" viewBox="0 0 80 90" fill="none" aria-hidden="true">
+    <svg width="36" height="40" viewBox="0 0 80 90" fill="none" aria-hidden="true">
       <path
         d="M6 5 C2 5 2 22 8 42 C14 58 28 66 33 70 C28 74 14 82 8 98 C2 118 2 135 6 135 L74 135 C78 135 78 118 72 98 C66 82 52 74 47 70 C52 66 66 58 72 42 C78 22 78 5 74 5 Z"
         fill="#fff8ec"
@@ -91,7 +91,7 @@ export default function VaultCapitalHelpModal({
       data-vault-capital-help="true"
     >
       <motion.div
-        className="help-modal"
+        className="help-modal vault-capital-help-modal"
         initial={{ y: 32, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 32, opacity: 0 }}
@@ -174,46 +174,58 @@ export default function VaultCapitalHelpModal({
             <p className="flask-help-lead">
               {"Капитал, лежащий в\u00A0элементах, значительно ускоряет получение энергии."}
             </p>
-            <div className="tree-stages-list">
-              <div className="tree-stage-row">
-                <span className="tree-stage-emoji vault-capital-help-emoji">
+            <div className="tree-stages-list flask-help-list">
+              <div className="tree-stage-row flask-help-row">
+                <span className="vault-capital-help-art" aria-hidden="true">
                   <VaultMiniIcon />
                 </span>
-                <div className="tree-stage-info">
-                  <p className="tree-stage-name">Сейф</p>
-                  <p className="tree-stage-range">
+                <div className="tree-stage-info flask-help-copy">
+                  <div className="flask-help-head">
+                    <p className="tree-stage-name">Сейф</p>
+                    <span className="tree-stage-badge">
+                      {formatVaultAmount(vault)}
+                    </span>
+                  </div>
+                  <p className="tree-stage-range flask-help-body">
                     {"Капитал ещё не\u00A0в\u00A0игре — энергия копится базовым временем."}
                   </p>
                 </div>
-                <span className="tree-stage-badge">{formatRub(vault)}</span>
               </div>
               <div
-                className={`tree-stage-row${
+                className={`tree-stage-row flask-help-row${
                   tree > 0 ? " tree-stage-row-current" : ""
                 }`}
               >
-                <span className="tree-stage-emoji vault-capital-help-emoji">
+                <span className="vault-capital-help-art" aria-hidden="true">
                   <TreeChestMiniIcon />
                 </span>
-                <div className="tree-stage-info">
-                  <p className="tree-stage-name">Сундук дерева</p>
-                  <p className="tree-stage-range">
+                <div className="tree-stage-info flask-help-copy">
+                  <div className="flask-help-head">
+                    <p className="tree-stage-name">Сундук дерева</p>
+                    <span className="tree-stage-badge">
+                      {formatVaultAmount(tree)}
+                    </span>
+                  </div>
+                  <p className="tree-stage-range flask-help-body">
                     {"Капитал в\u00A0элементе — ускоряет колбу и\u00A0доход."}
                   </p>
                 </div>
-                <span className="tree-stage-badge">{formatRub(tree)}</span>
               </div>
-              <div className="tree-stage-row tree-stage-row-done">
-                <span className="tree-stage-emoji" aria-hidden="true">
+              <div className="tree-stage-row flask-help-row tree-stage-row-done">
+                <span className="vault-capital-help-art vault-capital-help-art--soon" aria-hidden="true">
                   ···
                 </span>
-                <div className="tree-stage-info">
-                  <p className="tree-stage-name">Новые элементы</p>
-                  <p className="tree-stage-range">
+                <div className="tree-stage-info flask-help-copy">
+                  <div className="flask-help-head">
+                    <p className="tree-stage-name">Новые элементы</p>
+                    <span className="tree-stage-badge tree-stage-badge-done">
+                      скоро
+                    </span>
+                  </div>
+                  <p className="tree-stage-range flask-help-body">
                     Скоро появятся другие места, куда можно вложить капитал.
                   </p>
                 </div>
-                <span className="tree-stage-badge tree-stage-badge-done">скоро</span>
               </div>
             </div>
           </div>

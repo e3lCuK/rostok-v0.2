@@ -64,7 +64,13 @@ describe("vault capital energy-wait help", () => {
     expect(cssSrc).not.toMatch(
       /\.vault-capital-help-panel\[hidden\]/,
     );
-    expect(modalSrc).not.toContain("Гнёзда");
+    expect(modalSrc).toContain("flask-help-lead");
+    expect(modalSrc).toContain("flask-help-head");
+    expect(modalSrc).toContain("flask-help-copy");
+    expect(modalSrc).toContain("flask-help-body");
+    expect(modalSrc).toContain("formatVaultAmount");
+    expect(modalSrc).toContain("vault-capital-help-modal");
+    expect(cssSrc).toContain("vault-capital-help-art");
     expect(modalSrc).not.toContain("vaultEnergyWaitCurvePoints");
     expect(modalSrc).not.toContain("CurveChart");
   });

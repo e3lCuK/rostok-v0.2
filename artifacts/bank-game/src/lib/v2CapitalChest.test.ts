@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import {
   V2CapitalChest,
   formatV2ChestCapital,
+  fitCapitalFontSize,
   V2_CHEST_LABEL_MAX_W,
   V2_CHEST_LABEL_MAX_W_PREV,
 } from "../components/v2/V2CapitalChest";
@@ -23,6 +24,14 @@ describe("formatV2ChestCapital", () => {
     expect(s).toContain("₽");
     expect(formatV2ChestCapital(42)).toMatch(/42/);
     expect(formatV2ChestCapital(42)).toContain("₽");
+  });
+
+  it("shrinks font when the label is wider than the face", () => {
+    const tight = fitCapitalFontSize("100 012 ₽", 36, 11, 6.5);
+    const roomy = fitCapitalFontSize("100 012 ₽", 120, 11, 6.5);
+    expect(tight).toBeLessThan(roomy);
+    expect(tight).toBeGreaterThanOrEqual(6.5);
+    expect(roomy).toBe(11);
   });
 });
 

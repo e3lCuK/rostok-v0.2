@@ -10,11 +10,12 @@
  *   mid → chest body → upper hourglass → capital button
  */
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   V2CapitalChest,
   V2_CHEST_PAINT,
   formatV2ChestCapital,
+  fitCapitalFontSize,
 } from "./V2CapitalChest";
 import {
   V3_HOURGLASS_CAPITAL_BULB_PATH,
@@ -71,6 +72,7 @@ export default function CapitalChestUnderRoots({
 
   const prevLabelRef = useRef<string | null>(null);
   const prevBumpTokenRef = useRef(0);
+  const badgeRef = useRef<HTMLElement | null>(null);
   const [bump, setBump] = useState(false);
   const rawId = useId();
   const fillClipId = `v3-capital-bulb-fill-${rawId.replace(/:/g, "")}`;
@@ -91,6 +93,34 @@ export default function CapitalChestUnderRoots({
     const t = window.setTimeout(() => setBump(false), 420);
     return () => window.clearTimeout(t);
   }, [bumpToken]);
+
+  const clickable = typeof onCapitalClick === "function";
+
+  useLayoutEffect(() => {
+    const el = badgeRef.current;
+    if (!el) return;
+    const apply = () => {
+      const usable = el.clientWidth * 0.7;
+      if (!(usable > 0)) return;
+      const fs = fitCapitalFontSize(label, usable, 11, 6.5);
+      el.style.setProperty("--capital-label-fs", `${fs.toFixed(2)}px`);
+    };
+    apply();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", apply);
+      return () => window.removeEventListener("resize", apply);
+    }
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", apply);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      vv?.removeEventListener("resize", apply);
+      window.removeEventListener("resize", apply);
+    };
+  }, [label, clickable]);
 
   const badgeClass = [
     "field-caption-badge",
@@ -206,7 +236,7 @@ export default function CapitalChestUnderRoots({
         className="v3-capital-chest-overlay"
         data-v3-capital-chest-overlay="true"
       >
-        {onCapitalClick ? (
+        {clickable ? (
           <button
             type="button"
             className={badgeClass}
@@ -216,6 +246,9 @@ export default function CapitalChestUnderRoots({
             data-value-bump={bump ? "true" : "false"}
             aria-label={`Капитал ${label}. История начислений`}
             onClick={onCapitalClick}
+            ref={(node) => {
+              badgeRef.current = node;
+            }}
           >
             {badgeInner}
           </button>
@@ -226,6 +259,9 @@ export default function CapitalChestUnderRoots({
             data-chest-part="capital-label"
             data-value-bump={bump ? "true" : "false"}
             aria-hidden="true"
+            ref={(node) => {
+              badgeRef.current = node;
+            }}
           >
             {badgeInner}
           </span>

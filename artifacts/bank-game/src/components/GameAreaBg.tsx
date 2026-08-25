@@ -12,7 +12,7 @@ const GROUND_JOIN_WAVE_REVERSE =
   "C390,89.45 400,86.3 350,87.7 C300,89.1 260,86.35 210,87.85 C160,89.35 70,87.55 0,88.5";
 
 /**
- * Field bush — classic 3-lobe mound planted on the grass↔soil join.
+ * Field bush — classic 3-lobe mound on the grass, just above the soil join.
  * Flat fills + thin outline (basket/chest language).
  */
 function BgBush({
@@ -459,9 +459,9 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
         */}
         <BgSun cx={280} cy={26} className="bg-sun" />
 
-        {/* Clouds — left of the sun; clear of the level badge on the whole drift */}
+        {/* Clouds — left of the sun; drift never closes the gap between them */}
         <BgCloud ox={130} oy={22} className="bg-cloud-left" />
-        <BgCloud ox={196} oy={20} className="bg-cloud-right" />
+        <BgCloud ox={226} oy={20} className="bg-cloud-right" />
 
         {/* Birds (purchased) — right sky, clear of sun / gear */}
         {has("birds") && <BgBirds className="bg-birds" />}

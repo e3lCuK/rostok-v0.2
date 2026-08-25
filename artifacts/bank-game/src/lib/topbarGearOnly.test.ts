@@ -73,12 +73,12 @@ describe("Stage 1 — no top nav; floating gear only", () => {
     expect(bg).toContain('className="bg-cloud-left"');
     expect(bg).toContain("ox={130} oy={22}");
     expect(bg).toContain('className="bg-cloud-right"');
-    expect(bg).toContain("ox={196} oy={20}");
+    expect(bg).toContain("ox={226} oy={20}");
     expect(bg).toContain("bg-sky-wash");
     expect(bg).not.toContain('cy="65"');
     expect(bg).not.toContain('y2="-3"');
-    expect(css).toMatch(/bg-cloud-drift-left[\s\S]*translateX\(36px\)/);
-    expect(css).toMatch(/bg-cloud-drift-right[\s\S]*translateX\(-28px\)/);
+    expect(css).toMatch(/bg-cloud-drift-left[\s\S]*translateX\(22px\)/);
+    expect(css).toMatch(/bg-cloud-drift-right[\s\S]*translateX\(-12px\)/);
   });
 });
 

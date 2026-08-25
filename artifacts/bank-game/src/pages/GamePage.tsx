@@ -274,6 +274,7 @@ import {
   tutorialHighlightRoot,
   tutorialRecommendedV3Activity,
   v3TutorialOverlayConfig,
+  v3TutorialOverlayPresenceKey,
   withTutorialRootSeconds,
 } from "@/lib/tutorialFlow";
 import {
@@ -5947,9 +5948,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               : null;
           const cfg = hideForPlantReveal ? null : (v3Cfg ?? legacyCfg);
           const overlayKey = cfg
-            ? `${tutorialStep}:${cfg.icon}:${cfg.text}:${
-                tutorialStep === "capital-transfer" ? capitalTransferPhase : ""
-              }`
+            ? v3TutorialOverlayPresenceKey(
+                tutorialStep,
+                cfg,
+                tutorialStep === "capital-transfer"
+                  ? capitalTransferPhase
+                  : "",
+              )
             : "none";
           return (
             <AnimatePresence mode="wait">
@@ -7696,11 +7701,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             >
               <div className="inc-modal-hero">
                 <div className="inc-modal-brand">
-                  <span className="inc-modal-brand-icon">🌳</span>
-                  <div className="inc-modal-brand-text">
-                    <span className="inc-modal-brand-name">История начислений</span>
-                    <span className="inc-modal-brand-type">Активности и избыток</span>
-                  </div>
+                  <span className="inc-modal-brand-name">История</span>
                 </div>
                 <button className="inc-modal-close-btn" onClick={() => setShowDepositInfo(false)}>
                   <X size={14} />

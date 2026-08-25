@@ -60,7 +60,13 @@ describe("AppleBasket on play field", () => {
     expect(cssSrc).toContain(".apple-basket");
     expect(cssSrc).toContain(".game-area--v3-roots .apple-basket-host");
     expect(cssSrc).toContain("var(--v2-scene-lift)");
-    expect(cssSrc).toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*13%/s);
+    expect(cssSrc).toContain("--field-bush-inset");
+    expect(cssSrc).toContain("--field-bush-width");
+    expect(cssSrc).toContain("--field-prop-gap");
+    expect(cssSrc).toMatch(
+      /\.apple-basket-host\s*\{[^}]*left:\s*calc\(/s,
+    );
+    expect(cssSrc).toMatch(/--field-prop-gap:\s*clamp\(/);
     expect(cssSrc).not.toMatch(/\.apple-basket-host\s*\{[^}]*left:\s*0(?:px)?;/s);
   });
 

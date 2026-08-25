@@ -558,6 +558,11 @@ body {
   min-height: 0;
   position: relative;
   overflow: hidden;
+  container-type: inline-size;
+  /* Left bush box; basket left = inset + width + --field-prop-gap (set on the host). */
+  --field-bush-inset: 4px;
+  --field-bush-width: 58px;
+  --field-bush-height: 44px;
 }
 .game-area::before,
 .game-area::after { content: none; }
@@ -726,22 +731,23 @@ body {
   overflow: visible;
 }
 
-/* Unstretched bush sprites — grass band stretches, circles must not. */
+/* Unstretched bush sprites — grass band stretches, circles must not.
+ * Sit on the green, slightly above the grass↔soil join stroke. */
 .game-area-bg-bush {
   position: absolute;
-  bottom: 0;
-  width: 58px;
-  height: 44px;
+  bottom: 7px;
+  width: var(--field-bush-width, 58px);
+  height: var(--field-bush-height, 44px);
   display: block;
   z-index: 4;
   pointer-events: none;
   overflow: visible;
 }
 .game-area-bg-bush--left {
-  left: 4px;
+  left: var(--field-bush-inset, 4px);
 }
 .game-area-bg-bush--right {
-  right: 4px;
+  right: var(--field-bush-inset, 4px);
 }
 
 /* Level diamond — top-left of play field (above apple basket) */
@@ -923,12 +929,20 @@ body {
   pointer-events: none;
 }
 
-.vault-capital-help-emoji {
+.vault-capital-help-art {
+  flex-shrink: 0;
+  width: 48px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 1.8rem;
+}
+
+.vault-capital-help-art--soon {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #65a30d;
 }
 /*
  * Dragging: lift the vault host so the wallet can fly over the hint card.
@@ -1054,8 +1068,12 @@ body {
 /* Apple basket — right of left bush; replaces topbar apple row */
 .apple-basket-host {
   position: absolute;
-  /* Just right of the left bush (~cx 30 in 430 viewBox → ~13% + gap). */
-  left: 13%;
+  /* cqi is vs .game-area (container-type); min 10px so leaves never cover the basket. */
+  --field-prop-gap: clamp(10px, 3.2cqi, 22px);
+  left: calc(
+    var(--field-bush-inset, 4px) + var(--field-bush-width, 58px) +
+      var(--field-prop-gap)
+  );
   right: auto;
   bottom: 18px;
   z-index: 8;
@@ -1067,12 +1085,18 @@ body {
 }
 .game-area--v2-mocks .apple-basket-host {
   bottom: calc(var(--v2-scene-lift) + 16px);
-  left: 13%;
+  left: calc(
+    var(--field-bush-inset, 4px) + var(--field-bush-width, 58px) +
+      var(--field-prop-gap)
+  );
   right: auto;
 }
 .game-area--v3-roots .apple-basket-host {
   bottom: calc(var(--v2-scene-lift) - var(--v3-root-crown-bury) + 14px);
-  left: 13%;
+  left: calc(
+    var(--field-bush-inset, 4px) + var(--field-bush-width, 58px) +
+      var(--field-prop-gap)
+  );
   right: auto;
 }
 
@@ -1627,7 +1651,8 @@ body {
 }
 
 @media (max-width: 480px) {
-  .flask-help-modal {
+  .flask-help-modal,
+  .vault-capital-help-modal {
     width: calc(100% - 20px);
     max-width: none;
     padding: 16px 12px 20px;
@@ -1648,6 +1673,11 @@ body {
     height: 50px;
   }
 
+  .vault-capital-help-art {
+    width: 40px;
+    height: 44px;
+  }
+
   .flask-help-head .tree-stage-name {
     flex: 1 1 100%;
   }
@@ -1658,17 +1688,18 @@ body {
   }
 }
 
-/* Drift stays right of the level diamond (~viewBox x < 95). */
+/* Drift stays right of the level diamond (~viewBox x < 95).
+ * Closest approach: left right-edge 152+22 vs right left-edge 203-12 → ~17u gap. */
 @keyframes bg-cloud-drift-left {
   0%   { transform: translateX(0px); }
-  45%  { transform: translateX(36px); }
-  75%  { transform: translateX(20px); }
+  45%  { transform: translateX(22px); }
+  75%  { transform: translateX(10px); }
   100% { transform: translateX(0px); }
 }
 @keyframes bg-cloud-drift-right {
   0%   { transform: translateX(0px); }
-  40%  { transform: translateX(-28px); }
-  70%  { transform: translateX(-12px); }
+  40%  { transform: translateX(-12px); }
+  70%  { transform: translateX(8px); }
   100% { transform: translateX(0px); }
 }
 @keyframes bg-birds-float {
@@ -6346,20 +6377,23 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
   background: #ffffff;
   border: 1px solid rgba(100, 160, 40, 0.55);
-  border-radius: 24px;
-  padding: 16px 24px;
+  border-radius: 16px;
+  padding: 10px 12px;
   box-shadow: 0 4px 32px rgba(60,120,30,0.14);
-  max-width: min(260px, calc(100% - 32px));
+  box-sizing: border-box;
+  width: fit-content;
+  /* Hug copy; leave the vault (left) and flask (right) uncovered. */
+  max-width: min(188px, calc(100% - 128px));
 }
 .tutorial-intro-tree {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: auto;
   font-size: 2rem;
   line-height: 1;
   text-align: center;
@@ -6371,8 +6405,9 @@ canvas {
 }
 .tutorial-intro-text {
   margin: 0;
-  width: 100%;
-  font-size: 0.95rem;
+  width: auto;
+  max-width: 100%;
+  font-size: 0.88rem;
   font-weight: 700;
   /* Matches welcome-plan step icon via --tutorial-accent. */
   color: var(--tutorial-accent, #166534);
@@ -6409,12 +6444,14 @@ canvas {
 }
 .tutorial-intro-hint {
   display: block;
-  width: 100%;
-  font-size: 0.78rem;
+  width: auto;
+  max-width: 100%;
+  font-size: 0.74rem;
   font-weight: 600;
   color: color-mix(in srgb, var(--tutorial-accent, #166534) 78%, #ffffff);
   letter-spacing: 0.01em;
   text-align: center;
+  line-height: 1.3;
 }
 
 /* ── Activity button pulse (tutorial + live recommend) ────────
@@ -7679,7 +7716,7 @@ canvas {
   z-index: 3;
 }
 .game-area--v2-mocks .game-area-bg-bush {
-  bottom: var(--v2-scene-lift);
+  bottom: calc(var(--v2-scene-lift) + 7px);
   z-index: 4;
 }
 
@@ -7693,7 +7730,7 @@ canvas {
   z-index: 3;
 }
 .game-area--v3-roots .game-area-bg-bush {
-  bottom: var(--v3-trunk-join);
+  bottom: calc(var(--v3-trunk-join) + 7px);
   z-index: 4;
 }
 
@@ -8032,6 +8069,7 @@ canvas {
   border-radius: 0;
   overflow: visible;
   line-height: 1.1;
+  container-type: inline-size;
 }
 .v3-capital-badge__bulb {
   position: absolute;
@@ -8086,6 +8124,7 @@ canvas {
   align-items: baseline;
   justify-content: center;
   gap: 3px;
+  max-width: 70%;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -8111,7 +8150,7 @@ button.v3-capital-badge:focus-visible {
   position: relative;
   z-index: 1;
   font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
-  font-size: var(--v3-flask-font-size, 11px);
+  font-size: var(--capital-label-fs, clamp(7px, 16.5cqi, 11px));
   font-weight: var(--v3-flask-font-weight, 700);
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;

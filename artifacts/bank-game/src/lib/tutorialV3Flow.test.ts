@@ -30,6 +30,7 @@ import {
   TUTORIAL_V3_ROOT_SECONDS,
   TUTORIAL_V3_WAIT_SECONDS,
   v3TutorialOverlayConfig,
+  v3TutorialOverlayPresenceKey,
   withTutorialRootSeconds,
 } from "./tutorialFlow";
 
@@ -599,6 +600,21 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(v3TutorialOverlayConfig("v3-root-water")).toEqual(collect);
     expect(v3TutorialOverlayConfig("v3-root-sun")).toEqual(collect);
     expect(v3TutorialOverlayConfig("v3-root-fertilizer")).toEqual(collect);
+    expect(
+      v3TutorialOverlayPresenceKey("v3-root-water", collect),
+    ).toBe(v3TutorialOverlayPresenceKey("v3-root-sun", collect));
+    expect(
+      v3TutorialOverlayPresenceKey("v3-root-sun", collect),
+    ).toBe(v3TutorialOverlayPresenceKey("v3-root-fertilizer", collect));
+    expect(
+      v3TutorialOverlayPresenceKey("v3-root-fertilizer", collect),
+    ).not.toBe(
+      v3TutorialOverlayPresenceKey("v3-activities-intro", {
+        icon: "water",
+        text: "Пройдите активность",
+      }),
+    );
+    expect(pageSrc).toContain("v3TutorialOverlayPresenceKey");
     expect(
       v3TutorialOverlayConfig("v3-activities-intro", {
         recommendedActivity: "water",
