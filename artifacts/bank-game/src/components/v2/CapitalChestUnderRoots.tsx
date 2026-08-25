@@ -16,6 +16,12 @@ import {
   V2_CHEST_PAINT,
   formatV2ChestCapital,
   fitCapitalFontSize,
+  fitCapitalFontSizeToWidth,
+  publishCapitalFaceFontSize,
+  resolveFlaskFontSizePx,
+  CAPITAL_FACE_FS_VAR,
+  CAPITAL_FACE_MIN_FS,
+  CAPITAL_FACE_WIDTH_RATIO,
 } from "./V2CapitalChest";
 import {
   V3_HOURGLASS_CAPITAL_BULB_PATH,
@@ -100,10 +106,25 @@ export default function CapitalChestUnderRoots({
     const el = badgeRef.current;
     if (!el) return;
     const apply = () => {
-      const usable = el.clientWidth * 0.7;
+      const usable = el.clientWidth * CAPITAL_FACE_WIDTH_RATIO;
       if (!(usable > 0)) return;
-      const fs = fitCapitalFontSize(label, usable, 11, 6.5);
-      el.style.setProperty("--capital-label-fs", `${fs.toFixed(2)}px`);
+      const maxFs = resolveFlaskFontSizePx(
+        getComputedStyle(el).getPropertyValue("--v3-flask-font-size"),
+      );
+      const labelEl = el.querySelector(".v3-capital-badge__label");
+      const fs =
+        labelEl instanceof HTMLElement
+          ? fitCapitalFontSizeToWidth(
+              (size) => {
+                el.style.setProperty(CAPITAL_FACE_FS_VAR, `${size}px`);
+                return labelEl.scrollWidth;
+              },
+              usable,
+              maxFs,
+              CAPITAL_FACE_MIN_FS,
+            )
+          : fitCapitalFontSize(label, usable, maxFs, CAPITAL_FACE_MIN_FS);
+      publishCapitalFaceFontSize(el, fs);
     };
     apply();
     if (typeof ResizeObserver === "undefined") {

@@ -194,15 +194,8 @@ export default function FallingGameWater({
         100,
         Math.round((Math.min(catches, totalDrops) / totalDrops) * 100),
       );
-      // Early ✕: credit time spent (up to 50%) so Care still yields XP/mm.
-      const elapsedRatio = Math.min(
-        1,
-        Math.max(0, (performance.now() - start) / totalMs),
-      );
-      const timeSkill = Math.round(elapsedRatio * 50);
-      const skillScore = forced
-        ? Math.max(catchSkill, timeSkill)
-        : catchSkill;
+      // ✕ and timeout both use catches only — 0 catches → 0 skill → 0 XP.
+      const skillScore = Number.isFinite(catchSkill) ? catchSkill : 0;
       console.log(
         `[FallingGame:${type}] catches: ${catches}/${totalDrops}  skillScore: ${skillScore}/100  preset: ${activePreset.id}${forced ? " (forced)" : ""}`,
       );

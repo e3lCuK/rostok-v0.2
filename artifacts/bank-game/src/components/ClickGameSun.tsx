@@ -147,14 +147,8 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
         100,
         Math.round((catches / skillDenom) * 100),
       );
-      const elapsedRatio = Math.min(
-        1,
-        Math.max(0, (performance.now() - start) / totalMs),
-      );
-      const timeSkill = Math.round(elapsedRatio * 50);
-      const skillScore = forced
-        ? Math.max(catchSkill, timeSkill)
-        : catchSkill;
+      // ✕ and timeout both use catches only — 0 catches → 0 skill → 0 XP.
+      const skillScore = Number.isFinite(catchSkill) ? catchSkill : 0;
 
       console.log(
         `[ClickGameSun] catches: ${catches} skillScore: ${skillScore}/100${forced ? " (forced)" : ""}`,

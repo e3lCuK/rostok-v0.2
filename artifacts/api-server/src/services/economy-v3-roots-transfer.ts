@@ -54,8 +54,8 @@ import {
   readV3MetelkaRequired,
 } from "./economy-v3-metelka-cycle";
 import {
+  forceTutorialRootFillSeconds,
   grantTutorialV3RootsPure,
-  V3_TUTORIAL_ROOT_SECONDS,
 } from "./economy-v3-tutorial-pure";
 
 export class EconomyV3RootsTransferError extends Error {
@@ -230,8 +230,8 @@ export async function transferEconomyV3Root(
     const firstTransferredRoot =
       firstRaw != null && validateRootKind(firstRaw) ? firstRaw : null;
 
-    // Tutorial: force two-cell (10s) fills before collect so activity presets
-    // show 10 с (stale 5s grants / local-only pops cannot under-spend).
+    // Tutorial: floor stale fills to 10s before collect so activity presets
+    // are at least 10 с. Extra wait-clock energy above 10 is kept.
     let rootWaterSeconds = settled.rootWaterSeconds;
     let rootSunSeconds = settled.rootSunSeconds;
     let rootFertilizerSeconds = settled.rootFertilizerSeconds;
@@ -239,14 +239,11 @@ export async function transferEconomyV3Root(
       const transferredSet = new Set(
         normalizeTransferredRoots(locked.v3_transferred_roots),
       );
-      const forceTutorialFill = (kind: RootKind, sec: number): number => {
-        if (transferredSet.has(kind)) return sec;
-        // Upgrade any present energy, and always the root about to be collected.
-        if (sec > 0 || kind === rootRaw) {
-          return Math.max(sec, V3_TUTORIAL_ROOT_SECONDS);
-        }
-        return sec;
-      };
+      const forceTutorialFill = (kind: RootKind, sec: number): number =>
+        forceTutorialRootFillSeconds(sec, {
+          transferred: transferredSet.has(kind),
+          isCollecting: kind === rootRaw,
+        });
       const bumped = grantTutorialV3RootsPure({
         rootWaterSeconds,
         rootSunSeconds,

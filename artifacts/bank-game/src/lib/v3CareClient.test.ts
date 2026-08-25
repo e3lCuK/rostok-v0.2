@@ -12,6 +12,7 @@ import {
   isV3CareSessionBlocking,
   isV3RootCollectionIncomplete,
   minigameScoreToV3Skill,
+  coerceMinigameSkillScore,
   resolveV3CareRecovery,
   resolveV3CareStartPresetSeconds,
   ROOTS_COLLECTION_INCOMPLETE_HINT,
@@ -21,6 +22,15 @@ import { mayStartLegacyCareFromActivityCard } from "./v3ActivityCards";
 const here = dirname(fileURLToPath(import.meta.url));
 const pageSrc = readFileSync(join(here, "../pages/GamePage.tsx"), "utf8");
 const apiSrc = readFileSync(join(here, "api.ts"), "utf8");
+const fallingSrc = readFileSync(
+  join(here, "../components/FallingGameWater.tsx"),
+  "utf8",
+);
+const sunSrc = readFileSync(join(here, "../components/ClickGameSun.tsx"), "utf8");
+const fertSrc = readFileSync(
+  join(here, "../components/FertilizerMatchGame.tsx"),
+  "utf8",
+);
 
 function baseV3(
   overrides: Record<string, unknown> = {},
@@ -135,6 +145,17 @@ describe("minigameScoreToV3Skill", () => {
     expect(minigameScoreToV3Skill(-5)).toBe(0);
     expect(minigameScoreToV3Skill(140)).toBe(1);
     expect(minigameScoreToV3Skill(NaN)).toBe(0);
+    expect(coerceMinigameSkillScore(undefined)).toBe(0);
+    expect(coerceMinigameSkillScore("nope")).toBe(0);
+  });
+
+  it("does not invent a 40/50 skill default when the minigame score is missing", () => {
+    expect(pageSrc).toContain("coerceMinigameSkillScore(skillScore)");
+    expect(pageSrc).not.toContain("? skillScore : 40");
+    expect(pageSrc).not.toMatch(/recovery\.skill[\s\S]{0,180}: 50;/);
+    expect(fallingSrc).not.toContain("timeSkill");
+    expect(sunSrc).not.toContain("timeSkill");
+    expect(fertSrc).not.toContain("timeSkill");
   });
 });
 
@@ -516,11 +537,22 @@ describe("GamePage v3 Care wiring (7H)", () => {
     );
   });
 
-  it("duration comes from careSession.presetSeconds; F5 recovery wired", () => {
+  it("duration comes from careSession.presetSeconds even during tutorial", () => {
     expect(pageSrc).toContain("v3CarePresetSeconds");
+    expect(pageSrc).toContain("v3MinigameDurationSec");
+    expect(pageSrc).toContain("resolveV3CareMinigameDurationSec");
     expect(pageSrc).toContain("resolveV3CareRecovery");
     expect(pageSrc).toContain('"open-minigame"');
     expect(pageSrc).toContain('"await-acknowledge"');
+    const sunDur = pageSrc.slice(
+      pageSrc.indexOf("<ClickGameSun"),
+      pageSrc.indexOf("<FertilizerMatchGame"),
+    );
+    expect(sunDur).toContain("useV3");
+    expect(sunDur).toContain("v3MinigameDurationSec");
+    expect(sunDur).not.toMatch(
+      /durationSec=\{\s*!tutorialDone\s*\?\s*TUTORIAL_ACTIVITY_DURATION_SEC/,
+    );
   });
 
   it("without v3 snapshot legacy start remains available", () => {

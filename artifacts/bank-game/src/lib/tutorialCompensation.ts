@@ -32,6 +32,62 @@ export function resolveTutorialCompensationCapital(raw: unknown): number {
   return n;
 }
 
+export type TutorialHandoffBalances = {
+  balance: number;
+  earned: number;
+};
+
+function asNonNegMoney(raw: unknown): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * After tutorialComplete, the server owns the ruble grant (12% APR kopecks).
+ * Do not floor earned to 1₽ — that leftover from FALLBACK_RUB showed +1,00₽
+ * while income history kept the 0,01₽ tutorial row.
+ */
+export function reconcileTutorialHandoffBalances(input: {
+  serverBalance?: number | null;
+  serverEarned?: number | null;
+  localBalance: number;
+  localEarned: number;
+  demoMoney?: number | null;
+}): TutorialHandoffBalances {
+  const serverEarned = asNonNegMoney(input.serverEarned);
+  const serverBalance = asNonNegMoney(input.serverBalance);
+  const localGranted = asNonNegMoney(input.localEarned);
+  const demoMoney = asNonNegMoney(input.demoMoney);
+  const localEarned = Math.max(localGranted, demoMoney);
+  const localBalance = asNonNegMoney(input.localBalance);
+
+  if (serverEarned > 0) {
+    return {
+      earned: serverEarned,
+      balance: serverBalance > 0 ? serverBalance : localBalance,
+    };
+  }
+
+  return {
+    earned: localEarned,
+    balance: localBalance + Math.max(0, localEarned - localGranted),
+  };
+}
+
+/**
+ * Poll/sync: a stale client floored tutorial earned at 1₽ while the server
+ * kept kopecks. Snap down only that exact mismatch — never hide a real 1₽.
+ */
+export function reconcileMoneyAgainstTutorialRubleFloor(
+  server: number,
+  local: number,
+): number {
+  const s = asNonNegMoney(server);
+  const l = asNonNegMoney(local);
+  if (l === 1 && s > 0 && s < 1) return s;
+  return Math.max(s, l);
+}
+
 export function computeTutorialCompensation(
   input: TutorialCompensationInput,
 ): TutorialCompensationResult {

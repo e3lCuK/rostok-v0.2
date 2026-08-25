@@ -87,6 +87,20 @@ export function activityFillPercentFromV3Skill(
   return activityResultFillPercent(Math.round(n * 100));
 }
 
+/**
+ * Button wash after a Care activity: local minigame % first, else cycle journal.
+ * 0 is a real result (empty wash), not “missing”.
+ */
+export function resolveActivitySkillFillPercent(input: {
+  localPct: number | null | undefined;
+  cycleSkill: number | null | undefined;
+}): number | null {
+  if (input.localPct != null && Number.isFinite(Number(input.localPct))) {
+    return activityResultFillPercent(input.localPct);
+  }
+  return activityFillPercentFromV3Skill(input.cycleSkill);
+}
+
 export type V3CareCycleSkillSources = {
   water?: { skill?: number | null } | null;
   sun?: { skill?: number | null } | null;

@@ -87,6 +87,7 @@ function roundKopecks(value: number): number {
 /**
  * Pure Care reward preview from a completed cycle journal + economy context.
  * Money = sum of one-game incomes for Water/Sun/Fertilizer presets.
+ * Skill 0 trio → 1 XP (cycle participation floor).
  */
 export function buildEconomyV3CareRewardPreview(
   careCycle: Pick<

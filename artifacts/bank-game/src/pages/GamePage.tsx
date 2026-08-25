@@ -139,6 +139,7 @@ import {
   isV3CareSessionBlocking,
   isV3CareStateConflict,
   isV3RootCollectionIncomplete,
+  coerceMinigameSkillScore,
   minigameScoreToV3Skill,
   resolveV3CareCycleRecovery,
   resolveV3CareRecovery,
@@ -227,6 +228,7 @@ import {
   activityFillPercentFromV3Skill,
   activityResultFillPercent,
   careShovelFillPercent,
+  resolveActivitySkillFillPercent,
   resolveCareShovelFillPercent,
   isCareActivityCubeDone,
   mergeActivityFillPercent,
@@ -238,6 +240,8 @@ import {
 import {
   TUTORIAL_ACTIVITY_DURATION_SEC,
   TUTORIAL_CARE_GHOST_DELAY_MS,
+  resolveV3CareMinigameDurationSec,
+  tutorialGrantTargetSeconds,
   TUTORIAL_REWARD_TO_FINISH_MS,
   areAllV3CareActivitiesCompleted,
   areV3TutorialRootsEnergyReady,
@@ -256,7 +260,6 @@ import {
   shouldApplyResolvedV3TutorialStep,
   TUTORIAL_V3_FILL_MS,
   TUTORIAL_V3_ROOT_POP_MS,
-  TUTORIAL_V3_ROOT_SECONDS,
   TUTORIAL_V3_WAIT_MS,
   TUTORIAL_V3_WAIT_SECONDS,
   tutorialWaitMsForCapital,
@@ -297,7 +300,11 @@ import {
   persistTutorialFastFillUsed,
   persistTutorialWaitClock,
 } from "@/lib/tutorialWaitClock";
-import { computeTutorialCompensation } from "@/lib/tutorialCompensation";
+import {
+  computeTutorialCompensation,
+  reconcileMoneyAgainstTutorialRubleFloor,
+  reconcileTutorialHandoffBalances,
+} from "@/lib/tutorialCompensation";
 import {
   clearTutorialCompensationClock,
   loadTutorialCompensationClock,
@@ -939,10 +946,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   } | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const prevLevelRef = useRef(state.game.playerLevel ?? 1);
-  const skillScoreRef = useRef<number>(40);
-  const waterScoreRef = useRef<number>(40);
-  const sunScoreRef = useRef<number>(40);
-  const fertilizerScoreRef = useRef<number>(40);
+  const skillScoreRef = useRef<number>(0);
+  const waterScoreRef = useRef<number>(0);
+  const sunScoreRef = useRef<number>(0);
+  const fertilizerScoreRef = useRef<number>(0);
   const treeControls = useAnimation();
   const animFrameRef = useRef<number | null>(null);
   const growthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1387,7 +1394,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           const data = await api.getState();
           tutorialDemoRewardRef.current = { mm: 0, apples: 0, money: 0 };
           if (data.exists && data.game) {
-            // Keep tutorial мм / apple / compensation ₽ (server grant or local collect).
+            // Keep tutorial мм / apple (1 each). Compensation ₽ comes from the
+            // server APR grant — never floor earned to 1₽ (that overwrote 0.01₽).
             const keptMm = Math.max(
               Number(data.game.treeGrowthMM) || 0,
               Number(localBefore.game.treeGrowthMM) || 0,
@@ -1400,18 +1408,14 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               Number(demoKeep.apples) || 0,
               1,
             );
-            const keptEarned = Math.max(
-              Number(data.balances?.earned) || 0,
-              Number(localBefore.balances.earned) || 0,
-              Number(demoKeep.money) || 0,
-              1,
-            );
-            const keptBalance = Math.max(
-              Number(data.balances?.balance) || 0,
-              Number(localBefore.balances.balance) || 0,
-              (Number(localBefore.balances.balance) || 0) +
-                Math.max(0, keptEarned - (Number(localBefore.balances.earned) || 0)),
-            );
+            const { balance: keptBalance, earned: keptEarned } =
+              reconcileTutorialHandoffBalances({
+                serverBalance: data.balances?.balance,
+                serverEarned: data.balances?.earned,
+                localBalance: localBefore.balances.balance,
+                localEarned: localBefore.balances.earned,
+                demoMoney: demoKeep.money,
+              });
             let next: UserState = {
               ...localBefore,
               balances: {
@@ -1456,8 +1460,8 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               ...next,
               balances: {
                 ...next.balances,
-                balance: Math.max(Number(next.balances.balance) || 0, keptBalance),
-                earned: Math.max(Number(next.balances.earned) || 0, keptEarned),
+                balance: keptBalance,
+                earned: keptEarned,
               },
               game: {
                 ...next.game,
@@ -2367,6 +2371,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     const n = Math.floor(Number(s.presetSeconds) || 0);
     return n >= 5 ? n : null;
   })();
+  /** Tutorial included: duration follows collected energy, not a hard 10s. */
+  const v3MinigameDurationSec = useV3
+    ? resolveV3CareMinigameDurationSec(v3CarePresetSeconds, tutorialDone)
+    : null;
 
   // F5 / reload: restore active minigame or completed→acknowledge without re-start.
   // Runs after Tutorial is done, or during v3 Tutorial live Care (server is SoT).
@@ -2392,7 +2400,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       const score =
         recovery.skill != null && Number.isFinite(recovery.skill)
           ? Math.round(recovery.skill * 100)
-          : 50;
+          : 0;
       const pct = activityResultFillPercent(score);
       const act = recovery.activity;
       lastCompletedActivityRef.current = act;
@@ -2702,24 +2710,34 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   };
 
   const grantTutorialRootFromFlask = async (kind: EconomyV3RootKind) => {
+    const startSnap = stateRef.current.game.v3Roots;
+    const fromSec = Number(startSnap?.roots?.[kind]?.seconds) || 0;
+    const cap = Number(startSnap?.roots?.[kind]?.capacitySeconds) || 25;
+    const targetSec = tutorialGrantTargetSeconds(fromSec, cap);
     const popStart = Date.now();
     const popEnd = popStart + TUTORIAL_V3_ROOT_POP_MS;
-    while (Date.now() < popEnd) {
-      const t = Math.min(
-        1,
-        (Date.now() - popStart) / TUTORIAL_V3_ROOT_POP_MS,
-      );
-      const cur = stateRef.current;
-      const snap = cur.game.v3Roots;
-      if (snap && snap.enabled === true) {
-        commitState(
-          applyEconomyV3RootsToState(
-            cur,
-            withTutorialRootSeconds(snap, kind, TUTORIAL_V3_ROOT_SECONDS * t),
-          ),
+    if (fromSec + 0.01 < targetSec) {
+      while (Date.now() < popEnd) {
+        const t = Math.min(
+          1,
+          (Date.now() - popStart) / TUTORIAL_V3_ROOT_POP_MS,
         );
+        const cur = stateRef.current;
+        const snap = cur.game.v3Roots;
+        if (snap && snap.enabled === true) {
+          commitState(
+            applyEconomyV3RootsToState(
+              cur,
+              withTutorialRootSeconds(
+                snap,
+                kind,
+                fromSec + (targetSec - fromSec) * t,
+              ),
+            ),
+          );
+        }
+        await new Promise<void>((r) => window.setTimeout(r, 32));
       }
-      await new Promise<void>((r) => window.setTimeout(r, 32));
     }
     {
       const cur = stateRef.current;
@@ -2728,7 +2746,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         commitState(
           applyEconomyV3RootsToState(
             cur,
-            withTutorialRootSeconds(snap, kind, TUTORIAL_V3_ROOT_SECONDS),
+            withTutorialRootSeconds(snap, kind, targetSec),
           ),
         );
       }
@@ -3423,10 +3441,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }
 
   function resetCareUiChrome(opts?: { keepSpentActivities?: boolean }) {
-    waterScoreRef.current = 40;
-    sunScoreRef.current = 40;
-    fertilizerScoreRef.current = 40;
-    skillScoreRef.current = 40;
+    waterScoreRef.current = 0;
+    sunScoreRef.current = 0;
+    fertilizerScoreRef.current = 0;
+    skillScoreRef.current = 0;
     setWaterResultPct(null);
     setLightResultPct(null);
     setFertilizerResultPct(null);
@@ -3625,13 +3643,15 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               Number(serverGame.totalApples) || 0,
               Number(local.game.totalApples) || 0,
             );
-        const syncedEarned = Math.max(
+        const localEarned = Number(local.balances.earned) || 0;
+        const syncedEarned = reconcileMoneyAgainstTutorialRubleFloor(
           Number(data.balances?.earned) || 0,
-          Number(local.balances.earned) || 0,
+          localEarned,
         );
+        const earnedSnap = Math.max(0, localEarned - syncedEarned);
         const syncedBalance = Math.max(
           Number(data.balances?.balance) || 0,
-          Number(local.balances.balance) || 0,
+          (Number(local.balances.balance) || 0) - earnedSnap,
         );
         const next: UserState = {
           ...local,
@@ -4038,6 +4058,11 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
       fertilizerScoreRef.current = f;
       setFertilizerResultPct((prev) => mergeActivityFillPercent(prev, f));
     }
+    setDisplayFillHeights((d) => ({
+      water: w ?? d.water,
+      sun: s ?? d.sun,
+      fertilizer: f ?? d.fertilizer,
+    }));
     const avg = v3Roots?.careCycle?.averageSkill;
     if (
       w == null &&
@@ -4839,7 +4864,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
 
   async function handleMinigameComplete(type: GameType, skillScore: number, count: number) {
     setActiveMinigame(null);
-    const safe = typeof skillScore === "number" && !isNaN(skillScore) ? skillScore : 40;
+    const safe = coerceMinigameSkillScore(skillScore);
     if (type === "water")      waterScoreRef.current = safe;
     if (type === "sun")        sunScoreRef.current = safe;
     if (type === "fertilizer") fertilizerScoreRef.current = safe;
@@ -6609,16 +6634,24 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       : btn.key === "sun"
                         ? lightResultPct
                         : fertilizerResultPct;
-                  const v3DisplayPct = displayFillHeights[btn.key];
+                  const v3SkillFillPct = resolveActivitySkillFillPercent({
+                    localPct: v3FillPct,
+                    cycleSkill:
+                      game.v3Roots?.careCycle?.activities?.[btn.key]?.skill,
+                  });
+                  const v3ResultPending =
+                    v3PendingAck === btn.key ||
+                    v3PendingFinish?.activity === btn.key;
                   // Result overlay only while this activity is pending ack/finish
                   // or marked completed — never from stale pct after a new fill.
                   const v3ShowResultFill =
                     v3Card != null &&
-                    v3FillPct != null &&
-                    (v3Card.uiState === "completed" ||
-                      v3PendingAck === btn.key ||
-                      v3PendingFinish?.activity === btn.key);
+                    v3SkillFillPct != null &&
+                    (v3Card.uiState === "completed" || v3ResultPending);
                   const v3ShowFill = v3ShowResultFill;
+                  const v3DisplayPct = v3ResultPending
+                    ? displayFillHeights[btn.key]
+                    : (v3SkillFillPct ?? 0);
                   // Metelka lock must not grey Care buttons while Care holds the
                   // row (mid-cycle / «Уход»). When Metelka owns the row, children
                   // are not mounted anyway.
@@ -6747,7 +6780,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                       }
                       data-v3-activity-can-start={v3CanStart ? "true" : "false"}
                     >
-                      {v3Card ? (
+                      {v3Card && !v3ShowFill ? (
                         <V3ActivityReserveFill
                           kind={btn.key}
                           fillPercent={v3ActivityReserveFillPercent(
@@ -7332,7 +7365,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           )}
           {activeMinigame === "sun" ? (
             <ClickGameSun
-              key={`sun-${!tutorialDone ? "tut" : useV3 ? `v3-${v3CarePresetSeconds ?? 5}` : (v2Alloc?.sun ?? v2Care.allocation.sunSeconds ?? 15)}`}
+              key={`sun-${useV3 ? `v3-${v3MinigameDurationSec ?? 5}` : !tutorialDone ? "tut" : (v2Alloc?.sun ?? v2Care.allocation.sunSeconds ?? 15)}`}
               onComplete={(score, count) => handleMinigameComplete("sun", score, count)}
               bonusSeconds={
                 !tutorialDone || useV3 || ENABLE_ECONOMY_V2_CARE || v3CarePresetSeconds != null
@@ -7340,10 +7373,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   : getStreakBonusSeconds(game.streakDays)
               }
               durationSec={
-                !tutorialDone
-                  ? TUTORIAL_ACTIVITY_DURATION_SEC
-                  : useV3
-                    ? Math.max(5, v3CarePresetSeconds ?? 5)
+                useV3
+                  ? (v3MinigameDurationSec ?? 5)
+                  : !tutorialDone
+                    ? TUTORIAL_ACTIVITY_DURATION_SEC
                   : v3CarePresetSeconds != null
                     ? v3CarePresetSeconds
                   : ENABLE_ECONOMY_V2_CARE
@@ -7358,7 +7391,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             />
           ) : activeMinigame === "fertilizer" ? (
             <FertilizerMatchGame
-              key={`fert-${!tutorialDone ? "tut" : useV3 ? `v3-${v3CarePresetSeconds ?? 5}` : (v2Alloc?.fertilizer ?? v2Care.allocation.fertilizerSeconds ?? 15)}`}
+              key={`fert-${useV3 ? `v3-${v3MinigameDurationSec ?? 5}` : !tutorialDone ? "tut" : (v2Alloc?.fertilizer ?? v2Care.allocation.fertilizerSeconds ?? 15)}`}
               onComplete={(score, count) => handleMinigameComplete("fertilizer", score, count)}
               bonusSeconds={
                 !tutorialDone || useV3 || ENABLE_ECONOMY_V2_CARE || v3CarePresetSeconds != null
@@ -7366,10 +7399,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   : getStreakBonusSeconds(game.streakDays)
               }
               durationSec={
-                !tutorialDone
-                  ? TUTORIAL_ACTIVITY_DURATION_SEC
-                  : useV3
-                    ? Math.max(5, v3CarePresetSeconds ?? 5)
+                useV3
+                  ? (v3MinigameDurationSec ?? 5)
+                  : !tutorialDone
+                    ? TUTORIAL_ACTIVITY_DURATION_SEC
                   : v3CarePresetSeconds != null
                     ? v3CarePresetSeconds
                   : ENABLE_ECONOMY_V2_CARE
@@ -7384,13 +7417,13 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
             />
           ) : (
             <FallingGameWater
-              key={`water-${!tutorialDone ? "tut" : useV3 ? `v3-${v3CarePresetSeconds ?? 5}` : (v2Alloc?.water ?? v2Care.allocation.waterSeconds ?? 15)}`}
+              key={`water-${useV3 ? `v3-${v3MinigameDurationSec ?? 5}` : !tutorialDone ? "tut" : (v2Alloc?.water ?? v2Care.allocation.waterSeconds ?? 15)}`}
               type={activeMinigame}
               preset={
-                !tutorialDone
-                  ? buildWaterPreset(TUTORIAL_ACTIVITY_DURATION_SEC)
-                  : useV3
-                    ? buildWaterPreset(Math.max(5, v3CarePresetSeconds ?? 5))
+                useV3
+                  ? buildWaterPreset(v3MinigameDurationSec ?? 5)
+                  : !tutorialDone
+                    ? buildWaterPreset(TUTORIAL_ACTIVITY_DURATION_SEC)
                   : v3CarePresetSeconds != null
                     ? buildWaterPreset(v3CarePresetSeconds)
                   : ENABLE_ECONOMY_V2_CARE

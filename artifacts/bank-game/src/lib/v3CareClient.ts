@@ -21,12 +21,16 @@ export const V3_CARE_PLAYABLE_MIN_SECONDS = 5;
 /** Auto-press «Уход» shovel if the player never taps it (same 60s as apple auto-collect). */
 export const CARE_SHOVEL_AUTO_PRESS_MS = 60_000;
 
-/** Minigame reports skillScore 0…100; server expects skill in [0, 1]. */
-export function minigameScoreToV3Skill(scoreRaw: unknown): number {
+/** Minigame reports skillScore 0…100. Missing / NaN → 0, never a hidden default. */
+export function coerceMinigameSkillScore(scoreRaw: unknown): number {
   const n = typeof scoreRaw === "number" ? scoreRaw : Number(scoreRaw);
   if (!Number.isFinite(n)) return 0;
-  const clamped = Math.min(100, Math.max(0, n));
-  return clamped / 100;
+  return Math.min(100, Math.max(0, n));
+}
+
+/** Minigame reports skillScore 0…100; server expects skill in [0, 1]. */
+export function minigameScoreToV3Skill(scoreRaw: unknown): number {
+  return coerceMinigameSkillScore(scoreRaw) / 100;
 }
 
 /** Server preset for start-activity — never invent locally. */

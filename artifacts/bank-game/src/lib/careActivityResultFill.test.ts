@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   activityFillPercentFromV3Skill,
   activityResultFillPercent,
+  resolveActivitySkillFillPercent,
   allActivityFillsPresent,
   careShovelFillPercent,
   hasActivityResultFill,
@@ -41,6 +42,24 @@ describe("careActivityResultFill — итоговое заполнение ку�
     expect(activityResultFillPercent(42)).toBe(42);
     expect(activityResultFillPercent(0)).toBe(0);
     expect(activityResultFillPercent(100)).toBe(100);
+  });
+
+  it("4b. completed button fill prefers local %, else cycle skill (0 is valid)", () => {
+    expect(
+      resolveActivitySkillFillPercent({ localPct: 72, cycleSkill: 0.1 }),
+    ).toBe(72);
+    expect(
+      resolveActivitySkillFillPercent({ localPct: 0, cycleSkill: 0.9 }),
+    ).toBe(0);
+    expect(
+      resolveActivitySkillFillPercent({ localPct: null, cycleSkill: 0.4 }),
+    ).toBe(40);
+    expect(
+      resolveActivitySkillFillPercent({ localPct: null, cycleSkill: 0 }),
+    ).toBe(0);
+    expect(
+      resolveActivitySkillFillPercent({ localPct: null, cycleSkill: null }),
+    ).toBeNull();
   });
 
   it("5. completed cube stays non-empty; null next does not clear fill", () => {

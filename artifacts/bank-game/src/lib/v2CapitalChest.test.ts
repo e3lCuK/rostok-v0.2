@@ -9,6 +9,12 @@ import {
   V2CapitalChest,
   formatV2ChestCapital,
   fitCapitalFontSize,
+  fitCapitalFontSizeToWidth,
+  resolveFlaskFontSizePx,
+  CAPITAL_FACE_MAX_FS,
+  CAPITAL_FACE_MIN_FS,
+  CAPITAL_FACE_FS_VAR,
+  CAPITAL_FACE_WIDTH_RATIO,
   V2_CHEST_LABEL_MAX_W,
   V2_CHEST_LABEL_MAX_W_PREV,
 } from "../components/v2/V2CapitalChest";
@@ -32,6 +38,24 @@ describe("formatV2ChestCapital", () => {
     expect(tight).toBeLessThan(roomy);
     expect(tight).toBeGreaterThanOrEqual(6.5);
     expect(roomy).toBe(11);
+  });
+
+  it("capital face max is the timer size; width ratio uses the oval", () => {
+    expect(CAPITAL_FACE_MAX_FS).toBe(11);
+    expect(CAPITAL_FACE_FS_VAR).toBe("--capital-label-fs");
+    expect(CAPITAL_FACE_WIDTH_RATIO).toBeGreaterThan(0.7);
+    expect(CAPITAL_FACE_WIDTH_RATIO).toBeLessThanOrEqual(0.85);
+    expect(resolveFlaskFontSizePx("11px")).toBe(11);
+    expect(resolveFlaskFontSizePx("")).toBe(CAPITAL_FACE_MAX_FS);
+    const fitted = fitCapitalFontSizeToWidth(
+      (fs) => fs * 5,
+      40,
+      CAPITAL_FACE_MAX_FS,
+      CAPITAL_FACE_MIN_FS,
+    );
+    expect(fitted).toBeLessThan(CAPITAL_FACE_MAX_FS);
+    expect(fitted).toBeGreaterThan(CAPITAL_FACE_MIN_FS);
+    expect(fitted * 5).toBeLessThanOrEqual(40 + 0.4);
   });
 });
 

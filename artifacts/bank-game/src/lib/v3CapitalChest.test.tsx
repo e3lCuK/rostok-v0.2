@@ -122,8 +122,14 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(cssSrc).toContain("v3-capital-chest-host--income-flash");
     expect(pageSrc).toContain("v3-capital-chest-host--income-flash");
     expect(underRootsSrc).toContain("ResizeObserver");
-    expect(underRootsSrc).toContain("fitCapitalFontSize");
+    expect(underRootsSrc).toContain("fitCapitalFontSizeToWidth");
+    expect(underRootsSrc).toContain("publishCapitalFaceFontSize");
+    expect(underRootsSrc).toContain("CAPITAL_FACE_FS_VAR");
+    expect(underRootsSrc).toContain("CAPITAL_FACE_WIDTH_RATIO");
+    expect(underRootsSrc).toContain("resolveFlaskFontSizePx");
     expect(cssSrc).toContain("--capital-label-fs");
+    expect(cssSrc).toContain("max-width: 80%");
+    expect(cssSrc).toContain("var(--v3-flask-font-size, 11px)");
     expect(cssSrc).toMatch(
       /\.v3-capital-badge--in-bulb\s*\{[\s\S]*?container-type:\s*inline-size/,
     );

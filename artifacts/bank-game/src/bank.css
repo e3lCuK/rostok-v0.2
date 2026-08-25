@@ -8124,7 +8124,7 @@ canvas {
   align-items: baseline;
   justify-content: center;
   gap: 3px;
-  max-width: 70%;
+  max-width: 80%;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -8144,13 +8144,16 @@ button.v3-capital-badge:focus-visible {
     transform: translate(-50%, -50%) scale(1.05);
   }
 }
-/* Match timer type exactly (size / weight / family). */
+/* Same family/weight as the timer; size ≤ timer, fitted to the oval. */
 .v3-capital-badge .field-caption-value,
 .v3-capital-badge .field-caption-unit {
   position: relative;
   z-index: 1;
   font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
-  font-size: var(--capital-label-fs, clamp(7px, 16.5cqi, 11px));
+  font-size: var(
+    --capital-label-fs,
+    clamp(7px, 20cqi, var(--v3-flask-font-size, 11px))
+  );
   font-weight: var(--v3-flask-font-weight, 700);
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -8636,7 +8639,13 @@ button.v3-capital-badge:focus-visible {
   display: flex;
   color: var(--v3-flask-ink, #c9920a);
   line-height: 0;
+  font-size: var(--capital-label-fs, var(--v3-flask-font-size, 11px));
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
+}
+.game-area--v3-roots .v3-root-wait-timer-icon svg {
+  width: 1em;
+  height: 1em;
+  display: block;
 }
 
 .game-area--v3-roots .v3-tutorial-fast-fill-btn {
@@ -8719,7 +8728,7 @@ button.v3-capital-badge:focus-visible {
   position: relative;
   z-index: 1;
   font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
-  font-size: var(--v3-flask-font-size, 11px);
+  font-size: var(--capital-label-fs, var(--v3-flask-font-size, 11px));
   font-weight: var(--v3-flask-font-weight, 700);
   color: var(--v3-flask-ink, #c9920a);
   letter-spacing: 0;

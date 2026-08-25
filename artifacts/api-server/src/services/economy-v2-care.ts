@@ -672,11 +672,17 @@ export async function completeEconomyV2CareActivity(
       nextMath,
       nextCompleted,
     );
+    const previousCycleXp = computeEconomyV2CycleXp(
+      allocation,
+      nextMath,
+      { ...nextCompleted, [activity]: false },
+    );
     const cycleSkill =
       (nextMath.water + nextMath.sun + nextMath.fertilizer) / 300;
 
     const prevLevel = playerLevel;
-    const newTotalXp = playerXp + activityXp;
+    const xpDelta = Math.max(0, totalCycleXp - previousCycleXp);
+    const newTotalXp = playerXp + xpDelta;
     const newLevel = calcPlayerLevel(newTotalXp);
     const allDone = isAllCompleted(nextCompleted);
 

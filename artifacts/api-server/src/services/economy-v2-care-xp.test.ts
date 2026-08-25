@@ -22,6 +22,8 @@ describe("computeEconomyV2ActivityXp", () => {
   });
   it("skill=0 → 0 XP", () => {
     expect(computeEconomyV2ActivityXp(25, 0)).toBe(0);
+    expect(computeEconomyV2ActivityXp(10, 0)).toBe(0);
+    expect(computeEconomyV2ActivityXp(5, 0)).toBe(0);
   });
   it("T=6 skill=83 → round(19.92)=20", () => {
     // 100 * 6/25 * 0.83 = 19.92
@@ -53,6 +55,33 @@ describe("computeEconomyV2CycleXp", () => {
         { water: true, sun: false, fertilizer: false },
       ),
     ).toBe(100);
+  });
+
+  it("skill 0 on a completed trio → 1 XP participation (T=10 and T=5)", () => {
+    expect(
+      computeEconomyV2CycleXp(
+        { waterSeconds: 10, sunSeconds: 10, fertilizerSeconds: 10 },
+        { water: 0, sun: 0, fertilizer: 0 },
+        { water: true, sun: true, fertilizer: true },
+      ),
+    ).toBe(1);
+    expect(
+      computeEconomyV2CycleXp(
+        { waterSeconds: 5, sunSeconds: 5, fertilizerSeconds: 5 },
+        { water: 0, sun: 0, fertilizer: 0 },
+        { water: true, sun: true, fertilizer: true },
+      ),
+    ).toBe(1);
+  });
+
+  it("skill 0 on a partial cycle is still 0 XP", () => {
+    expect(
+      computeEconomyV2CycleXp(
+        { waterSeconds: 10, sunSeconds: 10, fertilizerSeconds: 10 },
+        { water: 0, sun: 0, fertilizer: 0 },
+        { water: true, sun: false, fertilizer: false },
+      ),
+    ).toBe(0);
   });
 });
 

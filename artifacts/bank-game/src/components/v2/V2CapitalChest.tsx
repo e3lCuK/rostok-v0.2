@@ -23,6 +23,17 @@ export function formatV2ChestCapital(balance: number): string {
   return `${Math.floor(balance).toLocaleString("ru-RU")} ₽`;
 }
 
+/** Same as `--v3-flask-font-size` — capital fit never exceeds this cap. */
+export const CAPITAL_FACE_MAX_FS = 11;
+export const CAPITAL_FACE_MIN_FS = 6.5;
+/**
+ * Inner oval width at the capital label (badge clientWidth).
+ * 0.70 left unused room inside the bulb; 0.80 fills it without hitting the rim.
+ */
+export const CAPITAL_FACE_WIDTH_RATIO = 0.8;
+/** Shared flask type: capital, timer digits, energy icon. */
+export const CAPITAL_FACE_FS_VAR = "--capital-label-fs";
+
 function estimateLabelWidth(label: string, fontSize: number): number {
   let w = 0;
   for (const ch of label) {
@@ -33,6 +44,41 @@ function estimateLabelWidth(label: string, fontSize: number): number {
   return w;
 }
 
+export function resolveFlaskFontSizePx(
+  raw: string,
+  fallback = CAPITAL_FACE_MAX_FS,
+): number {
+  const n = Number.parseFloat(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/**
+ * Largest font size ≤ `maxFs` whose measured width still fits `maxWidth`.
+ * Used with live `scrollWidth` so we don't undershoot the oval.
+ */
+export function fitCapitalFontSizeToWidth(
+  measure: (fs: number) => number,
+  maxWidth: number,
+  maxFs = CAPITAL_FACE_MAX_FS,
+  minFs = CAPITAL_FACE_MIN_FS,
+): number {
+  const hiCap = Math.max(minFs, maxFs);
+  if (!(maxWidth > 0) || measure(hiCap) <= maxWidth) return hiCap;
+  let lo = minFs;
+  let hi = hiCap;
+  let best = minFs;
+  for (let i = 0; i < 14; i++) {
+    const mid = (lo + hi) / 2;
+    if (measure(mid) <= maxWidth) {
+      best = mid;
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return best;
+}
+
 /** Shrink capital type until it fits `maxWidth` (SVG face or HTML bulb). */
 export function fitCapitalFontSize(
   label: string,
@@ -40,11 +86,25 @@ export function fitCapitalFontSize(
   maxFs = 9.5,
   minFs = 6.2,
 ): number {
-  let fs = maxFs;
-  while (fs > minFs && estimateLabelWidth(label, fs) > maxWidth) {
-    fs -= 0.3;
+  return fitCapitalFontSizeToWidth(
+    (fs) => estimateLabelWidth(label, fs),
+    maxWidth,
+    maxFs,
+    minFs,
+  );
+}
+
+/** Push fitted type onto the chest host so timer + Zap inherit the same size. */
+export function publishCapitalFaceFontSize(
+  badge: HTMLElement,
+  fsPx: number,
+): void {
+  const value = `${fsPx.toFixed(2)}px`;
+  badge.style.setProperty(CAPITAL_FACE_FS_VAR, value);
+  const host = badge.closest("[data-v3-capital-chest-host]");
+  if (host instanceof HTMLElement) {
+    host.style.setProperty(CAPITAL_FACE_FS_VAR, value);
   }
-  return fs;
 }
 
 const CX = 100;

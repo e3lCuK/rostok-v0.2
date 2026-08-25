@@ -4,6 +4,8 @@
  * XP_max(T) = 100 × T / 25
  * XP_activity = round(XP_max(T) × Skill)
  * where Skill = skillScore / 100, T = snapshot duration seconds.
+ *
+ * Completed Care trio at Skill 0 → 1 XP (participation), same idea as 1 mm.
  */
 
 export type EconomyV2CareActivityResultInput = {
@@ -77,6 +79,14 @@ export function computeEconomyV2CycleXp(
       allocation.fertilizerSeconds,
       scores.fertilizer,
     );
+  }
+  const trioDone = completed.water && completed.sun && completed.fertilizer;
+  if (trioDone && total === 0) {
+    const anyDuration =
+      allocation.waterSeconds > 0 ||
+      allocation.sunSeconds > 0 ||
+      allocation.fertilizerSeconds > 0;
+    if (anyDuration) return 1;
   }
   return total;
 }

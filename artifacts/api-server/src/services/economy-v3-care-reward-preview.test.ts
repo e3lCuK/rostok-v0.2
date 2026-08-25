@@ -209,6 +209,7 @@ describe("buildEconomyV3CareRewardPreview", () => {
       CTX,
     );
     expect(low.available).toBe(true);
+    expect(low.xp).toBe(1);
     expect(high.available).toBe(true);
     expect(high.xp).toBeGreaterThan(low.xp);
     expect(high.income.bonus).toBeGreaterThan(low.income.bonus);

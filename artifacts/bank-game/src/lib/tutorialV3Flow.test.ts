@@ -26,9 +26,12 @@ import {
   shouldClearStaleV3CareUiAfterTutorial,
   tutorialHighlightRoot,
   TUTORIAL_PLAN_ICON_COLORS,
+  TUTORIAL_ACTIVITY_DURATION_SEC,
   TUTORIAL_V3_ROOT_POP_MS,
   TUTORIAL_V3_ROOT_SECONDS,
   TUTORIAL_V3_WAIT_SECONDS,
+  tutorialGrantTargetSeconds,
+  resolveV3CareMinigameDurationSec,
   v3TutorialOverlayConfig,
   v3TutorialOverlayPresenceKey,
   withTutorialRootSeconds,
@@ -156,6 +159,17 @@ function sampleV3(
 describe("Economy v3 Tutorial flow (8E)", () => {
   it("flask-bound root grants: T(K) cycle → next root 10s (no free-running 5s fill)", () => {
     expect(TUTORIAL_V3_ROOT_SECONDS).toBe(10);
+    expect(tutorialGrantTargetSeconds(0)).toBe(10);
+    expect(tutorialGrantTargetSeconds(5)).toBe(10);
+    expect(tutorialGrantTargetSeconds(15)).toBe(15);
+    expect(tutorialGrantTargetSeconds(15, 21)).toBe(15);
+    expect(tutorialGrantTargetSeconds(30, 21)).toBe(21);
+    expect(resolveV3CareMinigameDurationSec(15, false)).toBe(15);
+    expect(resolveV3CareMinigameDurationSec(10, false)).toBe(10);
+    expect(resolveV3CareMinigameDurationSec(null, false)).toBe(
+      TUTORIAL_ACTIVITY_DURATION_SEC,
+    );
+    expect(resolveV3CareMinigameDurationSec(null, true)).toBe(5);
     expect(pageSrc).toContain("V3TutorialFillTimer");
     expect(pageSrc).toContain("tutorialFillDeadlineMs");
     expect(pageSrc).toContain("!excessUiGrey");
@@ -173,9 +187,12 @@ describe("Economy v3 Tutorial flow (8E)", () => {
     expect(timerSrc).toContain('<line x1="12" y1="12" x2="17" y2="12"');
     expect(pageSrc).toContain("nextV3TutorialFillKind");
     expect(pageSrc).toContain("withTutorialRootSeconds");
+    expect(pageSrc).toContain("tutorialGrantTargetSeconds");
     expect(pageSrc).toContain("mergeStagedTutorialPrepare");
     expect(pageSrc).toContain("prepareTutorialV3({ kind })");
     expect(pageSrc).toContain("TUTORIAL_V3_ROOT_POP_MS");
+    expect(pageSrc).toContain("resolveV3CareMinigameDurationSec");
+    expect(pageSrc).toContain("v3MinigameDurationSec");
     // Must not auto-fill on a detached 5s sleep loop.
     expect(pageSrc).not.toContain("await sleepUntil(deadline)");
     expect(pageSrc).not.toContain("keepCapitalWait");

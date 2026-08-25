@@ -45,6 +45,7 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(dismissFn).not.toContain("handleGoToRewards");
     // Server/local keep tutorial collectibles — do not force zero counters.
     expect(dismissFn).not.toContain("demo.money");
+    expect(pageSrc).toContain("reconcileTutorialHandoffBalances");
     expect(dismissFn).toContain("data.balances?.balance");
     expect(dismissFn).not.toContain("treeGrowthMM: 0");
     expect(dismissFn).not.toContain("totalApples: 0");

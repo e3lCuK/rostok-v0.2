@@ -108,8 +108,26 @@ export function grantTutorialV3RootsPure(input: {
 }
 
 /**
- * Tutorial activity buttons must show 10 с. If a stale grant left 5 s in a
- * reserve, top it up to the tutorial target (never invent energy from 0).
+ * Floor a tutorial root to 10 с when it is about to be collected (or already
+ * holds some energy). Extra wait-clock seconds above 10 are kept — never clamp
+ * down to the tutorial preset.
+ */
+export function forceTutorialRootFillSeconds(
+  secRaw: unknown,
+  options: { transferred: boolean; isCollecting: boolean },
+): number {
+  const sec = Math.max(0, Math.floor(Number(secRaw) || 0));
+  if (options.transferred) return sec;
+  if (sec > 0 || options.isCollecting) {
+    return Math.max(sec, V3_TUTORIAL_ROOT_SECONDS);
+  }
+  return sec;
+}
+
+/**
+ * Tutorial activity buttons must show at least 10 с. If a stale grant left
+ * 5 s in a reserve, top it up to the tutorial target (never invent energy
+ * from 0). Extra collected seconds above 10 stay as-is.
  */
 export function topUpTutorialReservesPure(input: {
   reserveWaterSeconds: number;

@@ -288,7 +288,7 @@ export async function settleEconomyV3RootsInTransaction(
     postCollectPause: lockedRow.v3_post_collect_pause === true,
   });
 
-  // Tutorial Care buttons must show 10 с — upgrade stale 5 s reserves in place.
+  // Tutorial Care buttons: floor stale 5 s reserves to 10 с; keep extra.
   if (rowTutorialActive) {
     const topped = topUpTutorialReservesPure({
       reserveWaterSeconds: settled.reserveWaterSeconds,

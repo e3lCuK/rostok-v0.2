@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   grantTutorialV3RootsPure,
+  forceTutorialRootFillSeconds,
   topUpTutorialReservesPure,
   V3_TUTORIAL_ROOT_SECONDS,
 } from "./economy-v3-tutorial-pure";
@@ -128,9 +129,50 @@ describe("Economy v3 tutorial grant (8E)", () => {
 
   it("tutorial transfer upgrades stale sibling fills before collect", () => {
     expect(transferSrc).toContain("grantTutorialV3RootsPure");
-    expect(transferSrc).toContain("V3_TUTORIAL_ROOT_SECONDS");
+    expect(transferSrc).toContain("forceTutorialRootFillSeconds");
     expect(transferSrc).toContain("isEconomyV2TutorialActive");
     expect(transferSrc).toContain("forceTutorialFill");
+  });
+
+  it("keeps extra tutorial root energy above 10s on collect into activity buttons", () => {
+    expect(
+      forceTutorialRootFillSeconds(15, {
+        transferred: false,
+        isCollecting: true,
+      }),
+    ).toBe(15);
+    expect(
+      forceTutorialRootFillSeconds(5, {
+        transferred: false,
+        isCollecting: true,
+      }),
+    ).toBe(V3_TUTORIAL_ROOT_SECONDS);
+    expect(
+      forceTutorialRootFillSeconds(0, {
+        transferred: false,
+        isCollecting: true,
+      }),
+    ).toBe(V3_TUTORIAL_ROOT_SECONDS);
+    expect(
+      forceTutorialRootFillSeconds(0, {
+        transferred: false,
+        isCollecting: false,
+      }),
+    ).toBe(0);
+    const extra = grantTutorialV3RootsPure({
+      rootWaterSeconds: 15,
+      rootSunSeconds: 12,
+      rootFertilizerSeconds: 18,
+      reserveWaterSeconds: 0,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      transferredRoots: [],
+      effectivePresetSeconds: 21,
+    });
+    expect(extra.changed).toBe(false);
+    expect(extra.rootWaterSeconds).toBe(15);
+    expect(extra.rootSunSeconds).toBe(12);
+    expect(extra.rootFertilizerSeconds).toBe(18);
   });
 
   it("tops up stale 5s tutorial reserves to 10s for activity buttons", () => {
@@ -145,6 +187,15 @@ describe("Economy v3 tutorial grant (8E)", () => {
     expect(topped.reserveWaterSeconds).toBe(10);
     expect(topped.reserveSunSeconds).toBe(10);
     expect(topped.reserveFertilizerSeconds).toBe(0);
+    const keepExtra = topUpTutorialReservesPure({
+      reserveWaterSeconds: 15,
+      reserveSunSeconds: 12,
+      reserveFertilizerSeconds: 0,
+      effectivePresetSeconds: 25,
+    });
+    expect(keepExtra.changed).toBe(false);
+    expect(keepExtra.reserveWaterSeconds).toBe(15);
+    expect(keepExtra.reserveSunSeconds).toBe(12);
     expect(settleSrc).toContain("topUpTutorialReservesPure");
   });
 

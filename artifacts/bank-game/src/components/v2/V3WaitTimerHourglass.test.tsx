@@ -23,6 +23,7 @@ describe("V3WaitTimerHourglass", () => {
     expect(html).toContain('data-timer-fill="true"');
     expect(html).toContain('data-v3-hourglass-fill="upper"');
     expect(html).toContain('data-timer-energy-icon="true"');
+    expect(html).toContain("v3-root-wait-timer-icon");
     expect(html).toContain('data-timer-upper="true"');
     expect(html).toContain(V3_HOURGLASS_OUTER_PATH);
     // Upper silhouette path (shell + rim + clip) — mid/button live elsewhere.
@@ -64,5 +65,14 @@ describe("V3WaitTimerHourglass", () => {
     );
     expect(css).toContain("--v3-hourglass-lid-foot");
     expect(css).toContain("v3-root-wait-timer-hourglass__lid-foot");
+    expect(css).toContain(
+      "font-size: var(--capital-label-fs, var(--v3-flask-font-size, 11px))",
+    );
+    expect(css).toMatch(
+      /\.v3-root-wait-timer-icon svg\s*\{[\s\S]*?width:\s*1em/,
+    );
+    const hgSrc = readFileSync(join(here, "V3WaitTimerHourglass.tsx"), "utf8");
+    expect(hgSrc).not.toContain("Zap size={13}");
+    expect(hgSrc).toContain("<Zap strokeWidth={2.25}");
   });
 });

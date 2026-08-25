@@ -234,7 +234,7 @@ export default function V3WaitTimerHourglass({
           className="v3-root-wait-timer-icon"
           data-timer-energy-icon="true"
         >
-          <Zap size={13} strokeWidth={2.25} fill="none" />
+          <Zap strokeWidth={2.25} fill="none" aria-hidden="true" />
         </span>
         <span className="v3-root-wait-timer-capsule__time">{timeLabel}</span>
       </div>

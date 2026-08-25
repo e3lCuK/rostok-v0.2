@@ -23,6 +23,32 @@ export const TUTORIAL_ACTIVITY_DURATION_SEC = 10;
 export const TUTORIAL_V3_ROOT_SECONDS = 10;
 
 /**
+ * Flask grant target: at least two cells (10s), but never snap extra
+ * wait-clock energy back down to 10.
+ */
+export function tutorialGrantTargetSeconds(
+  currentSeconds: unknown,
+  capacitySeconds: unknown = 25,
+): number {
+  const cap = Math.max(1, Math.floor(Number(capacitySeconds) || 25));
+  const cur = Math.max(0, Number(currentSeconds) || 0);
+  return Math.min(cap, Math.max(cur, TUTORIAL_V3_ROOT_SECONDS));
+}
+
+/**
+ * v3 Care minigame length = collected reserve (session preset).
+ * Tutorial no longer hard-locks 10s when the player gathered more.
+ */
+export function resolveV3CareMinigameDurationSec(
+  v3CarePresetSeconds: number | null | undefined,
+  tutorialDone: boolean,
+): number {
+  const n = Math.floor(Number(v3CarePresetSeconds) || 0);
+  if (n >= 5) return n;
+  return tutorialDone ? 5 : TUTORIAL_ACTIVITY_DURATION_SEC;
+}
+
+/**
  * Staged root-energy reveal during intro:
  * 5s timer (root still empty) → quick pop fills two cells (10s) → next root.
  */

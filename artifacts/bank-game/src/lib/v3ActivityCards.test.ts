@@ -558,5 +558,7 @@ describe("v3ActivityReserveFillPercent — continuous visual height", () => {
     // Result fill / action-btn-done only while pending ack/finish or completed.
     expect(pageSrc).toContain("v3ShowResultFill");
     expect(pageSrc).toContain("v3PendingAck === btn.key");
+    expect(pageSrc).toContain("resolveActivitySkillFillPercent");
+    expect(pageSrc).toContain("v3Card && !v3ShowFill");
   });
 });
