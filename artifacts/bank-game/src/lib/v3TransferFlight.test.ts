@@ -11,11 +11,13 @@ import {
   formatV3TransferSecondsLabel,
   measureV3TransferFlight,
   pulseV3ActivityReceive,
+  toFlightHostPoint,
   V3_ACTIVITY_CARD_SELECTOR,
   V3_ACTIVITY_RESERVE_SELECTOR,
   V3_ROOT_SELECTOR,
   V3_TRANSFER_FLIGHT_COLORS,
-  V3_TRANSFER_LABEL_TOP_OFFSET_PX,
+  V3_TRANSFER_FLIGHT_HOST_SELECTOR,
+  V3_TRANSFER_LABEL_GAP_PX,
   v3RootToActivityKind,
 } from "./v3TransferFlight";
 import { V3_ROOT_KINDS } from "./v3Roots";
@@ -46,7 +48,7 @@ describe("v3TransferFlight mapping", () => {
     expect(rootSysSrc).toContain("data-v3-root={kind}");
   });
 
-  it("measures flight just above the activity card (soil gap, not grass)", () => {
+  it("measures flight to the activity button top (CSS lifts the pill fully above)", () => {
     const root = {
       getBoundingClientRect: () =>
         ({
@@ -84,7 +86,7 @@ describe("v3TransferFlight mapping", () => {
       },
     } as unknown as Document;
 
-    const expectedToY = cardTop - V3_TRANSFER_LABEL_TOP_OFFSET_PX;
+    const expectedToY = cardTop;
     const points = measureV3TransferFlight("water", doc);
     expect(points).not.toBeNull();
     if (!points) return;
@@ -93,10 +95,9 @@ describe("v3TransferFlight mapping", () => {
     expect(points.fromY).toBe(240); // 200 + 40
     expect(points.toX).toBe(49); // 20 + 29
     expect(points.toY).toBe(expectedToY);
-    // Under grass, with a small clear gap above the button (~pillH + 4px).
-    expect(points.toY).toBe(cardTop - 20);
-    expect(V3_TRANSFER_LABEL_TOP_OFFSET_PX).toBe(20);
-    expect(points.toY).toBeLessThan(cardTop);
+    expect(points.toY).toBe(cardTop);
+    expect(V3_TRANSFER_LABEL_GAP_PX).toBe(8);
+    expect(points.toY).toBe(card.getBoundingClientRect().top);
     expect(activityCardTopAnchor(card.getBoundingClientRect()).y).toBe(
       expectedToY,
     );
@@ -108,10 +109,64 @@ describe("v3TransferFlight mapping", () => {
     expect(flightSrc).toContain("getBoundingClientRect");
     expect(flightSrc).toContain("activityCardTopAnchor");
     expect(flightSrc).not.toMatch(/fromX:\s*\d{2,}/);
-    // End keyframe settles at toY (no extra upward float into the grass).
+    // End keyframe sits the pill bottom above the button (not a 20px top fudge).
+    expect(cssSrc).toContain("--v3-flight-land-y");
+    expect(cssSrc).toContain("--v3-flight-gap");
     expect(cssSrc).toMatch(
-      /@keyframes v3-transfer-flight-label-above[\s\S]*?100%\s*\{[\s\S]*?var\(--v3-flight-y1\)/,
+      /@keyframes v3-transfer-flight-label-above[\s\S]*?100%\s*\{[\s\S]*?var\(--v3-flight-land-y\)/,
     );
+  });
+
+  it("maps client points into the .bank-app overlay host", () => {
+    expect(toFlightHostPoint(120, 240, null)).toEqual({ x: 120, y: 240 });
+    expect(toFlightHostPoint(120, 240, { left: 20, top: 40 })).toEqual({
+      x: 100,
+      y: 200,
+    });
+    const root = {
+      getBoundingClientRect: () =>
+        ({
+          left: 120,
+          top: 240,
+          width: 40,
+          height: 80,
+          right: 160,
+          bottom: 320,
+          x: 120,
+          y: 240,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    };
+    const card = {
+      getBoundingClientRect: () =>
+        ({
+          left: 40,
+          top: 80,
+          width: 58,
+          height: 72,
+          right: 98,
+          bottom: 152,
+          x: 40,
+          y: 80,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    };
+    const doc = {
+      querySelector: (sel: string) => {
+        if (sel.includes("data-v3-root")) return root;
+        if (sel.includes("data-v3-activity-card")) return card;
+        return null;
+      },
+    } as unknown as Document;
+    const points = measureV3TransferFlight("water", doc, {
+      left: 20,
+      top: 40,
+    });
+    expect(points?.fromX).toBe(120); // center 140 - host 20
+    expect(points?.fromY).toBe(240); // center 280 - host 40
+    expect(points?.toX).toBe(49); // 40+29 - 20
+    expect(points?.toY).toBe(40); // card top 80 - host 40
+    expect(V3_TRANSFER_FLIGHT_HOST_SELECTOR).toBe(".bank-app");
   });
 
   it("returns null only when the root is missing", () => {
@@ -208,6 +263,14 @@ describe("transfer flight wiring in root system / CSS", () => {
     expect(cssSrc).toMatch(
       /prefers-reduced-motion:\s*reduce[\s\S]*?\.v3-transfer-flight-blob/,
     );
+    expect(cssSrc).toMatch(
+      /\.v3-transfer-flight-layer\s*\{[\s\S]*?position:\s*absolute/,
+    );
+    expect(cssSrc).toContain("--v3-flight-land-y: calc(");
+    expect(cssSrc).toMatch(/--v3-flight-y1\) - 100% - var\(--v3-flight-gap\)/);
+    expect(cssSrc).toMatch(
+      /@media \(max-width:\s*430px\)[\s\S]*?--v3-flight-gap:\s*12px/,
+    );
   });
 
   it("V3TransferFlight renders cream +X с pill with clock (no particle blobs)", () => {
@@ -223,6 +286,9 @@ describe("transfer flight wiring in root system / CSS", () => {
     expect(flightSrc).toMatch(/from ["']lucide-react["']/);
     expect(flightSrc).toContain("Clock");
     expect(flightSrc).toContain("seconds");
+    expect(flightSrc).toContain("resolveV3TransferFlightHost");
+    expect(flightSrc).toContain("visualViewport");
+    expect(flightSrc).not.toContain("document.body");
     expect(flightSrc).not.toContain("v3-transfer-flight-blob");
     expect(flightSrc).not.toContain("showParticles");
     expect(cssSrc).toMatch(

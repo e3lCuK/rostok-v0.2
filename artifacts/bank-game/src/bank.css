@@ -1349,17 +1349,22 @@ body {
 }
 /* Shared pill chrome for apple / growth / capital captions */
 .field-caption-badge {
-  display: flex;
-  align-items: baseline;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
   gap: 3px;
   min-width: 40px;
-  padding: 1px 6px 2px;
+  min-height: 18px;
+  padding: 3px 7px;
+  box-sizing: border-box;
   border-radius: 999px;
   background: var(--field-caption-bg);
   box-shadow: 0 1px 2px rgba(80, 40, 20, 0.18);
-  line-height: 1.1;
+  line-height: 1;
   white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
 }
 .apple-basket-badge {
   color: #c0392b;
@@ -1367,6 +1372,8 @@ body {
 /* Shared caption type — same as capital sum / flask timer. */
 .field-caption-value,
 .field-caption-unit {
+  display: flex;
+  align-items: center;
   font-family: var(--v3-flask-font, "Segoe UI", system-ui, sans-serif);
   font-size: var(--v3-flask-font-size, 11px);
   font-weight: var(--v3-flask-font-weight, 700);
@@ -1857,6 +1864,8 @@ body {
   border: none;
   cursor: pointer;
   color: #166534;
+  appearance: none;
+  -webkit-appearance: none;
   transition: transform 0.12s ease, background 0.12s ease;
 }
 .tree-growth-badge:active {
@@ -1894,12 +1903,13 @@ body {
   margin: 0;
   background: rgba(255, 255, 255, 0.72);
   border-radius: 999px;
-  padding: 1px 6px 2px;
+  padding: 3px 7px;
+  box-sizing: border-box;
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(6px);
   box-shadow: 0 1px 2px rgba(80, 40, 20, 0.18);
-  line-height: 1.1;
+  line-height: 1;
   white-space: nowrap;
   color: #166534;
 }
@@ -9486,10 +9496,11 @@ button.v3-capital-badge:focus-visible {
 
 /*
  * Soft energy flight: root → matching activity reserve.
- * Fixed layer; pointer-events none — never blocks bottom nav / care buttons.
+ * Absolute overlay inside `.bank-app` so phone visualViewport / 100dvh
+ * cannot land the pill on the cubes (fixed-on-body used to).
  */
 .v3-transfer-flight-layer {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 70;
   pointer-events: none;
@@ -9497,7 +9508,7 @@ button.v3-capital-badge:focus-visible {
 }
 
 .v3-transfer-flight-blob {
-  position: fixed;
+  position: absolute;
   left: 0;
   top: 0;
   width: 11px;
@@ -9523,15 +9534,20 @@ button.v3-capital-badge:focus-visible {
 
 /*
  * `+X с` cream pill (clock + label) — same family as XP / apple / income.
- * Lands tight above the activity button (soil band under the grass line).
+ * `--v3-flight-y1` is the activity button top. Land the pill’s BOTTOM
+ * `gap` px above that line so the cube stays clear on phones.
  */
 .v3-transfer-flight-label {
-  position: fixed;
+  --v3-flight-gap: 8px;
+  --v3-flight-land-y: calc(
+    var(--v3-flight-y1) - 100% - var(--v3-flight-gap)
+  );
+  position: absolute;
   left: 0;
   top: 0;
   transform: translate(
     calc(var(--v3-flight-x1) - 50%),
-    var(--v3-flight-y1)
+    var(--v3-flight-land-y)
   );
   display: flex;
   flex-direction: row;
@@ -9595,11 +9611,11 @@ button.v3-capital-badge:focus-visible {
   18% {
     opacity: 1;
   }
-  /* Reach the soil landing early — don’t linger up near the grass line. */
+  /* Reach the slot above the button early — don’t linger up near the grass. */
   42% {
     transform: translate(
         calc(var(--v3-flight-x1) - 50%),
-        var(--v3-flight-y1)
+        var(--v3-flight-land-y)
       )
       scale(1.05);
     opacity: 1;
@@ -9607,7 +9623,7 @@ button.v3-capital-badge:focus-visible {
   72% {
     transform: translate(
         calc(var(--v3-flight-x1) - 50%),
-        var(--v3-flight-y1)
+        var(--v3-flight-land-y)
       )
       scale(1);
     opacity: 1;
@@ -9615,7 +9631,7 @@ button.v3-capital-badge:focus-visible {
   100% {
     transform: translate(
         calc(var(--v3-flight-x1) - 50%),
-        var(--v3-flight-y1)
+        var(--v3-flight-land-y)
       )
       scale(1);
     opacity: 0;
@@ -9633,8 +9649,14 @@ button.v3-capital-badge:focus-visible {
     opacity: 1;
     transform: translate(
       calc(var(--v3-flight-x1) - 50%),
-      var(--v3-flight-y1)
+      var(--v3-flight-land-y)
     );
+  }
+}
+
+@media (max-width: 430px) {
+  .v3-transfer-flight-label {
+    --v3-flight-gap: 12px;
   }
 }
 

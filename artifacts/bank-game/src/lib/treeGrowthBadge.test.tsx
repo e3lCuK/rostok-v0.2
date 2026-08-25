@@ -66,7 +66,7 @@ describe("TreeGrowthBadge on play field", () => {
       /\.growth-side-host\s*\{[^}]*transform:\s*translateX\(-50%\)/s,
     );
     expect(pageSrc).toContain("growthAboveHostBottomPx");
-    expect(cssSrc).toMatch(/\.growth-timer-row\s*\{[^}]*padding:\s*1px 6px 2px/s);
+    expect(cssSrc).toMatch(/\.growth-timer-row\s*\{[^}]*padding:\s*3px 7px/s);
     expect(cssSrc).toContain(".growth-mm-accrual");
     expect(pageSrc).toContain('data-growth-side-host="true"');
     expect(pageSrc).toContain('data-growth-timer="true"');
@@ -89,6 +89,15 @@ describe("TreeGrowthBadge on play field", () => {
     );
     expect(cssSrc).toMatch(
       /\.growth-mm-accrual-label\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
+    );
+    expect(cssSrc).toMatch(
+      /\.field-caption-badge\s*\{[\s\S]*?align-items:\s*center/,
+    );
+    expect(cssSrc).toMatch(
+      /\.field-caption-badge\s*\{[\s\S]*?justify-content:\s*center/,
+    );
+    expect(cssSrc).toMatch(
+      /\.field-caption-badge\s*\{[\s\S]*?-webkit-appearance:\s*none/,
     );
   });
 

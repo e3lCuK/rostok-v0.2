@@ -11,6 +11,7 @@ import type { EconomyV3RootKind } from "@/lib/api";
 import {
   formatV3TransferSecondsLabel,
   measureV3TransferFlight,
+  resolveV3TransferFlightHost,
   type V3TransferFlightPoints,
 } from "@/lib/v3TransferFlight";
 
@@ -45,7 +46,12 @@ export default function V3TransferFlight({
 
     const tryMeasure = () => {
       if (cancelled) return;
-      const next = measureV3TransferFlight(kind);
+      const host = resolveV3TransferFlightHost();
+      const next = measureV3TransferFlight(
+        kind,
+        document,
+        host?.getBoundingClientRect() ?? null,
+      );
       if (next) {
         setPoints(next);
         return;
@@ -58,14 +64,24 @@ export default function V3TransferFlight({
 
     tryMeasure();
     const onResize = () => {
-      const next = measureV3TransferFlight(kind);
+      const host = resolveV3TransferFlightHost();
+      const next = measureV3TransferFlight(
+        kind,
+        document,
+        host?.getBoundingClientRect() ?? null,
+      );
       if (next) setPoints(next);
     };
     window.addEventListener("resize", onResize);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", onResize);
+    vv?.addEventListener("scroll", onResize);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      vv?.removeEventListener("resize", onResize);
+      vv?.removeEventListener("scroll", onResize);
     };
   }, [kind]);
 
@@ -80,6 +96,9 @@ export default function V3TransferFlight({
   }, [points, durationMs]);
 
   if (typeof document === "undefined" || !points || !label) return null;
+
+  const host = resolveV3TransferFlightHost();
+  if (!host) return null;
 
   const style = {
     ["--v3-flight-color" as string]: points.color,
@@ -117,6 +136,6 @@ export default function V3TransferFlight({
         <span className="v3-transfer-flight-text">{label}</span>
       </span>
     </div>,
-    document.body,
+    host,
   );
 }

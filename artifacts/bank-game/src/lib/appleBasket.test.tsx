@@ -48,6 +48,9 @@ describe("AppleBasket on play field", () => {
     expect(cssSrc).toMatch(
       /\.apple-popup-label\s*\{[\s\S]*?font-size:\s*var\(--v3-flask-font-size/,
     );
+    expect(cssSrc).toMatch(
+      /\.field-caption-badge\s*\{[\s\S]*?align-items:\s*center/,
+    );
   });
 
   it("manual apple collect flies toward basket (left/down)", () => {

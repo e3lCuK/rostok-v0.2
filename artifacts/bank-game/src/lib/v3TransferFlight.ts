@@ -19,6 +19,15 @@ export const V3_ACTIVITY_RESERVE_SELECTOR = (kind: EconomyV3RootKind) =>
 export const V3_ROOT_SELECTOR = (kind: EconomyV3RootKind) =>
   `[data-v3-root="${kind}"]`;
 
+/** Overlay host — same box as the 430px phone column (`position: relative`). */
+export const V3_TRANSFER_FLIGHT_HOST_SELECTOR = ".bank-app";
+
+/**
+ * CSS gap between the pill’s bottom edge and the activity button top.
+ * Must match `--v3-flight-gap` in bank.css (phone media query may be larger).
+ */
+export const V3_TRANSFER_LABEL_GAP_PX = 8;
+
 export type V3TransferFlightPoints = {
   kind: EconomyV3RootKind;
   fromX: number;
@@ -34,20 +43,33 @@ function centerOf(rect: DOMRect): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
-/**
- * Landing: pill top edge this many px above the activity button top.
- * ~20px ≈ pill height (~16) + small soil gap (~4) — under grass, not on the button.
- */
-export const V3_TRANSFER_LABEL_TOP_OFFSET_PX = 20;
+/** Map viewport (client) coordinates into the flight overlay host. */
+export function toFlightHostPoint(
+  clientX: number,
+  clientY: number,
+  host: Pick<DOMRect, "left" | "top"> | null | undefined,
+): { x: number; y: number } {
+  if (!host) return { x: clientX, y: clientY };
+  return { x: clientX - host.left, y: clientY - host.top };
+}
+
+export function resolveV3TransferFlightHost(
+  doc: Document = document,
+): HTMLElement | null {
+  const app = doc.querySelector(V3_TRANSFER_FLIGHT_HOST_SELECTOR);
+  if (app instanceof HTMLElement) return app;
+  return doc.body instanceof HTMLElement ? doc.body : null;
+}
 
 /**
- * Top-left Y of the `+X с` pill when settled above the activity card.
- * (Fixed + translate uses the element’s top edge, not its center.)
+ * Button-top landing in client space. CSS sits the pill *fully* above this
+ * line (`translate Y = y − 100% − gap`) so phone font scaling cannot cover
+ * the cube the way a 20px top-edge fudge did.
  */
 export function activityCardTopAnchor(rect: DOMRect): { x: number; y: number } {
   return {
     x: rect.left + rect.width / 2,
-    y: rect.top - V3_TRANSFER_LABEL_TOP_OFFSET_PX,
+    y: rect.top,
   };
 }
 
@@ -65,6 +87,7 @@ export function resolveV3ActivityFlightTarget(
 
 /**
  * Measure flight path from the chosen root to above its activity card.
+ * `hostRect` is the overlay box (`.bank-app`); omit for viewport space (tests).
  * Returns null only when the root itself is missing.
  * If the activity card is unmounted (Metelka row / ghost), arcs upward from the root
  * so the `+X с` collect cue still plays.
@@ -72,15 +95,21 @@ export function resolveV3ActivityFlightTarget(
 export function measureV3TransferFlight(
   kind: EconomyV3RootKind,
   doc: Document = document,
+  hostRect?: Pick<DOMRect, "left" | "top"> | null,
 ): V3TransferFlightPoints | null {
   const fromEl = doc.querySelector(V3_ROOT_SELECTOR(kind));
   if (!fromEl) return null;
 
-  const from = centerOf(fromEl.getBoundingClientRect());
+  const fromClient = centerOf(fromEl.getBoundingClientRect());
+  const from = toFlightHostPoint(fromClient.x, fromClient.y, hostRect);
   const toEl = resolveV3ActivityFlightTarget(kind, doc);
-  const to = toEl
-    ? activityCardTopAnchor(toEl.getBoundingClientRect())
-    : { x: from.x, y: from.y - 96 };
+  let to: { x: number; y: number };
+  if (toEl) {
+    const anchor = activityCardTopAnchor(toEl.getBoundingClientRect());
+    to = toFlightHostPoint(anchor.x, anchor.y, hostRect);
+  } else {
+    to = { x: from.x, y: from.y - 96 };
+  }
   // Soft arc that peaks above the button, then settles above its top edge.
   const midX = from.x + (to.x - from.x) * 0.45;
   const midY = Math.min(from.y, to.y) - Math.abs(to.y - from.y) * 0.28 - 24;
