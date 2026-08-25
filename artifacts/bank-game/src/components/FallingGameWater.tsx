@@ -7,6 +7,16 @@ import {
   type WaterPreset,
 } from "@/lib/gamePresets/waterPresets";
 import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
+import {
+  minigameResultLabel,
+  minigameSkillPercent,
+  WATER_BAR_H,
+  WATER_BAR_Y,
+  WATER_DROP_R,
+  WATER_DROP_SPEED_PX_S,
+  WATER_GAME_H,
+  waterCanSpawnAt,
+} from "@/lib/minigameSkill";
 
 export type GameType = "water" | "sun" | "fertilizer";
 
@@ -82,19 +92,13 @@ function ScoreIcon({ type, size }: { type: GameType; size: number }) {
   );
 }
 
-const DROP_R      = 11;
+const DROP_R      = WATER_DROP_R;
 const BAR_W       = 88;
-const BAR_H       = 11;
+const BAR_H       = WATER_BAR_H;
 const W           = 296;
-const H           = 348;
-const BAR_Y       = H - 28;
-const DROP_SPEED  = 100;
-
-function feedbackLabel(n: number): string {
-  if (n >= 20) return "Отлично!";
-  if (n >= 10) return "Хорошо";
-  return "Попробуйте ещё";
-}
+const H           = WATER_GAME_H;
+const BAR_Y       = WATER_BAR_Y;
+const DROP_SPEED  = WATER_DROP_SPEED_PX_S;
 
 interface Drop {
   id: number;
@@ -123,7 +127,11 @@ export default function FallingGameWater({
   const forceFinishRef  = useRef<() => void>(() => {});
   const [timerMs, setTimerMs]     = useState(totalMs);
   const [catchCount, setCatchCount] = useState(0);
-  const [result, setResult]       = useState<{ catches: number; skillScore: number } | null>(null);
+  const [result, setResult]       = useState<{
+    catches: number;
+    skillScore: number;
+    spawned: number;
+  } | null>(null);
 
   useEffect(() => {
     setTimerMs(totalMs);
@@ -190,16 +198,12 @@ export default function FallingGameWater({
       doneRef.current = true;
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
-      const catchSkill = Math.min(
-        100,
-        Math.round((Math.min(catches, totalDrops) / totalDrops) * 100),
-      );
-      // ✕ and timeout both use catches only — 0 catches → 0 skill → 0 XP.
-      const skillScore = Number.isFinite(catchSkill) ? catchSkill : 0;
+      const spawned = dropIdCounter;
+      const skillScore = minigameSkillPercent(catches, spawned);
       console.log(
-        `[FallingGame:${type}] catches: ${catches}/${totalDrops}  skillScore: ${skillScore}/100  preset: ${activePreset.id}${forced ? " (forced)" : ""}`,
+        `[FallingGame:${type}] catches: ${catches}/${spawned} (planned ${totalDrops})  skillScore: ${skillScore}/100  preset: ${activePreset.id}${forced ? " (forced)" : ""}`,
       );
-      setResult({ catches, skillScore });
+      setResult({ catches, skillScore, spawned });
     }
     forceFinishRef.current = () => finish(true);
 
@@ -213,8 +217,10 @@ export default function FallingGameWater({
       if (elapsed >= totalMs) { finish(); return; }
 
       while (elapsed - lastSpawnAt >= spawnIntervalMs) {
+        const nextSpawnAt = lastSpawnAt + spawnIntervalMs;
+        if (!waterCanSpawnAt(nextSpawnAt, totalMs)) break;
         if (!uncappedSpawns && dropIdCounter >= totalDrops) break;
-        lastSpawnAt += spawnIntervalMs;
+        lastSpawnAt = nextSpawnAt;
         activeDrops.push({
           id: dropIdCounter++,
           x: DROP_R + Math.random() * (W - DROP_R * 2),
@@ -326,7 +332,7 @@ export default function FallingGameWater({
           <p className="mini-game-result-count" style={{ color: cfg.resultColor }}>
             Поймано: {result.catches}
           </p>
-          <p className="mini-game-result-label">{feedbackLabel(result.catches)}</p>
+          <p className="mini-game-result-label">{minigameResultLabel(result.catches, result.spawned)}</p>
         </div>
       )}
     </div>

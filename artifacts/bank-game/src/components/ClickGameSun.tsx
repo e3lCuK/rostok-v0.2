@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Sun } from "lucide-react";
 import GameTimer from "./GameTimer";
 import { V3_ACTIVITY_ACCENT_COLORS } from "@/lib/v3ActivityColors";
+import { minigameResultLabel, minigameSkillPercent } from "@/lib/minigameSkill";
 
 interface Props {
   onComplete: (skillScore: number, count: number) => void;
@@ -15,7 +16,6 @@ const SUN_R = 26;
 const SUN_VISIBLE_MS = 800;
 const SPAWN_MIN = 400;
 const SPAWN_MAX = 900;
-const SKILL_DENOM = 15;
 const W = 296;
 const H = 348;
 
@@ -27,12 +27,6 @@ const CFG = {
   scoreFg: "#92400e",
   resultColor: "#92400e",
 };
-
-function feedbackLabel(n: number): string {
-  if (n >= 15) return "Отлично!";
-  if (n >= 8) return "Хорошо";
-  return "Попробуйте ещё";
-}
 
 function drawSun(
   ctx: CanvasRenderingContext2D,
@@ -93,7 +87,6 @@ function drawSun(
 export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec }: Props) {
   const resolvedSec = durationSec != null ? Math.max(1, Math.floor(durationSec)) : 15 + bonusSeconds;
   const totalMs = resolvedSec * 1000;
-  const skillDenom = Math.max(1, Math.round(SKILL_DENOM * (resolvedSec / 15)));
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const doneRef = useRef(false);
@@ -105,6 +98,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
   const [result, setResult] = useState<{
     catches: number;
     skillScore: number;
+    spawned: number;
   } | null>(null);
 
   useEffect(() => {
@@ -128,6 +122,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
     canvas.style.cursor = "none";
 
     let catches = 0;
+    let spawned = 0;
     let rafId = 0;
     let lastTs = -1;
     const start = performance.now();
@@ -143,18 +138,13 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
       cancelAnimationFrame(rafId);
       canvas.style.cursor = "default";
 
-      const catchSkill = Math.min(
-        100,
-        Math.round((catches / skillDenom) * 100),
-      );
-      // ✕ and timeout both use catches only — 0 catches → 0 skill → 0 XP.
-      const skillScore = Number.isFinite(catchSkill) ? catchSkill : 0;
+      const skillScore = minigameSkillPercent(catches, spawned);
 
       console.log(
-        `[ClickGameSun] catches: ${catches} skillScore: ${skillScore}/100${forced ? " (forced)" : ""}`,
+        `[ClickGameSun] catches: ${catches}/${spawned} skillScore: ${skillScore}/100${forced ? " (forced)" : ""}`,
       );
 
-      setResult({ catches, skillScore });
+      setResult({ catches, skillScore, spawned });
     }
 
     forceFinishRef.current = () => finish(true);
@@ -226,6 +216,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
           y: 44 + Math.random() * (H - 44 - margin - 12),
           spawnedAt: ts,
         };
+        spawned += 1;
 
         timeSinceLastSpawn = 0;
         nextSpawnDelay = SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN);
@@ -313,7 +304,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
 
       canvas.style.cursor = "default";
     };
-  }, [totalMs, skillDenom]);
+  }, [totalMs]);
 
   return (
     <div
@@ -380,7 +371,7 @@ export default function ClickGameSun({ onComplete, bonusSeconds = 0, durationSec
           </p>
 
           <p className="mini-game-result-label">
-            {feedbackLabel(result.catches)}
+            {minigameResultLabel(result.catches, result.spawned)}
           </p>
         </div>
       )}

@@ -6,6 +6,7 @@ import {
   V3_ACTIVITY_ACCENT_COLORS,
   V3_ACTIVITY_FILL_WASH_COLORS,
 } from "@/lib/v3ActivityColors";
+import { minigameResultLabel, minigameSkillPercent, fertilizerMaxMatchesForDuration } from "@/lib/minigameSkill";
 
 /**
  * Match-3 fertilizer activity (former leaf collector).
@@ -22,7 +23,6 @@ interface Props {
 const GRID = 5;
 const TYPES = 5;
 const GAME_MS = 15_000;
-const MAX_MATCHES = 12;
 
 const COLORS = ["green", "brown", "yellow", "blue", "purple"] as const;
 type Color = (typeof COLORS)[number];
@@ -44,12 +44,6 @@ const FERT_TIMER_TRACK = V3_ACTIVITY_FILL_WASH_COLORS.fertilizer;
 interface Result {
   matchCount: number;
   skillScore: number;
-}
-
-function resultLabel(m: number): string {
-  if (m < 6) return "Попробуйте ещё";
-  if (m <= 12) return "Хорошо";
-  return "Отлично!";
 }
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -144,7 +138,7 @@ function makeGrid(): Grid {
 export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, durationSec }: Props) {
   const resolvedSec = durationSec != null ? Math.max(1, Math.floor(durationSec)) : 15 + bonusSeconds;
   const totalMs = resolvedSec * 1000;
-  const maxMatches = Math.max(1, Math.round(MAX_MATCHES * (resolvedSec / 15)));
+  const maxMatches = fertilizerMaxMatchesForDuration(resolvedSec);
   const [grid, setGrid] = useState<Grid>(() => makeGrid());
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
@@ -172,9 +166,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
     setGameOver(true);
     setProcessing(false);
     const m = matchRef.current;
-    const catchSkill = Math.round(Math.min(1, m / maxMatches) * 100);
-    // ✕ and timeout both use matches only — 0 matches → 0 skill → 0 XP.
-    const skillScore = Number.isFinite(catchSkill) ? catchSkill : 0;
+    const skillScore = minigameSkillPercent(m, maxMatches);
     setResult({ matchCount: m, skillScore });
   }
 
@@ -365,7 +357,7 @@ export default function FertilizerMatchGame({ onComplete, bonusSeconds = 0, dura
           <p className="mini-game-result-count" style={{ color: FERT_TIMER }}>
             Собрано: {result.matchCount}
           </p>
-          <p className="mini-game-result-label">{resultLabel(result.matchCount)}</p>
+          <p className="mini-game-result-label">{minigameResultLabel(result.matchCount, maxMatches)}</p>
         </div>
       )}
     </div>
