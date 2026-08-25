@@ -5,6 +5,8 @@
  * This module must NOT compute missed/stored/random bonus rates.
  */
 
+import { nextVisitStreakDays } from "./economy-v3-effective-capacity";
+
 export type StreakUpdate = {
   newStreak: number;
   todayUTC: string;
@@ -25,9 +27,9 @@ export function computeStreakUpdate(input: {
   if (!lastStreakDate) {
     newStreak = 1;
   } else if (lastStreakDate === todayUTC) {
-    newStreak = currentStreak;
+    newStreak = currentStreak <= 0 ? 1 : currentStreak;
   } else if (lastStreakDate === yesterdayUTC) {
-    newStreak = currentStreak + 1;
+    newStreak = nextVisitStreakDays(currentStreak);
   } else {
     newStreak = 1;
   }

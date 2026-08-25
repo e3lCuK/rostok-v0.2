@@ -37,7 +37,8 @@ describe("vault capital energy-wait help", () => {
     expect(pageSrc).toContain("VaultCapitalHelpModal");
     expect(pageSrc).toContain("setShowVaultCapitalHelp(true)");
     expect(pageSrc).toContain("treeCapital=");
-    expect(modalSrc).toContain("Капитал и энергия");
+    expect(modalSrc).toContain(">Сейф</");
+    expect(modalSrc).toContain('id="vault-capital-help-title"');
     expect(modalSrc).toContain('label: "Время"');
     expect(modalSrc).toContain('label: "Элементы"');
     expect(modalSrc).toContain("tree-stages-list");

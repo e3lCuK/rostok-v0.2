@@ -387,18 +387,24 @@ function WebMarker({
         top,
         width: hit,
         height: hit,
-        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+        transform: "translate(-50%, -50%)",
       }}
     >
       <span
         className="excess-cleaning-web-visual"
-        style={{ width: size, height: size }}
+        style={{
+          width: size,
+          height: size,
+          transform: `rotate(${rotation}deg)`,
+        }}
         aria-hidden="true"
       >
-        <ExcessWebIcon
-          size={size}
-          variant={isSpecial ? "special" : "regular"}
-        />
+        <span className="excess-cleaning-web-glyph">
+          <ExcessWebIcon
+            size={size}
+            variant={isSpecial ? "special" : "regular"}
+          />
+        </span>
       </span>
     </button>
   );

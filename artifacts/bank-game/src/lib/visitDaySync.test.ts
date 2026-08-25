@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getStreakBonusSeconds,
   getVisitRewardCalendarState,
+  localCalendarDateISO,
   resolveCurrentVisitDay,
 } from "./engine";
 
@@ -66,5 +67,11 @@ describe("visit day SoT — calendar ↔ Economy v3", () => {
       expect(cal.activeIndex).toBe(0);
       expect(getStreakBonusSeconds(streak)).toBe(1);
     }
+  });
+
+  it("localCalendarDateISO uses the local calendar, not UTC", () => {
+    expect(localCalendarDateISO(new Date(2026, 7, 25, 1, 0, 0))).toBe(
+      "2026-08-25",
+    );
   });
 });

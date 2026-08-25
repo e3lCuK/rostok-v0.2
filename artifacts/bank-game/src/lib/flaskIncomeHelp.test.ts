@@ -38,8 +38,9 @@ describe("flask income help modal", () => {
     expect(modalSrc.indexOf("Красная колба")).toBeLessThan(
       modalSrc.indexOf("Золотая колба"),
     );
-    expect(modalSrc).toContain("help-modal");
-    expect(modalSrc).toContain("tree-stages-list");
+    expect(modalSrc).toContain("flask-help-head");
+    expect(modalSrc).toContain("flask-help-copy");
+    expect(modalSrc).toContain("flask-help-modal");
     const artSrc = readFileSync(
       join(here, "../components/v2/FlaskHelpMiniArt.tsx"),
       "utf8",

@@ -36,6 +36,7 @@ type JsonBody = Record<string, unknown>;
 type TestRequest = {
   session?: { userId?: unknown };
   userId?: string;
+  query?: { visitDate?: string };
   log: { error: ReturnType<typeof vi.fn> };
 };
 
@@ -392,5 +393,104 @@ describe("GET /game/state Economy v3Roots settle wiring", () => {
       },
     });
     expect(game.v2EnergySeconds).toBe(11.4);
+  });
+});
+
+describe("GET /game/state visit-day login tick", () => {
+  beforeEach(() => {
+    poolQueryMock.mockReset();
+    settleMock.mockReset();
+    settleV3Mock.mockReset();
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-08-26T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("second calendar day with streak 0 persists day 2", async () => {
+    mockHappyPathQueries();
+    poolQueryMock.mockReset();
+    poolQueryMock
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            active_balance: "100000",
+            active_earned: "0",
+            total_days_earned: 0,
+            start_date: "1700000000000",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            last_session_time: null,
+            session_in_progress: false,
+            current_session_water: false,
+            current_session_sun: false,
+            current_session_fertilizer: false,
+            streak_days: 0,
+            last_streak_date: null,
+            last_login_date: "2026-08-25",
+            missed_sessions: 0,
+            pending_base_reward: "0",
+            pending_bonus_reward: "0",
+            pending_stored_sessions: 1,
+            tree_growth_mm: "0",
+            tree_growth_remainder: "0",
+            player_xp: 0,
+            player_level: 1,
+            total_apples: 0,
+            purchased_items: [],
+            xp_history: [],
+            tutorial_done: true,
+            v2_energy_seconds: "0",
+            v2_energy_anchor_at: null,
+            v2_care_in_progress: false,
+            v2_care_cycle_id: null,
+            v2_care_water_seconds: 0,
+            v2_care_sun_seconds: 0,
+            v2_care_fertilizer_seconds: 0,
+            v2_care_water_completed: false,
+            v2_care_sun_completed: false,
+            v2_care_fertilizer_completed: false,
+            v2_freshness: "1",
+            v2_income_anchor_at: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            v2_care_in_progress: false,
+            v2_care_cycle_id: null,
+            v2_care_water_seconds: 0,
+            v2_care_sun_seconds: 0,
+            v2_care_fertilizer_seconds: 0,
+            v2_care_water_completed: false,
+            v2_care_sun_completed: false,
+            v2_care_fertilizer_completed: false,
+            v2_care_started_at: null,
+            v2_care_water_score: null,
+            v2_care_sun_score: null,
+            v2_care_fertilizer_score: null,
+          },
+        ],
+      });
+
+    const res = await runGetState({
+      session: { userId: "42" },
+      log: { error: vi.fn() },
+    });
+
+    const updateCall = poolQueryMock.mock.calls.find(
+      ([sql]) => typeof sql === "string" && sql.includes("last_streak_date"),
+    );
+    expect(updateCall?.[1]).toEqual(["42", "2026-08-26", 2, 1]);
+    const game = res.body?.game as Record<string, unknown>;
+    expect(game.streakDays).toBe(2);
   });
 });

@@ -10,11 +10,12 @@ import {
   taperWidthFactor,
   type RootTaperProfile,
 } from "@/components/v2/rootTaperGeometry";
-import { getTreeTrunkColor } from "@/components/TreeSVG";
+import { getTreeTrunkColor, TREE_WOOD_EDGE, TREE_WOOD_STROKE } from "@/components/TreeSVG";
 
-/** Flat fill + thin outline — same wood language as tree trunk / basket. */
-const WOOD_EDGE = "#5c3a1a";
-const WOOD_STROKE = 1.05;
+/**
+ * Stroke under a union mask: inner half is clipped, outer half = trunk hairline.
+ */
+export const WRAP_ROOT_EDGE_STROKE_WIDTH = TREE_WOOD_STROKE * 2;
 
 /**
  * Local canvas: y=0 is the trunk collar (grass line),
@@ -269,6 +270,15 @@ export default function V3UndergroundWrapRoots({
   const mighty = treeStage >= 4;
   const collarPath = buildTrunkShoulderCollarPath(treeStage);
   const roots = mighty ? BUILT_WRAP_ROOTS_MIGHTY : BUILT_WRAP_ROOTS;
+  const maskId = "v3-wrap-roots-outside";
+  const fillShapes = () => (
+    <>
+      <path data-wrap-root-collar="true" d={collarPath} />
+      {roots.map((root) => (
+        <path key={root.id} data-wrap-root={root.id} d={root.fillPath} />
+      ))}
+    </>
+  );
   return (
     <svg
       className={["v3-underground-wrap-roots", className]
@@ -284,67 +294,40 @@ export default function V3UndergroundWrapRoots({
     >
       <defs>
         {/*
-          One outer rim for the whole fan: dilate the merged alpha, keep only
-          the ring. Per-path strokes would draw seams between overlapping roots.
+          White = outside the mass, black = inside. A 2× hairline stroke is
+          then masked so only the outer half remains — same 1.05px as the trunk,
+          without inner seams between overlapping roots.
         */}
-        <filter
-          id="v3-wrap-roots-edge"
-          x="-10%"
-          y="-10%"
-          width="120%"
-          height="120%"
-          colorInterpolationFilters="sRGB"
-          data-wrap-root-edge-filter="true"
+        <mask
+          id={maskId}
+          maskUnits="userSpaceOnUse"
+          data-wrap-root-edge-mask="true"
         >
-          <feMorphology
-            in="SourceAlpha"
-            operator="dilate"
-            radius={WOOD_STROKE}
-            result="dilated"
-          />
-          <feComposite
-            in="dilated"
-            in2="SourceAlpha"
-            operator="out"
-            result="rim"
-          />
-          <feFlood floodColor={WOOD_EDGE} result="rimColor" />
-          <feComposite
-            in="rimColor"
-            in2="rim"
-            operator="in"
-            result="outline"
-          />
-          <feMerge>
-            <feMergeNode in="outline" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
+          <rect x="-24" y="-24" width="348" height="348" fill="#fff" />
+          <g fill="#000">{fillShapes()}</g>
+        </mask>
       </defs>
 
       {/*
-        Flat fills only — outline is the union rim.
-        Do NOT paint a tall neck stub above y=0: with wrap above/near the
-        stump it read as a “cap” mid-trunk. Collar top=-12 stays under the tree.
+        Flat fills; one outer hairline (not per-root strokes, not a fat filter).
+        Collar top=-12 stays under the tree — no tall neck stub above y=0.
       */}
       <g
         className="v3-underground-wrap-roots__body"
         data-v3-wrap-root-system="true"
-        filter="url(#v3-wrap-roots-edge)"
       >
-        <path
-          data-wrap-root-collar="true"
-          d={collarPath}
-          fill={trunkColor}
-        />
-        {roots.map((root) => (
-          <path
-            key={root.id}
-            data-wrap-root={root.id}
-            d={root.fillPath}
-            fill={trunkColor}
-          />
-        ))}
+        <g fill={trunkColor}>{fillShapes()}</g>
+        <g
+          fill="none"
+          stroke={TREE_WOOD_EDGE}
+          strokeWidth={WRAP_ROOT_EDGE_STROKE_WIDTH}
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          mask={`url(#${maskId})`}
+          data-wrap-root-edge="union-hairline"
+        >
+          {fillShapes()}
+        </g>
       </g>
     </svg>
   );

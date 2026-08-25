@@ -3,6 +3,15 @@ interface Props {
 }
 
 /**
+ * Grass↔soil wave in the 90px ground viewBox (Y scale = 1).
+ * This is the top edge of the brown earth — same SVG as the grass.
+ */
+const GROUND_JOIN_WAVE =
+  "M0,88.5 C70,87.55 160,89.35 210,87.85 C260,86.35 300,89.1 350,87.7 C400,86.3 390,89.45 430,88.5";
+const GROUND_JOIN_WAVE_REVERSE =
+  "C390,89.45 400,86.3 350,87.7 C300,89.1 260,86.35 210,87.85 C160,89.35 70,87.55 0,88.5";
+
+/**
  * Field bush — classic 3-lobe mound planted on the grass↔soil join.
  * Flat fills + thin outline (basket/chest language).
  */
@@ -444,12 +453,15 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
         </defs>
         <rect x="0" y="0" width="340" height="280" fill="url(#bg-sky-wash)" />
 
-        {/* Sun — high right; short rays stay clear of the gear */}
-        <BgSun cx={292} cy={22} className="bg-sun" />
+        {/*
+          Sun — high right. Rays ~17u; gear is 22px at right:8px, so cx≤280
+          keeps a gap. Right cloud lobe ends ~ox+22 — keep that left of the disc.
+        */}
+        <BgSun cx={280} cy={26} className="bg-sun" />
 
-        {/* Clouds — clear of the top-left level badge along the whole drift path */}
+        {/* Clouds — left of the sun; clear of the level badge on the whole drift */}
         <BgCloud ox={130} oy={22} className="bg-cloud-left" />
-        <BgCloud ox={220} oy={20} className="bg-cloud-right" />
+        <BgCloud ox={196} oy={20} className="bg-cloud-right" />
 
         {/* Birds (purchased) — right sky, clear of sun / gear */}
         {has("birds") && <BgBirds className="bg-birds" />}
@@ -481,18 +493,29 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
           </linearGradient>
         </defs>
         {/*
-          Surface earth behind bushes — solid to y=90 (trunk join).
-          A wavy bottom left gaps where underground soil peeked past the stroke.
+          Brown earth first, then grass. The wavy join is this SVG's own
+          lip — not a separately positioned line — so resize cannot drift it.
         */}
         <path
+          className="bg-soil-lip"
+          d={`${GROUND_JOIN_WAVE} L430,90 L0,90 Z`}
+          fill="#c4a878"
+        />
+        <path
           className="bg-surface-earth"
-          d="M0,12 Q215,8 430,12 L430,90 L0,90 Z"
+          d={`M0,12 Q215,8 430,12 L430,88.5 ${GROUND_JOIN_WAVE_REVERSE} Z`}
           fill="url(#bg-surface-earth)"
         />
-
-        {/* Bushes — far left / far right; basket sits right of the left bush */}
-        <BgBush cx={30} className="bg-bush-left" />
-        <BgBush cx={375} className="bg-bush-right" />
+        <path
+          className="bg-soil-join-line"
+          d={GROUND_JOIN_WAVE}
+          fill="none"
+          stroke="#2f5c0e"
+          strokeWidth="1"
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
 
         {/* Flowers (purchased) — left toward trunk, right of left bush / left of right bush */}
         {has("flowers") && (
@@ -513,34 +536,26 @@ export default function GameAreaBg({ purchasedItems = [] }: Props) {
       </svg>
 
       {/*
-        Grass↔soil join — short SVG (height ≈ viewBox Y) so stroke stays
-        thin and even; not inside the tall stretched ground SVG.
+        Bushes live in their own square-ish SVGs. The grass band uses
+        preserveAspectRatio=none (full-bleed), which would squash circles.
       */}
       <svg
-        className="bg-soil-join"
-        width="100%"
-        height="3"
-        viewBox="0 0 430 3"
-        preserveAspectRatio="none"
+        className="game-area-bg-bush game-area-bg-bush--left"
+        viewBox="-24 42 48 40"
+        preserveAspectRatio="xMidYMax meet"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        {/*
-          Butt caps + path flush to viewBox X so .game-area overflow:hidden
-          does not clip round end-caps (looked like the line stopped short).
-        */}
-        <path
-          className="bg-soil-join-line"
-          d="M0,1.5
-             C70,0.55 160,2.35 210,0.85
-             S300,2.1 350,0.7
-             S390,2.45 430,1.5"
-          fill="none"
-          stroke="#2f5c0e"
-          strokeWidth="1"
-          strokeLinecap="butt"
-          strokeLinejoin="round"
-        />
+        <BgBush cx={0} className="bg-bush-left" />
+      </svg>
+      <svg
+        className="game-area-bg-bush game-area-bg-bush--right"
+        viewBox="-24 42 48 40"
+        preserveAspectRatio="xMidYMax meet"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <BgBush cx={0} className="bg-bush-right" />
       </svg>
     </>
   );

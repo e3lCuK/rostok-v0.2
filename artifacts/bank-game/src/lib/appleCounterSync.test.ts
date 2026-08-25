@@ -56,12 +56,24 @@ describe("apple counter sync (Care reward wave)", () => {
     );
   });
 
-  it("coin drag does not request apple credit", () => {
+  it("coin click does not request apple credit", () => {
     expect(pageSrc).toMatch(
       /\/\/ Income only[\s\S]*?claimApplesAndIncome\(\);/,
     );
-    expect(pageSrc).toContain(
+    expect(pageSrc).not.toContain(
       "claimApplesAndIncome({ creditRemainingApples: true })",
+    );
+  });
+
+  it("auto-collects remaining apples and coins 60s after they appear", () => {
+    expect(pageSrc).toContain("TREE_REWARD_AUTO_COLLECT_MS");
+    expect(pageSrc).toContain("scheduleTreeRewardAutoCollect");
+    expect(pageSrc).toContain("autoCollectRemainingTreeRewards");
+    expect(pageSrc).toContain("handleAppleClick(idx)");
+    const showAppleHits = pageSrc.split("setShowApples(true)");
+    expect(showAppleHits.length).toBeGreaterThanOrEqual(3);
+    expect(pageSrc).toMatch(
+      /setShowApples\(true\);\s*scheduleTreeRewardAutoCollect\(\);/,
     );
   });
 });

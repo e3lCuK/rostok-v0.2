@@ -1,9 +1,8 @@
 /**
- * Metelka pending reward coin — same drag-to-chest collect as Care reward coin
- * (`tree-apple` + `tree-apple-coin` + TreeRewardToken). Claim on drag-end.
+ * Metelka pending reward coin — same click-to-collect as Care reward coin
+ * (`tree-apple` + `tree-apple-coin` + TreeRewardToken). Claim on click.
  */
 
-import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import TreeRewardToken from "@/components/v2/TreeRewardToken";
 
@@ -19,10 +18,8 @@ type Props = {
   claiming: boolean;
   disabled?: boolean;
   error?: string | null;
-  /** Credit / API claim — called on drag-end (hit or miss). */
+  /** Credit / API claim — called on click. */
   onClaim: () => void;
-  /** Pulse capital-chest lock + field cursor while dragging. */
-  onDragActiveChange?: (active: boolean) => void;
 };
 
 export default function MetelkaRewardCoin({
@@ -35,13 +32,8 @@ export default function MetelkaRewardCoin({
   disabled = false,
   error = null,
   onClaim,
-  onDragActiveChange,
 }: Props) {
   const busy = claiming || disabled;
-  const [dragging, setDragging] = useState(false);
-  const dragLockRef = useRef(false);
-  const onDragActiveChangeRef = useRef(onDragActiveChange);
-  onDragActiveChangeRef.current = onDragActiveChange;
 
   const tokenStyle = {
     width: radius * 2,
@@ -55,43 +47,20 @@ export default function MetelkaRewardCoin({
   return (
     <>
       <div
-        className={`tree-apples-overlay tree-apples-overlay-active${dragging ? " tree-apples-overlay--dragging" : ""}`}
+        className="tree-apples-overlay tree-apples-overlay-active"
         data-metelka-reward-coin="true"
         data-metelka-reward-claiming={claiming ? "true" : "false"}
-        data-metelka-reward-dragging={dragging ? "true" : "false"}
         style={{ width: overlayWidth, height: overlayHeight }}
       >
-        {dragging ? (
-          <div
-            className="tree-apple-drag-ghost"
-            style={tokenStyle}
-            aria-hidden="true"
-          >
-            <TreeRewardToken kind="coin" tone="stone" />
-          </div>
-        ) : null}
         <motion.div
           role="button"
           tabIndex={busy ? -1 : 0}
-          aria-label="Забрать награду Метёлки — перетащите к замку сундука"
+          aria-label="Забрать награду Метёлки"
           aria-busy={claiming || undefined}
           data-metelka-reward-coin-btn="true"
-          className={`tree-apple tree-apple-pending tree-apple-coin tree-apple-coin--stone${dragging ? " tree-apple--dragging" : ""}`}
-          drag={!busy}
-          dragMomentum={false}
-          dragElastic={0}
-          dragSnapToOrigin={false}
-          whileDrag={{ scale: 1.28, zIndex: 50, cursor: "grabbing" }}
-          onDragStart={() => {
-            if (busy || dragLockRef.current) return;
-            dragLockRef.current = true;
-            setDragging(true);
-            onDragActiveChangeRef.current?.(true);
-          }}
-          onDragEnd={() => {
-            setDragging(false);
-            onDragActiveChangeRef.current?.(false);
-            dragLockRef.current = false;
+          className="tree-apple tree-apple-pending tree-apple-coin tree-apple-coin--stone"
+          whileTap={busy ? undefined : { scale: 1.12 }}
+          onClick={() => {
             if (busy) return;
             onClaim();
           }}

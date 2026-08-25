@@ -75,6 +75,7 @@ describe("tutorial exit vs Care reward animation", () => {
     expect(pageSrc).toContain("setTutorialShowLevelBadge(true)");
     expect(pageSrc).toContain("tutorialShowLevelBadge");
     expect(pageSrc).toContain("maybeFinishTutorialRewards");
+    expect(pageSrc).toContain("scheduleTreeRewardAutoCollect");
     expect(pageSrc).toContain("playCoinIncomeFeedback");
     expect(pageSrc).toContain("field-income-popup");
     // XP flash uses claimed skill XP (preset 10 → max 40/activity, 120/cycle).

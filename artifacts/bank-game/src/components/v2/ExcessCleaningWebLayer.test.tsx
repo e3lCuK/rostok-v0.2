@@ -87,6 +87,16 @@ describe("ExcessCleaningWebLayer", () => {
     expect(excessWebExitDurationMs(true)).toBe(0);
   });
 
+  it("exit scale does not override marker centering (no jump on click)", () => {
+    expect(layerSrc).toContain('transform: "translate(-50%, -50%)"');
+    expect(css).toContain(
+      ".excess-cleaning-web--exiting .excess-cleaning-web-glyph",
+    );
+    expect(css).not.toMatch(
+      /\.excess-cleaning-web--exiting\s*\{[^}]*animation:\s*excess-web-exit/,
+    );
+  });
+
   it("6. in-flight guard is per webId", () => {
     expect(layerSrc).toContain("inFlightRef");
     expect(layerSrc).toContain("inFlightRef.current.has(webId)");

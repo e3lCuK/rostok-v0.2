@@ -8,12 +8,13 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getTreeTrunkColor } from "@/components/TreeSVG";
+import { getTreeTrunkColor, TREE_WOOD_EDGE, TREE_WOOD_STROKE } from "@/components/TreeSVG";
 import { taperWidthFactor } from "@/components/v2/rootTaperGeometry";
 import V3UndergroundWrapRoots, {
   buildTrunkShoulderCollarPath,
   buildV3WrapRoots,
   V3_WRAP_ROOTS_VIEW,
+  WRAP_ROOT_EDGE_STROKE_WIDTH,
 } from "@/components/v2/V3UndergroundWrapRoots";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -49,10 +50,13 @@ describe("V3UndergroundWrapRoots", () => {
     expect(html).not.toContain('data-wrap-root-neck="true"');
     expect(html).toContain('data-v3-wrap-root-system="true"');
     expect(html).not.toContain("data-wrap-root-mini-shoulder");
-    // Outer silhouette rim only (not per-root strokes)
-    expect(html).toContain('data-wrap-root-edge-filter="true"');
-    expect(html).toContain('filter="url(#v3-wrap-roots-edge)"');
-    expect(html).not.toContain('stroke="#5c3a1a"');
+    // One union hairline (mask clips inner seams) — same wood + width as trunk.
+    expect(html).toContain('data-wrap-root-edge-mask="true"');
+    expect(html).toContain('data-wrap-root-edge="union-hairline"');
+    expect(html).toContain(`stroke="${TREE_WOOD_EDGE}"`);
+    expect(html).toContain('vector-effect="non-scaling-stroke"');
+    expect(html).toContain(`stroke-width="${WRAP_ROOT_EDGE_STROKE_WIDTH}"`);
+    expect(html).not.toContain("feMorphology");
   });
 
   it("builds the approved single-arc soft collar", () => {
@@ -90,6 +94,29 @@ describe("V3UndergroundWrapRoots", () => {
     expect(html).toContain(`fill="${stage3}"`);
     expect(html).toContain(`data-wrap-root-color="${stage3}"`);
     expect(stage3).toBe("#6b4423");
+  });
+
+  it("uses the trunk wood rim on wrap roots at every stage", () => {
+    for (const stage of [0, 1, 2, 3, 4]) {
+      const html = renderToStaticMarkup(
+        createElement(V3UndergroundWrapRoots, { treeStage: stage }),
+      );
+      expect(html).toContain(`stroke="${TREE_WOOD_EDGE}"`);
+      expect(html).toContain('vector-effect="non-scaling-stroke"');
+      expect(html).toContain(`stroke-width="${WRAP_ROOT_EDGE_STROKE_WIDTH}"`);
+      expect(html).toContain(`fill="${getTreeTrunkColor(stage)}"`);
+      expect(html).toContain('data-wrap-root-edge="union-hairline"');
+    }
+    const treeSrc = readFileSync(
+      join(here, "../TreeSVG.tsx"),
+      "utf8",
+    );
+    expect(treeSrc).toContain("export const TREE_WOOD_EDGE");
+    expect(treeSrc).toContain("stroke: TREE_WOOD_EDGE");
+    expect(treeSrc).toContain('vectorEffect: "non-scaling-stroke" as const');
+    expect(treeSrc).not.toContain("const ve = scaled");
+    expect(TREE_WOOD_STROKE).toBe(1.05);
+    expect(WRAP_ROOT_EDGE_STROKE_WIDTH).toBe(TREE_WOOD_STROKE * 2);
   });
 
   it("is mounted in the v3 underground stack and reaches the grass/trunk line", () => {

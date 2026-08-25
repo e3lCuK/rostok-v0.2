@@ -332,8 +332,8 @@ describe("settleEconomyV3Roots (round-robin distribution)", () => {
     });
     expect(r.wholeSeconds).toBe(5);
     expect(r.rootWaterSeconds).toBe(25);
-    expect(r.rootSunSeconds).toBe(25);
-    expect(r.rootFertilizerSeconds).toBe(21);
+    expect(r.rootSunSeconds).toBe(24);
+    expect(r.rootFertilizerSeconds).toBe(24);
   });
 
   it("10. repeated settle with same now is idempotent", () => {
@@ -414,7 +414,7 @@ describe("settleEconomyV3Roots (round-robin distribution)", () => {
     expect(r.generationProgress).toBeLessThan(1);
   });
 
-  it("settle skips transferred root slot; discards do not reroute", () => {
+  it("settle skips transferred root and fills remaining evenly", () => {
     const r = settleEconomyV3Roots({
       ...baseInput,
       rootWaterSeconds: 0,
@@ -426,7 +426,7 @@ describe("settleEconomyV3Roots (round-robin distribution)", () => {
     });
     expect(r.wholeSeconds).toBe(3);
     expect(r.rootWaterSeconds).toBe(0);
-    expect(r.rootSunSeconds).toBe(5);
+    expect(r.rootSunSeconds).toBe(6);
     expect(r.rootFertilizerSeconds).toBe(5);
   });
 });
@@ -614,12 +614,12 @@ describe("transferEconomyV3RootPure", () => {
       tutorialActive: false,
       transferredRoots: ["water"],
     });
-    // One whole second while frozen → sun (cursor 1); water discarded if hit.
+    // One whole second while frozen → emptiest remaining is sun (8 < 12).
     expect(settledWhileFrozen.wholeSeconds).toBe(1);
     expect(settledWhileFrozen.rootSunSeconds).toBe(9);
     expect(settledWhileFrozen.rootFertilizerSeconds).toBe(12);
     expect(settledWhileFrozen.rootWaterSeconds).toBe(0);
-    expect(settledWhileFrozen.generationRrCursor).toBe(2);
+    expect(settledWhileFrozen.generationRrCursor).toBe(1);
 
     const afterCycle = transferEconomyV3RootPure({
       ...base,

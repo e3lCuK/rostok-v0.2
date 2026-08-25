@@ -3,7 +3,31 @@
 //  UI must NOT compute anything; call these functions instead
 // ============================================================
 
-export const APP_VERSION = "BETA V0.3";
+/** Manual label — edit this; patch after the last dot is git commit count. */
+export const APP_VERSION_LABEL = "BETA V0.3";
+
+function readGitPushCount(): number {
+  try {
+    const raw =
+      typeof __APP_GIT_PUSH_COUNT__ === "number"
+        ? __APP_GIT_PUSH_COUNT__
+        : Number(__APP_GIT_PUSH_COUNT__);
+    if (!Number.isFinite(raw) || raw < 0) return 0;
+    return Math.floor(raw);
+  } catch {
+    return 0;
+  }
+}
+
+/** `git rev-list --count HEAD` from Vite `define`. */
+export const APP_PUSH_COUNT = readGitPushCount();
+/** On-screen left badge: `BETA V0.3.{pushCount}`. */
+export const APP_VERSION = `${APP_VERSION_LABEL}.${APP_PUSH_COUNT}`;
+/** Short git SHA from Vite `define` (`__APP_GIT_SHA__`). */
+export const APP_GIT_SHA =
+  typeof __APP_GIT_SHA__ === "string" && __APP_GIT_SHA__.length > 0
+    ? __APP_GIT_SHA__
+    : "unknown";
 export const APP_NAME = "Банк";
 
 // ---- Constants ----
@@ -167,6 +191,14 @@ export function resolveCurrentVisitDay(streakDays: unknown): number {
       : parseInt(String(streakDays ?? "0"), 10);
   if (!Number.isFinite(n) || n <= 0) return 1;
   return Math.floor(n);
+}
+
+/** Local calendar YYYY-MM-DD (not UTC). Visit widget and GET /game/state use this. */
+export function localCalendarDateISO(at: Date = new Date()): string {
+  const y = at.getFullYear();
+  const m = String(at.getMonth() + 1).padStart(2, "0");
+  const d = String(at.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 /**

@@ -103,7 +103,7 @@ export default function VaultCapitalHelpModal({
       >
         <div className="help-modal-header">
           <h3 className="help-modal-title" id="vault-capital-help-title">
-            Капитал и энергия
+            Сейф
           </h3>
           <button
             type="button"

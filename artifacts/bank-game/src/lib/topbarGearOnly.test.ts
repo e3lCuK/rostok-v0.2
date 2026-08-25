@@ -61,18 +61,19 @@ describe("Stage 1 — no top nav; floating gear only", () => {
     expect(css).not.toContain(".game-session-status");
     expect(css).not.toContain(".session-status-badge");
     expect(css).toContain(".game-top-controls");
+    expect(bg).toContain("game-area-bg-bush");
     expect(css).toMatch(
       /\.game-area\s*\{[^}]*linear-gradient\(180deg,\s*#b7dff5/s,
     );
   });
 
-  it("8. sun right; clouds clear of level-badge lane", () => {
+  it("8. sun right of clouds, inset from the settings gear", () => {
     expect(bg).toContain('className="bg-sun"');
-    expect(bg).toContain("<BgSun cx={292} cy={22}");
+    expect(bg).toContain("<BgSun cx={280} cy={26}");
     expect(bg).toContain('className="bg-cloud-left"');
     expect(bg).toContain("ox={130} oy={22}");
     expect(bg).toContain('className="bg-cloud-right"');
-    expect(bg).toContain("ox={220} oy={20}");
+    expect(bg).toContain("ox={196} oy={20}");
     expect(bg).toContain("bg-sky-wash");
     expect(bg).not.toContain('cy="65"');
     expect(bg).not.toContain('y2="-3"');

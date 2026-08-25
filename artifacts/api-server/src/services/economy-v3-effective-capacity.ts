@@ -65,6 +65,14 @@ export function resolveV3CurrentVisitDay(streakDays: unknown): number {
 }
 
 /**
+ * Persist the next 1-based visit day.
+ * streak 0 and 1 are both day 1 — a naive +1 from 0 stays on day 1.
+ */
+export function nextVisitStreakDays(streakDays: unknown): number {
+  return resolveV3CurrentVisitDay(streakDays) + 1;
+}
+
+/**
  * Visit day → daily preset bonus seconds.
  * day 1 → +1 … day 5+ → +5. Never +0 for an active first day.
  */

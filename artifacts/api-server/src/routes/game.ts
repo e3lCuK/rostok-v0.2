@@ -13,6 +13,8 @@ import { settleAndPersistEconomyV3Roots } from "../services/economy-v3-roots-set
 import { V3_TUTORIAL_COMPLETE_CLEAR_SQL } from "../services/economy-v3-tutorial";
 import { computeTutorialCompensation } from "../services/economy-v3-tutorial-compensation";
 import { readMetelkaPendingRewardFromRow } from "../services/economy-v2-excess-metelka-pending";
+import { computeVisitStreakOnLogin } from "../services/economy-v3-visit-streak";
+import { nextVisitStreakDays } from "../services/economy-v3-effective-capacity";
 
 const COOLDOWN_MS = 8 * 60 * 60 * 1000;
 const SESSIONS_PER_DAY = 3; // 1 session per 8 hours
@@ -59,14 +61,36 @@ router.get("/game/state", requireAuth, async (req: any, res) => {
     const acc = accRow.rows[0];
     const game = gameRow.rows[0] || {};
 
-    // Track daily login (once per calendar day)
+    // Track daily login + visit-day streak (once per calendar day).
+    // Visit day used to advance only on legacy session complete — v3 never
+    // hits that path, so a second-day login stayed on «День 1».
     if (gameRow.rows.length > 0) {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      if (game.last_login_date !== todayStr) {
-        await pool.query(
-          `UPDATE game_state SET total_login_days = COALESCE(total_login_days, 0) + 1, last_login_date = $2 WHERE user_id = $1`,
-          [userId, todayStr],
-        ).catch(() => {});
+      const visit = computeVisitStreakOnLogin({
+        nowMs: Date.now(),
+        clientVisitDate: req.query?.visitDate,
+        lastStreakDate: game.last_streak_date ?? null,
+        lastLoginDate: game.last_login_date ?? null,
+        currentStreak: game.streak_days,
+        totalLoginDays: game.total_login_days,
+      });
+      if (visit.persist) {
+        try {
+          await pool.query(
+            `UPDATE game_state
+             SET total_login_days = COALESCE(total_login_days, 0) + $4,
+                 last_login_date = $2,
+                 streak_days = $3,
+                 last_streak_date = $2,
+                 updated_at = NOW()
+             WHERE user_id = $1`,
+            [userId, visit.today, visit.newStreak, visit.loginChanged ? 1 : 0],
+          );
+          game.streak_days = visit.newStreak;
+          game.last_streak_date = visit.today;
+          game.last_login_date = visit.today;
+        } catch (err) {
+          req.log?.error?.({ err }, "visit streak login update");
+        }
       }
     }
 
@@ -560,8 +584,8 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
       const totalBalance = activeBalance;
       const now = Date.now();
 
-      // Streak logic — one increment per calendar day (UTC), using last_streak_date
-      // last_streak_date is ONLY updated by real session completions (not debug)
+      // Streak logic — one increment per calendar day (UTC), using last_streak_date.
+      // Login GET also ticks this for Economy v3 (no legacy session complete).
       const todayUTC = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
       const yesterdayUTC = new Date(now - 86400000).toISOString().slice(0, 10);
       const lastStreakDate: string | null = g.last_streak_date ?? null;
@@ -572,10 +596,10 @@ router.post("/game/session/action", requireAuth, async (req: any, res) => {
         newStreak = 1;
       } else if (lastStreakDate === todayUTC) {
         // Already completed a session today — keep streak unchanged
-        newStreak = currentStreak;
+        newStreak = currentStreak <= 0 ? 1 : currentStreak;
       } else if (lastStreakDate === yesterdayUTC) {
-        // Consecutive day — increment (max 7)
-        newStreak = currentStreak + 1;
+        // Consecutive day — 0 and 1 are both visit day 1
+        newStreak = nextVisitStreakDays(currentStreak);
       } else {
         // Missed one or more days — reset
         newStreak = 1;

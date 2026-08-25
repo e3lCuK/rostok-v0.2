@@ -99,8 +99,8 @@ describe("Capital chest under Economy v3 roots", () => {
   });
 
   it("capital hit target opens accrual history (wired from GamePage)", () => {
-    // Guarded while Care coin is dragged onto the chest (no accidental history open).
-    expect(pageSrc).toContain("tutorialDone && !coinDropTargetActive");
+    expect(pageSrc).toContain("tutorialDone && !vaultCapitalDragging");
+    expect(pageSrc).toContain("setVaultCapitalDragging");
     expect(pageSrc).toContain("setShowDepositInfo(true)");
     expect(pageSrc).toContain("sessionHistory");
     expect(pageSrc).toContain("Начисления появятся после первой сессии");
@@ -114,6 +114,7 @@ describe("Capital chest under Economy v3 roots", () => {
     expect(underRootsSrc).toContain('data-value-bump={bump ? "true" : "false"}');
     expect(cssSrc).toContain("v3-capital-badge--in-bulb");
     expect(cssSrc).toContain(".v3-capital-badge--bump");
+    expect(cssSrc).toContain("v3-capital-badge-bump");
     expect(cssSrc).toContain("v3-capital-chest-host--income-flash");
     expect(pageSrc).toContain("v3-capital-chest-host--income-flash");
     const html = renderToStaticMarkup(

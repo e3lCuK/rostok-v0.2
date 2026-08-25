@@ -5,6 +5,7 @@ import {
   APPLE_BASKET_HOST_SELECTOR,
   APPLE_BASKET_SELECTOR,
   CAPITAL_CHEST_HOST_SELECTOR,
+  TREE_REWARD_AUTO_COLLECT_MS,
   pointHitsAppleBasket,
   pointHitsCapitalChest,
   resolveAppleBasketEl,
@@ -91,40 +92,35 @@ describe("appleCollectDrag helpers", () => {
   });
 });
 
-describe("care reward drag collect wiring", () => {
-  it("apples and Care coins drag; credit via handleAppleClick on drag end", () => {
-    expect(pageSrc).toContain("draggingAppleIdx");
+describe("care reward click collect wiring", () => {
+  it("apples and Care coins collect on click via handleAppleClick", () => {
+    expect(pageSrc).toContain("handleAppleClick");
+    expect(pageSrc).toContain("pulseRewardCollect");
     expect(pageSrc).toContain("appleDropTargetActive");
     expect(pageSrc).toContain("coinDropTargetActive");
-    expect(pageSrc).toContain("onDragStart");
-    expect(pageSrc).toContain("onDragEnd");
-    expect(pageSrc).toContain("handleAppleClick");
-    expect(pageSrc).toContain("drag={draggingAppleIdx === null || isDragging}");
-    expect(pageSrc).toContain("setCoinDropTargetActive(true)");
+    expect(pageSrc).toContain("onClick={() => handleAppleClick(i)}");
     expect(pageSrc).toContain("dropHighlight={coinDropTargetActive}");
+    expect(pageSrc).not.toContain("draggingAppleIdx");
+    expect(pageSrc).not.toContain("whileDrag");
+    expect(pageSrc).not.toContain("tree-apple-drag-ghost");
     // Defer collected unmount so AnimatePresence exit sees custom.manual (fly).
     expect(pageSrc).toContain("requestAnimationFrame");
     expect(pageSrc).toContain(
       "setCollectedAppleIndices([...collectedAppleIndicesRef.current])",
     );
-    // Care coin no longer click-to-collect in the apples overlay.
-    expect(pageSrc).not.toMatch(
-      /onClick=\{\s*isCoin\s*\?\s*\([\s\S]*?handleAppleClick\(i\)/,
-    );
   });
 
-  it("Metelka coin drag-to-chest matches Care coin", () => {
-    expect(metelkaSrc).toContain("onDragStart");
-    expect(metelkaSrc).toContain("onDragEnd");
+  it("Metelka coin click-to-claim matches Care coin", () => {
+    expect(metelkaSrc).toContain("onClick");
     expect(metelkaSrc).toContain("onClaim()");
-    expect(metelkaSrc).toContain("onDragActiveChange");
-    expect(metelkaSrc).toContain("tree-apple-drag-ghost");
-    expect(metelkaSrc).toContain("y: 120");
-    // Click-to-claim removed — drag-end calls onClaim (keyboard Enter/Space kept).
-    expect(metelkaSrc).not.toMatch(/onClick=\{/);
-    expect(pageSrc).toContain("draggingMetelkaCoin");
-    expect(pageSrc).toContain("onDragActiveChange");
-    expect(pageSrc).toContain("setCoinDropTargetActive(active)");
+    expect(metelkaSrc).toContain('aria-label="Забрать награду Метёлки"');
+    expect(metelkaSrc).not.toContain("onDragStart");
+    expect(metelkaSrc).not.toContain("onDragEnd");
+    expect(metelkaSrc).not.toContain("onDragActiveChange");
+    expect(metelkaSrc).not.toContain("tree-apple-drag-ghost");
+    expect(pageSrc).toContain('pulseRewardCollect("stone-coin")');
+    expect(pageSrc).toContain("handleClaimMetelkaPendingReward");
+    expect(pageSrc).not.toContain("draggingMetelkaCoin");
   });
 
   it("basket pulses art only; coin pulses only chest lock/clasp", () => {
@@ -159,23 +155,26 @@ describe("care reward drag collect wiring", () => {
     expect(chestSrc).toContain('data-chest-clasp="true"');
     expect(chestSrc).toContain("v2-chest-clasp--drop-target");
     expect(chestSrc).toContain("drop-target-stone");
-    expect(pageSrc).toContain('draggingMetelkaCoin ? "stone"');
+    expect(pageSrc).toContain('collectingMetelkaCoin ? "stone"');
   });
 
-  it("idle pulse on token; drag raises tree layer + ghost for apple and coin", () => {
+  it("auto-collects tree apples and Care coins 60s after appearance", () => {
+    expect(TREE_REWARD_AUTO_COLLECT_MS).toBe(60_000);
+    expect(pageSrc).toContain("TREE_REWARD_AUTO_COLLECT_MS");
+    expect(pageSrc).toContain("scheduleTreeRewardAutoCollect()");
+    expect(pageSrc).toContain("autoCollectRemainingTreeRewards");
+    expect(pageSrc).not.toContain("}, 60000);");
+  });
+
+  it("idle pulse on token; click collect raises tree layer", () => {
     expect(cssSrc).toContain("apple-collect-idle-pulse");
     expect(cssSrc).toContain("coin-collect-idle-pulse");
     expect(cssSrc).toContain("game-tree-wrap--reward-drag");
-    expect(cssSrc).toContain("tree-apple-drag-ghost");
-    expect(pageSrc).toContain("whileDrag");
-    expect(pageSrc).toContain("tree-apple-drag-ghost");
-    expect(pageSrc).toContain("game-tree-wrap--reward-drag");
-  });
-
-  it("locks grabbing cursor on the field while dragging (apple path leaves the token)", () => {
-    expect(pageSrc).toContain("game-area--reward-dragging");
-    expect(cssSrc).toContain(".game-area--reward-dragging");
-    expect(cssSrc).toContain("cursor: grabbing !important");
-    expect(pageSrc).toContain('cursor: "grabbing"');
+    expect(cssSrc).toContain("game-tree-wrap--reward-drag");
+    expect(pageSrc).toContain("rewardCollecting");
+    expect(pageSrc).not.toContain("game-tree-wrap--reward-drag");
+    expect(cssSrc).toContain("cursor: pointer");
+    expect(pageSrc).not.toContain("game-area--reward-dragging");
+    expect(cssSrc).not.toContain(".game-area--reward-dragging");
   });
 });

@@ -569,7 +569,7 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  z-index: 20;
+  z-index: 22;
 }
 
 /* Income flash — left of the capital chest */
@@ -639,16 +639,25 @@ body {
 .game-beta-floating {
   position: absolute;
   bottom: 4px;
-  right: 4px;
   font-size: 0.56rem;
   font-weight: 400;
   /* Match cream fill of apple / growth / capital caption badges */
   color: rgb(255, 248, 236);
   letter-spacing: 0.3px;
-  text-transform: uppercase;
   line-height: 1;
   z-index: 17;
   pointer-events: none;
+}
+.game-beta-floating--left {
+  left: 4px;
+  text-transform: uppercase;
+}
+.game-beta-floating--right {
+  right: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  /* Commit hash — keep lowercase for readability */
+  text-transform: none;
 }
 
 .game-gear-wrap {
@@ -714,19 +723,25 @@ body {
   display: block;
   z-index: 4;
   pointer-events: none;
+  overflow: visible;
 }
 
-/* Thin grass↔soil join — short SVG so Y-scale ≈ 1 (even + thin stroke). */
-.bg-soil-join {
+/* Unstretched bush sprites — grass band stretches, circles must not. */
+.game-area-bg-bush {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 3px;
+  bottom: 0;
+  width: 58px;
+  height: 44px;
   display: block;
   z-index: 4;
   pointer-events: none;
   overflow: visible;
+}
+.game-area-bg-bush--left {
+  left: 4px;
+}
+.game-area-bg-bush--right {
+  right: 4px;
 }
 
 /* Level diamond — top-left of play field (above apple basket) */
@@ -915,7 +930,10 @@ body {
   width: 2rem;
   height: 1.8rem;
 }
-/* Above tutorial hint cards (z-index 20) so the dragged wallet stays visible. */
+/*
+ * Dragging: lift the vault host so the wallet can fly over the hint card.
+ * Idle vault stays under the overlay; the card is padded below the safe.
+ */
 .field-level-host:has(.vault-badge-wrap--dragging),
 .vault-badge-wrap--dragging {
   z-index: 40;
@@ -1118,7 +1136,7 @@ body {
 .apple-basket:active .apple-basket-art-wrap {
   filter: brightness(0.97);
 }
-/* While receiving a dragged apple — block shop open; pulse lives on art only. */
+/* While receiving a collected apple — block shop open; pulse lives on art only. */
 .apple-basket--receiving {
   pointer-events: none;
 }
@@ -1140,33 +1158,25 @@ body {
   }
 }
 /*
- * Idle / drag apple collect:
- * Pulse the inner token (not the drag host) so CSS transform never fights
- * framer-motion drag x/y. Tree wrap rises above the basket while dragging.
+ * Idle / click apple collect:
+ * Pulse the inner token (not the host) so CSS transform never fights
+ * framer-motion whileTap. Do not raise .game-tree-wrap — the coin fly
+ * would paint over the capital face and look like the button is leaving.
  */
 .game-tree-wrap--reward-drag {
   z-index: 14;
 }
-.tree-apples-overlay--dragging {
+.tree-apples-overlay--collecting {
   z-index: 20;
   overflow: visible;
 }
-/*
- * Keep grab/grabbing for apple + coin the same. While dragging, lock the
- * cursor on the whole field — otherwise the pointer leaves the token (apple
- * path to the basket is long) and the cursor flickers to whatever is under it.
- */
-.game-area--reward-dragging,
-.game-area--reward-dragging * {
-  cursor: grabbing !important;
-}
 .tree-apple-pending:not(.tree-apple-coin) {
-  cursor: grab;
-  touch-action: none;
-  /* Host stays transform-free for drag; idle pulse lives on the token. */
+  cursor: pointer;
+  touch-action: manipulation;
+  /* Host stays transform-free; idle pulse lives on the token. */
   animation: none;
 }
-.tree-apple-pending:not(.tree-apple-coin):not(.tree-apple--dragging) .tree-reward-token {
+.tree-apple-pending:not(.tree-apple-coin) .tree-reward-token {
   transform-origin: center;
   animation: apple-collect-idle-pulse 0.95s ease-in-out infinite;
 }
@@ -1181,18 +1191,18 @@ body {
     filter: drop-shadow(0 0 7px rgba(192, 57, 43, 0.65));
   }
 }
-/* Care coin idle pulse on token (Metelka reuses same classes until its drag pass). */
+/* Care coin idle pulse on token (Metelka reuses same classes). */
 .tree-apple-coin {
-  cursor: grab;
-  touch-action: none;
+  cursor: pointer;
+  touch-action: manipulation;
   animation: none !important;
 }
-.tree-apple-coin:not(.tree-apple--dragging) .tree-reward-token {
+.tree-apple-coin .tree-reward-token {
   transform-origin: center;
   animation: coin-collect-idle-pulse 0.9s ease-in-out infinite;
 }
 /* Excess / Metelka coin — stone grey pulse (not Care gold). */
-.tree-apple-coin--stone:not(.tree-apple--dragging) .tree-reward-token {
+.tree-apple-coin--stone .tree-reward-token {
   animation: coin-collect-idle-pulse-stone 0.9s ease-in-out infinite;
 }
 @keyframes coin-collect-idle-pulse {
@@ -1539,6 +1549,30 @@ body {
   align-items: flex-start;
 }
 
+.flask-help-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.flask-help-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-bottom: 4px;
+}
+
+.flask-help-head .tree-stage-name {
+  margin: 0;
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.flask-help-row .tree-stage-badge {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
 .flask-help-row--red {
   border-color: #e8c4b8;
   background: #fdf6f3;
@@ -1550,8 +1584,10 @@ body {
 }
 
 .flask-help-body {
-  line-height: 1.35;
+  line-height: 1.4;
   color: #57534e !important;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .flask-help-badge--red {
@@ -1588,6 +1624,38 @@ body {
   font-weight: 700;
   letter-spacing: -0.02em;
   pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .flask-help-modal {
+    width: calc(100% - 20px);
+    max-width: none;
+    padding: 16px 12px 20px;
+  }
+
+  .flask-help-row {
+    gap: 8px;
+    padding: 10px 10px;
+  }
+
+  .flask-help-mini {
+    width: 44px;
+    height: 50px;
+  }
+
+  .flask-help-mini__svg {
+    width: 44px;
+    height: 50px;
+  }
+
+  .flask-help-head .tree-stage-name {
+    flex: 1 1 100%;
+  }
+
+  .flask-help-row .tree-stage-badge {
+    font-size: 0.66rem;
+    padding: 2px 7px;
+  }
 }
 
 /* Drift stays right of the level diamond (~viewBox x < 95). */
@@ -1894,7 +1962,7 @@ body {
   50%       { transform: scale(1.14); }
 }
 .tree-apple-pending {
-  /* grab/grabbing set above for Care collect; keep hit target live. */
+  /* pointer cursor set above for Care collect; keep hit target live. */
   pointer-events: all;
   animation: apple-pulse 1.1s ease-in-out infinite;
 }
@@ -1903,7 +1971,6 @@ body {
   opacity: 1;
   /* Idle pulse moved to .tree-reward-token — see coin-collect-idle-pulse. */
 }
-/* Avoid :active scale — fights framer drag and makes the apple jump under the cursor. */
 .game-floater-big {
   font-size: 1.5rem !important;
   font-weight: 900 !important;
@@ -3724,9 +3791,20 @@ body.modal-open {
   line-height: 0;
 }
 
+.excess-cleaning-web-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+  transform-origin: center center;
+}
+
 .excess-cleaning-web--exiting {
-  animation: excess-web-exit 0.24s ease-in forwards;
   pointer-events: none;
+}
+
+.excess-cleaning-web--exiting .excess-cleaning-web-glyph {
+  animation: excess-web-exit 0.24s ease-in forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3734,8 +3812,11 @@ body.modal-open {
     animation: none;
   }
 
-  .excess-cleaning-web--exiting {
+  .excess-cleaning-web--exiting .excess-cleaning-web-glyph {
     animation: none;
+  }
+
+  .excess-cleaning-web--exiting {
     opacity: 0;
   }
 }
@@ -6254,10 +6335,10 @@ canvas {
   inset: 0;
   z-index: 20;
   display: flex;
-  /* Higher in the sky — clear of trunk, activities, and roots. */
+  /* Sky band above the canopy so apples/coins on the tree stay visible. */
   align-items: flex-start;
   justify-content: center;
-  padding-top: clamp(10px, 3.5vh, 36px);
+  padding-top: 8px;
   pointer-events: none;
 }
 .tutorial-intro-card {
@@ -7503,16 +7584,16 @@ canvas {
    * Timer is nested in the chest host (tall hourglass tucked under the lid).
    * Actions sit just above the column (same 6px). Soil height = packed stack.
    *
-   * Soil art lip sits below --v2-scene-lift (peek + path inset in
-   * UndergroundSoilArt). Trunk + wrap-root fork share this join Y.
+   * Soil art peeks above --v2-scene-lift; the grass↔soil wave is the
+   * brown lip inside GameAreaBg's ground SVG (not a separate overlay).
    *
    * CALIBRATED: soil / green join = --v3-trunk-join (stump ↔ root collar).
-   * Ground SVG bottom sits on that join (fixed 90px tall — do not stretch
-   * height or bushes warp). Soil peek aligns the brown lip to the same Y.
+   * Ground SVG bottom sits on that join (fixed 90px tall — grass fill may
+   * stretch in X). Bushes are separate sprites so they stay round.
    */
-  --v3-horizon-drop: 13px;
+  --v3-horizon-drop: 4px;
   --v3-trunk-join: calc(var(--v2-scene-lift) - var(--v3-horizon-drop));
-  /* Brown lip flat at trunk-join (UndergroundSoilArt JOIN_Y ≈ 12). */
+  /* Brown soil peeks behind the ground SVG's wavy lip. */
   --v3-soil-peek: 18px;
   /* Lower the whole wrap drawing (collar+fan) a bit under the stump. */
   --v3-wrap-roots-nudge-y: 6px;
@@ -7597,24 +7678,23 @@ canvas {
   bottom: var(--v2-scene-lift);
   z-index: 3;
 }
-.game-area--v2-mocks .bg-soil-join {
-  bottom: calc(var(--v2-scene-lift) - 1px);
+.game-area--v2-mocks .game-area-bg-bush {
+  bottom: var(--v2-scene-lift);
   z-index: 4;
 }
 
 /*
  * Green/brown edge = bottom of this SVG = trunk↔root join.
- * Height stays 90px (matches viewBox) so bushes are not stretched.
+ * Height stays 90px (matches viewBox). Bushes are unstretched sprites.
  */
 .game-area--v3-roots .game-area-bg-ground {
   bottom: var(--v3-trunk-join);
   height: 90px;
   z-index: 3;
 }
-.game-area--v3-roots .bg-soil-join {
-  bottom: calc(var(--v3-trunk-join) - 1px);
-  /* Behind stump + wrap roots — line must not cut the collar */
-  z-index: 3;
+.game-area--v3-roots .game-area-bg-bush {
+  bottom: var(--v3-trunk-join);
+  z-index: 4;
 }
 
 .game-area--v3-roots .v2-underground-soil {
@@ -7937,6 +8017,8 @@ canvas {
   background: transparent;
   box-shadow: none;
   font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
   -webkit-tap-highlight-color: transparent;
 }
 .v3-capital-badge--in-bulb {
@@ -8012,7 +8094,16 @@ button.v3-capital-badge:focus-visible {
   outline-offset: 2px;
 }
 .v3-capital-badge--bump {
-  animation: v2-chest-value-bump 420ms ease-out;
+  animation: v3-capital-badge-bump 420ms ease-out;
+}
+@keyframes v3-capital-badge-bump {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
 }
 /* Match timer type exactly (size / weight / family). */
 .v3-capital-badge .field-caption-value,
@@ -8301,8 +8392,8 @@ button.v3-capital-badge:focus-visible {
 }
 
 /*
- * +₽ flash lives inside the chest host (z-index 4 under the tree). Lift the
- * host while the flash is up so tutorial / Care income is not covered.
+ * +₽ flash and click-collect coin fly: keep the capital face above the
+ * tree overlay so the token cannot cover/“steal” the button.
  */
 .game-area--v3-roots
   .v3-underground-stack

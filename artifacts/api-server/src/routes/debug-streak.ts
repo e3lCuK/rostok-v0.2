@@ -2,8 +2,8 @@ import type { Router } from "express";
 import { pool } from "@workspace/db";
 import {
   buildV3EffectiveCapacityBreakdown,
+  nextVisitStreakDays,
   normalizeV3BasePresetSeconds,
-  resolveV3CurrentVisitDay,
 } from "../services/economy-v3-effective-capacity";
 import { areDebugRoutesEnabled } from "./debug-enabled";
 
@@ -27,8 +27,7 @@ function requireAuth(req: any, res: any, next: any) {
  * streak+1 from 0 stays on day 1 / effective 21. Debug must bump visit day.
  */
 export function nextDebugVisitStreakDays(streakDaysRaw: unknown): number {
-  const currentVisitDay = resolveV3CurrentVisitDay(streakDaysRaw);
-  return currentVisitDay + 1;
+  return nextVisitStreakDays(streakDaysRaw);
 }
 
 /** Local-only: POST /api/game/debug/add-streak-day for the debug panel. */

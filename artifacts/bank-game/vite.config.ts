@@ -2,12 +2,41 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { execSync } from "node:child_process";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 /** Local Vite UI port — never reuse api-server's PORT (usually 8080). */
 const DEFAULT_DEV_PORT = 22399;
 /** Default Express listen port for the /api proxy target. */
 const DEFAULT_API_PORT = 8080;
+
+function resolveGitSha(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+/** Commit count on HEAD — auto patch after `BETA V0.3`. */
+function resolveGitPushCount(): number {
+  try {
+    const raw = execSync("git rev-list --count HEAD", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+const APP_GIT_SHA = resolveGitSha();
+const APP_GIT_PUSH_COUNT = resolveGitPushCount();
 
 // Prefer VITE_PORT. Do NOT fall back to process.env.PORT — that belongs to api-server
 // and caused Vite to bind 8080 ("Cannot GET /" when opening the backend as if it were the game).
@@ -30,6 +59,10 @@ const basePath = process.env.BASE_PATH ?? "/";
 
 export default defineConfig({
   base: basePath,
+  define: {
+    __APP_GIT_SHA__: JSON.stringify(APP_GIT_SHA),
+    __APP_GIT_PUSH_COUNT__: JSON.stringify(APP_GIT_PUSH_COUNT),
+  },
   plugins: [
     react(),
     tailwindcss(),

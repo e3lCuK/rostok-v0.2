@@ -12,6 +12,7 @@ const pageSrc = readFileSync(
   join(__dirname, "../pages/GamePage.tsx"),
   "utf8",
 );
+const cssSrc = readFileSync(join(__dirname, "../bank.css"), "utf8");
 
 describe("tutorialOverlayMotion", () => {
   it("fades in over a visible beat (not a snap)", () => {
@@ -28,5 +29,23 @@ describe("tutorialOverlayMotion", () => {
     expect(pageSrc).toContain("TUTORIAL_OVERLAY_INITIAL");
     expect(pageSrc).toContain("tutorial-welcome-overlay");
     expect(pageSrc).toContain("AnimatePresence mode=\"wait\"");
+  });
+
+  it("pins step hint cards in the sky above the tree", () => {
+    expect(cssSrc).toMatch(
+      /\.tutorial-intro-overlay\s*\{[\s\S]*?align-items:\s*flex-start/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-intro-overlay\s*\{[\s\S]*?padding-top:\s*8px/,
+    );
+    expect(cssSrc).toMatch(
+      /\.tutorial-intro-overlay\s*\{[\s\S]*?justify-content:\s*center/,
+    );
+    expect(cssSrc).not.toMatch(
+      /\.tutorial-intro-overlay\s*\{[\s\S]*?padding-left:\s*72px/,
+    );
+    expect(cssSrc).not.toMatch(
+      /\.tutorial-intro-overlay\s*\{[\s\S]*?padding-top:\s*clamp\(118px/,
+    );
   });
 });

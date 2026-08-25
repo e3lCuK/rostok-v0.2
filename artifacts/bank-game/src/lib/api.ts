@@ -1,4 +1,6 @@
 // API client — thin wrapper around fetch for game endpoints
+import { localCalendarDateISO } from "@/lib/engine";
+
 const BASE = "/api";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -521,7 +523,10 @@ export const api = {
     request<{ success: boolean }>("/auth/logout", { method: "POST" }),
 
   // Game
-  getState: () => request<GameStateResponse>("/game/state"),
+  getState: () =>
+    request<GameStateResponse>(
+      `/game/state?visitDate=${encodeURIComponent(localCalendarDateISO())}`,
+    ),
 
   initAccount: (startingCapital: number) =>
     request<{ success: boolean }>("/game/init", {

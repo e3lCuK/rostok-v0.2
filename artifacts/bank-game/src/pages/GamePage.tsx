@@ -21,6 +21,7 @@ import {
   getStreakBonusSeconds,
   getVisitRewardCalendarState,
   resolveCurrentVisitDay,
+  localCalendarDateISO,
   SESSION_COOLDOWN_MS,
 } from "@/lib/engine";
 import { api, type LeaderboardPlayer } from "@/lib/api";
@@ -57,6 +58,7 @@ import FlaskIncomeHelpModal from "@/components/v2/FlaskIncomeHelpModal";
 import VaultCapitalHelpModal from "@/components/v2/VaultCapitalHelpModal";
 import { computeAverageIncomePercent } from "@/lib/incomeHistoryAvgPercent";
 import TreeRewardToken from "@/components/v2/TreeRewardToken";
+import { TREE_REWARD_AUTO_COLLECT_MS } from "@/lib/appleCollectDrag";
 import { INCOME_CHEST_FLOAT_MS } from "@/lib/incomeChestFeedback";
 import {
   applyEconomyV2EnergyToState,
@@ -303,7 +305,7 @@ import {
 } from "@/lib/tutorialCompensationClock";
 import V3TutorialFillTimer from "@/components/v2/V3TutorialFillTimer";
 
-import { APP_VERSION } from "@/lib/engine";
+import { APP_GIT_SHA, APP_VERSION } from "@/lib/engine";
 import {
   UNDERGROUND_ROOTS_WIPE_TRANSITION,
   undergroundRootsWipeAnimate,
@@ -477,16 +479,21 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [appleCount, setAppleCount] = useState(1);
   const [collectedAppleIndices, setCollectedAppleIndices] = useState<number[]>([]);
   const [flyingAppleIndices, setFlyingAppleIndices] = useState<number[]>([]);
-  /** Care / Metelka reward drag: apple → basket, coins → chest lock. */
-  const [draggingAppleIdx, setDraggingAppleIdx] = useState<number | null>(null);
-  const [draggingMetelkaCoin, setDraggingMetelkaCoin] = useState(false);
+  /** Care / Metelka reward click: pulse basket / chest lock while the token flies. */
   const [appleDropTargetActive, setAppleDropTargetActive] = useState(false);
   const [coinDropTargetActive, setCoinDropTargetActive] = useState(false);
-  const rewardDragLockRef = useRef(false);
-  const rewardDragging = draggingAppleIdx !== null || draggingMetelkaCoin;
+  /** Vault wallet drag only — must not flip the capital face to a span on coin click. */
+  const [vaultCapitalDragging, setVaultCapitalDragging] = useState(false);
+  const [collectingMetelkaCoin, setCollectingMetelkaCoin] = useState(false);
+  const [rewardCollecting, setRewardCollecting] = useState(false);
+  const applePulseClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coinPulseClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rewardCollectingClearRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   /**
    * Red apples already added to the basket this Care reward wave.
-   * Prevents double-count when manual drag credits + claimApplesAndIncome.
+   * Prevents double-count when manual click credits + claimApplesAndIncome.
    */
   const applesCreditedThisWaveRef = useRef(0);
   /** True while tree apple/coin overlay is up — poll must not jump basket early. */
@@ -554,9 +561,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [showStreakWidget, setShowStreakWidget] = useState(() => {
     if (!(state.game.tutorialDone ?? true)) return false; // suppress during tutorial
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localCalendarDateISO();
     // Suppress on first day — only show starting from the second calendar day
-    const accountStartStr = new Date(state.balances.startDate).toISOString().slice(0, 10);
+    const accountStartStr = localCalendarDateISO(new Date(state.balances.startDate));
     if (accountStartStr === todayStr) return false;
     const seen = localStorage.getItem("streak_widget_date");
     const midCare = isEconomyV3GameCycleEnabled(state.game.v3Roots)
@@ -572,7 +579,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   const [lbTab, setLbTab] = useState<"days" | "xp" | "growth">("days");
 
   function dismissStreakWidget() {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localCalendarDateISO();
     localStorage.setItem("streak_widget_date", todayStr);
     setShowStreakWidget(false);
   }
@@ -1281,6 +1288,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           setCollectedAppleIndices([]);
           setFlyingAppleIndices([]);
           setShowApples(true);
+          scheduleTreeRewardAutoCollect();
         }, 1800);
         growthTimeoutsRef.current.push(appleTimer);
       }, 1000);
@@ -1510,10 +1518,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         // Tutorial achievement «Пройти обучение» → pulse level badge (pending claim).
         checkPendingAchievements();
         // Only open streak widget if it's not the first day
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const accountStartStr = new Date(stateRef.current.balances.startDate)
-          .toISOString()
-          .slice(0, 10);
+        const todayStr = localCalendarDateISO();
+        const accountStartStr = localCalendarDateISO(
+          new Date(stateRef.current.balances.startDate),
+        );
         if (accountStartStr !== todayStr) {
           localStorage.removeItem("streak_widget_date");
           setShowStreakWidget(true);
@@ -3156,13 +3164,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
   }, [showIncomePopup, incomePopupKey]);
 
   function claimApplesAndIncome(opts?: { creditRemainingApples?: boolean }) {
-    if (appleAutoCollectTimerRef.current) {
-      clearTimeout(appleAutoCollectTimerRef.current);
-      appleAutoCollectTimerRef.current = null;
-    }
     const redsInWave = Math.max(0, appleCountRef.current - 1);
-    // Coin drag: income only. Apple +N popup / basket only when reds are
-    // dragged (or auto-collect explicitly asks to credit remaining).
+    // Coin click: income only. Apple +N popup / basket only when reds are
+    // clicked (or auto-collect explicitly asks to credit remaining).
     const creditRemainingApples = opts?.creditRemainingApples === true;
     const redsToCredit = creditRemainingApples
       ? Math.max(0, redsInWave - applesCreditedThisWaveRef.current)
@@ -3204,70 +3208,84 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
     // Persist full wave red count with income; UI basket catches up on red drags.
     void handleClaimAll(redsInWave);
-    // Hide overlay only when all apples are collected
+    // Hide overlay only when all apples are collected.
+    // Remaining tokens keep the appearance-time 60s auto-collect (do not restart).
     const allCollected = collectedAppleIndicesRef.current.length >= appleCountRef.current;
     if (allCollected) {
       rewardAppleWaveActiveRef.current = false;
+      if (appleAutoCollectTimerRef.current) {
+        clearTimeout(appleAutoCollectTimerRef.current);
+        appleAutoCollectTimerRef.current = null;
+      }
       setTimeout(() => {
         setShowApples(false);
         collectedAppleIndicesRef.current = [];
         setCollectedAppleIndices([]);
         setFlyingAppleIndices([]);
       }, 600);
-    } else {
-      // Red apples still remain — restart 60s auto-clean timer
-      appleAutoCollectTimerRef.current = setTimeout(() => {
-        appleAutoCollectTimerRef.current = null;
-        const redsInWaveNow = Math.max(0, appleCountRef.current - 1);
-        const uncollectedReds = redsInWaveNow -
-          collectedAppleIndicesRef.current.filter(i => i < appleCountRef.current - 1).length;
-        if (uncollectedReds > 0) {
-          const allIdx = Array.from({ length: appleCountRef.current }, (_, i) => i);
-          collectedAppleIndicesRef.current = allIdx;
-          setCollectedAppleIndices(allIdx);
-          // Credit + animate apples that were never dragged (coin was first).
-          const creditNow = Math.max(
-            0,
-            redsInWaveNow - applesCreditedThisWaveRef.current,
-          );
-          if (creditNow > 0) {
-            const latest = stateRef.current;
-            const nextApples = (latest.game.totalApples ?? 0) + creditNow;
-            applesCreditedThisWaveRef.current += creditNow;
-            setApplePopupCount(creditNow);
-            setShowApplePopup(true);
-            setTimeout(() => setShowApplePopup(false), 1500);
-            setTotalApples(nextApples);
-            commitState({
-              ...latest,
-              game: { ...latest.game, totalApples: nextApples },
-            });
-          }
-          rewardAppleWaveActiveRef.current = false;
-          setTimeout(() => {
-            setShowApples(false);
-            collectedAppleIndicesRef.current = [];
-            setCollectedAppleIndices([]);
-            setFlyingAppleIndices([]);
-          }, 320);
-        } else {
-          rewardAppleWaveActiveRef.current = false;
-          setShowApples(false);
-          collectedAppleIndicesRef.current = [];
-          setCollectedAppleIndices([]);
-          setFlyingAppleIndices([]);
-        }
-      }, 60000);
     }
   }
 
+  const REWARD_COLLECT_PULSE_MS = 450;
+
+  function clearRewardCollectPulse() {
+    if (applePulseClearRef.current) {
+      clearTimeout(applePulseClearRef.current);
+      applePulseClearRef.current = null;
+    }
+    if (coinPulseClearRef.current) {
+      clearTimeout(coinPulseClearRef.current);
+      coinPulseClearRef.current = null;
+    }
+    if (rewardCollectingClearRef.current) {
+      clearTimeout(rewardCollectingClearRef.current);
+      rewardCollectingClearRef.current = null;
+    }
+    setAppleDropTargetActive(false);
+    setCoinDropTargetActive(false);
+    setCollectingMetelkaCoin(false);
+    setRewardCollecting(false);
+    setVaultCapitalDragging(false);
+  }
+
+  function pulseRewardCollect(kind: "apple" | "gold-coin" | "stone-coin") {
+    setRewardCollecting(true);
+    if (rewardCollectingClearRef.current) {
+      clearTimeout(rewardCollectingClearRef.current);
+    }
+    rewardCollectingClearRef.current = setTimeout(() => {
+      setRewardCollecting(false);
+      rewardCollectingClearRef.current = null;
+    }, REWARD_COLLECT_PULSE_MS);
+
+    if (kind === "apple") {
+      setAppleDropTargetActive(true);
+      if (applePulseClearRef.current) clearTimeout(applePulseClearRef.current);
+      applePulseClearRef.current = setTimeout(() => {
+        setAppleDropTargetActive(false);
+        applePulseClearRef.current = null;
+      }, REWARD_COLLECT_PULSE_MS);
+      return;
+    }
+    setCollectingMetelkaCoin(kind === "stone-coin");
+    setCoinDropTargetActive(true);
+    if (coinPulseClearRef.current) clearTimeout(coinPulseClearRef.current);
+    coinPulseClearRef.current = setTimeout(() => {
+      setCoinDropTargetActive(false);
+      setCollectingMetelkaCoin(false);
+      coinPulseClearRef.current = null;
+    }, REWARD_COLLECT_PULSE_MS);
+  }
+
   /**
-   * Credit a tree reward token.
-   * Apples + Care coin: call from drag-end (counter only after drop; miss still credits).
-   * Metelka coin: same drag-to-chest via MetelkaRewardCoin → onClaim.
+   * Credit a tree reward token on click (tutorial + live).
+   * Apples fly to the basket; Care coin flies to the chest lock.
+   * Metelka coin: click via MetelkaRewardCoin → onClaim.
    */
   function handleAppleClick(appleIdx: number) {
     if (collectedAppleIndicesRef.current.includes(appleIdx)) return;
+    const isCoin = appleIdx === appleCountRef.current - 1;
+    pulseRewardCollect(isCoin ? "gold-coin" : "apple");
     // Mark as manually collected so exit animation flies toward resources.
     // Ref updates now (idempotent credit); React collected state waits one frame
     // so AnimatePresence exit still sees custom.manual / custom.coin.
@@ -3277,8 +3295,6 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     requestAnimationFrame(() => {
       setCollectedAppleIndices([...collectedAppleIndicesRef.current]);
     });
-
-    const isCoin = appleIdx === appleCountRef.current - 1;
 
     // Tutorial reward beat: +1 apple / compensation ₽ into real counters, then finish card.
     if (tutorialRewardActiveRef.current) {
@@ -3333,7 +3349,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     }
 
     if (isCoin) {
-      // Income only — apple +N waits for red apple drag (or auto-collect).
+      // Income only — apple +N waits for red apple click (or auto-collect).
       claimApplesAndIncome();
     } else {
       const redsInWave = Math.max(0, appleCountRef.current - 1);
@@ -3365,6 +3381,37 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         }, 600);
       }
     }
+  }
+
+  /** Collect leftover tree apples + Care coin the same way as a click (fly + credit). */
+  function autoCollectRemainingTreeRewards() {
+    const total = appleCountRef.current;
+    if (total <= 0) return;
+    const coinIdx = total - 1;
+    const remaining: number[] = [];
+    for (let i = 0; i < total; i++) {
+      if (!collectedAppleIndicesRef.current.includes(i)) remaining.push(i);
+    }
+    if (remaining.length === 0) return;
+    remaining.sort((a, b) => {
+      if (a === coinIdx) return 1;
+      if (b === coinIdx) return -1;
+      return a - b;
+    });
+    for (const idx of remaining) {
+      handleAppleClick(idx);
+    }
+  }
+
+  /** One 60s timer from appearance — tutorial and live Care share this. */
+  function scheduleTreeRewardAutoCollect() {
+    if (appleAutoCollectTimerRef.current) {
+      clearTimeout(appleAutoCollectTimerRef.current);
+    }
+    appleAutoCollectTimerRef.current = setTimeout(() => {
+      appleAutoCollectTimerRef.current = null;
+      autoCollectRemainingTreeRewards();
+    }, TREE_REWARD_AUTO_COLLECT_MS);
   }
 
   function addTreeGrowthMm(mm: number) {
@@ -3415,11 +3462,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
     collectedAppleIndicesRef.current = [];
     setCollectedAppleIndices([]);
     setFlyingAppleIndices([]);
-    setDraggingAppleIdx(null);
-    setDraggingMetelkaCoin(false);
-    setAppleDropTargetActive(false);
-    setCoinDropTargetActive(false);
-    rewardDragLockRef.current = false;
+    clearRewardCollectPulse();
     if (appleAutoCollectTimerRef.current) {
       clearTimeout(appleAutoCollectTimerRef.current);
       appleAutoCollectTimerRef.current = null;
@@ -3573,7 +3616,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
               Number(serverGame.treeGrowthMM) || 0,
               Number(local.game.treeGrowthMM) || 0,
             );
-        // Mid reward-wave: keep basket at locally dragged apples — claimAll may
+        // Mid reward-wave: keep basket at locally collected apples — claimAll may
         // already have persisted undragged reds on the server.
         const syncedApples = rewardAppleWaveActiveRef.current
           ? Math.max(0, Number(local.game.totalApples) || 0)
@@ -4752,24 +4795,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           applesCreditedThisWaveRef.current = 0;
           rewardAppleWaveActiveRef.current = true;
           setShowApples(true);
-          // Автосбор через 60 секунд если пользователь не собрал
-          appleAutoCollectTimerRef.current = setTimeout(() => {
-            appleAutoCollectTimerRef.current = null;
-            const total = appleCountRef.current;
-            const collected = collectedAppleIndicesRef.current.length;
-            const remaining = total - collected;
-            if (remaining > 0) {
-              // Анимируем все оставшиеся кружки одновременно (как при ручном сборе)
-              const allIdx = Array.from({ length: total }, (_, i) => i);
-              collectedAppleIndicesRef.current = allIdx;
-              setCollectedAppleIndices(allIdx);
-              // Auto: income + credit remaining apples together.
-              setTimeout(
-                () => claimApplesAndIncome({ creditRemainingApples: true }),
-                320,
-              );
-            }
-          }, 60000);
+          scheduleTreeRewardAutoCollect();
         }, 1800);
         growthTimeoutsRef.current.push(appleTimer);
       }
@@ -5211,7 +5237,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           useUndergroundRootsScene ? " game-area--v2-mocks" : ""
         }${useV3RootsUi ? " game-area--v3-roots" : ""}${
           undergroundRootsMasked ? " game-area--underground-masked" : ""
-        }${rewardDragging ? " game-area--reward-dragging" : ""}${
+        }${rewardCollecting ? " game-area--reward-collecting" : ""}${
           excessCleaning ? " game-area--metelka-cleaning" : ""
         }`}
         ref={gameAreaRef}
@@ -5219,7 +5245,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         data-underground-masked={
           undergroundRootsMasked ? "true" : undefined
         }
-        data-reward-dragging={rewardDragging ? "true" : undefined}
+        data-reward-collecting={rewardCollecting ? "true" : undefined}
       >
         {/* Settings gear: same as eye — only after tutorial is done. */}
         {tutorialDone && (
@@ -5247,7 +5273,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                   <SettingsWidget
                     onClose={() => setShowSettings(false)}
                     onOpenDailyReward={() => { setShowSettings(false); setShowStreakWidget(true); }}
-                    dailyAvailable={localStorage.getItem("streak_widget_date") !== new Date().toISOString().slice(0, 10)}
+                    dailyAvailable={localStorage.getItem("streak_widget_date") !== localCalendarDateISO()}
                   />
                 </motion.div>
               )}
@@ -5255,7 +5281,19 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           </div>
         </div>
         )}
-        {tutorialDone && <span className="game-beta-floating">{APP_VERSION}</span>}
+        {tutorialDone && (
+          <>
+            <span className="game-beta-floating game-beta-floating--left">
+              {APP_VERSION}
+            </span>
+            <span
+              className="game-beta-floating game-beta-floating--right"
+              title={`Коммит ${APP_GIT_SHA}`}
+            >
+              {APP_GIT_SHA}
+            </span>
+          </>
+        )}
         <GameAreaBg purchasedItems={purchasedItems} />
         {/* Vault always under the level slot (spacer keeps seat while level is hidden). */}
         <div className="field-level-host" data-field-level-host="true">
@@ -5322,7 +5360,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 sproutPlanted &&
                 !vaultTransferBusy
               }
-              onDragActiveChange={setCoinDropTargetActive}
+              onDragActiveChange={(active) => {
+                setVaultCapitalDragging(active);
+                setCoinDropTargetActive(active);
+              }}
               onTransfer={() => {
                 void handleVaultCapitalTransfer();
               }}
@@ -5626,7 +5667,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 (Number(balances.balance) || 0) <= 0
                   ? " v3-capital-chest-host--no-capital"
                   : ""
-              }${showIncomePopup ? " v3-capital-chest-host--income-flash" : ""}`}
+              }${showIncomePopup || coinDropTargetActive ? " v3-capital-chest-host--income-flash" : ""}`}
               data-v3-capital-chest-host="true"
               data-capital-metelka-frozen={excessUiGrey ? "true" : undefined}
               data-flask-no-capital={
@@ -5641,10 +5682,10 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 bumpToken={capitalBumpToken}
                 dropHighlight={coinDropTargetActive}
                 dropHighlightTone={
-                  draggingMetelkaCoin ? "stone" : "gold"
+                  collectingMetelkaCoin ? "stone" : "gold"
                 }
                 onCapitalClick={
-                  tutorialDone && !coinDropTargetActive && !excessCleaning
+                  tutorialDone && !vaultCapitalDragging && !excessCleaning
                     ? () => setShowDepositInfo(true)
                     : undefined
                 }
@@ -6107,7 +6148,7 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
         </AnimatePresence>
 
         <div
-          className={`game-tree-wrap${showGrowthAnim ? " tree-growing" : ""}${rewardDragging ? " game-tree-wrap--reward-drag" : ""}${
+          className={`game-tree-wrap${showGrowthAnim ? " tree-growing" : ""}${
             !sproutPlanted ? " game-tree-wrap--no-sprout" : ""
           }`}
           data-tree-stage={currentStage}
@@ -6247,35 +6288,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
           <AnimatePresence>
             {showApples && (
               <div
-                className={`tree-apples-overlay tree-apples-overlay-active${draggingAppleIdx !== null ? " tree-apples-overlay--dragging" : ""}`}
+                className={`tree-apples-overlay tree-apples-overlay-active${rewardCollecting ? " tree-apples-overlay--collecting" : ""}`}
                 style={{ width: STAGE_DIMS[currentStage][0], height: STAGE_DIMS[currentStage][1] }}
               >
-                {draggingAppleIdx !== null &&
-                  !collectedAppleIndices.includes(draggingAppleIdx) &&
-                  (() => {
-                    const gi = draggingAppleIdx;
-                    const ghostCoin = gi === appleCount - 1;
-                    const posIdx = ghostCoin ? 3 : gi;
-                    const [gx, gy] = APPLE_POSITIONS[currentStage][posIdx];
-                    const base = APPLE_SIZES[currentStage];
-                    const gr = ghostCoin ? Math.round(base * 1.3) : base;
-                    return (
-                      <div
-                        className="tree-apple-drag-ghost"
-                        style={{
-                          width: gr * 2,
-                          height: gr * 2,
-                          left: `${gx}%`,
-                          top: `${gy}%`,
-                          marginLeft: -gr,
-                          marginTop: -gr,
-                        }}
-                        aria-hidden="true"
-                      >
-                        <TreeRewardToken kind={ghostCoin ? "coin" : "apple"} />
-                      </div>
-                    );
-                  })()}
                 <AnimatePresence>
                   {Array.from({ length: appleCount }, (_, i) => {
                     if (collectedAppleIndices.includes(i)) return null;
@@ -6284,30 +6299,20 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                     const [xPct, yPct] = APPLE_POSITIONS[currentStage][posIdx];
                     const baseR = APPLE_SIZES[currentStage];
                     const r = isCoin ? Math.round(baseR * 1.3) : baseR;
-                    const isDragging = draggingAppleIdx === i;
                     return (
                       <motion.div
                         key={i}
-                        className={`tree-apple tree-apple-pending${isCoin ? " tree-apple-coin" : ""}${isDragging ? " tree-apple--dragging" : ""}`}
-                        drag={draggingAppleIdx === null || isDragging}
-                        dragMomentum={false}
-                        dragElastic={0}
-                        dragSnapToOrigin={false}
-                        whileDrag={{ scale: 1.28, zIndex: 50, cursor: "grabbing" }}
-                        onDragStart={() => {
-                          if (rewardDragLockRef.current) return;
-                          rewardDragLockRef.current = true;
-                          setDraggingAppleIdx(i);
-                          if (isCoin) setCoinDropTargetActive(true);
-                          else setAppleDropTargetActive(true);
-                        }}
-                        onDragEnd={() => {
-                          // Credit on drop only (hit or miss). Target pulse clears here.
-                          setDraggingAppleIdx(null);
-                          setAppleDropTargetActive(false);
-                          setCoinDropTargetActive(false);
-                          rewardDragLockRef.current = false;
-                          handleAppleClick(i);
+                        role="button"
+                        tabIndex={0}
+                        aria-label={isCoin ? "Собрать монетку дохода" : "Собрать яблоко"}
+                        className={`tree-apple tree-apple-pending${isCoin ? " tree-apple-coin" : ""}`}
+                        whileTap={{ scale: 1.12 }}
+                        onClick={() => handleAppleClick(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleAppleClick(i);
+                          }
                         }}
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -6366,10 +6371,9 @@ export default function GamePage({ state, onStateChange, notif, onClearNotif, on
                 radius={Math.round(APPLE_SIZES[currentStage] * 1.3)}
                 claiming={metelkaClaimBusy}
                 error={metelkaClaimError}
-                onClaim={handleClaimMetelkaPendingReward}
-                onDragActiveChange={(active) => {
-                  setDraggingMetelkaCoin(active);
-                  setCoinDropTargetActive(active);
+                onClaim={() => {
+                  pulseRewardCollect("stone-coin");
+                  handleClaimMetelkaPendingReward();
                 }}
               />
             ) : null}

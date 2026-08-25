@@ -490,11 +490,14 @@ export type DistributeV3WholeSecondsRoundRobinResult = {
 };
 
 /**
- * Assign each whole generated second in round-robin order.
- * If the cursor root cannot accept (transferred / reserve-full / shared-pool
- * cap), scan forward for the next accepting root — never void a unit while any
- * eligible root still has shared-pool room. Only discard when nobody can take it.
- * Shared pool: root[kind] + reserve[kind] ≤ effectivePreset.
+ * Assign each whole generated second so energy stays even across activities.
+ *
+ * Load of a kind = root seconds + matching activity-button (reserve) seconds.
+ * Catch-up: the emptiest eligible kind gets the unit; ties go left-to-right
+ * (water → sun → fertilizer). When all three activities have the same load,
+ * fall back to round-robin from `generationRrCursor` so equal roots stay fair.
+ * A unit is discarded only when nobody can take it (transferred / shared-pool
+ * cap). Shared pool: root[kind] + reserve[kind] ≤ effectivePreset.
  */
 export function distributeV3WholeSecondsRoundRobin(input: {
   wholeSeconds: number;
@@ -558,6 +561,9 @@ export function distributeV3WholeSecondsRoundRobin(input: {
       : kind === "sun"
         ? reserveSun
         : reserveFertilizer;
+  const loadOf = (kind: RootKind): number => secondsOf(kind) + reserveOf(kind);
+  const indexOf = (kind: RootKind): 0 | 1 | 2 =>
+    kind === "sun" ? 1 : kind === "fertilizer" ? 2 : 0;
   const canTake = (kind: RootKind): boolean => {
     const kindRootCap = Math.max(0, rootCap - reserveOf(kind));
     if (secondsOf(kind) >= kindRootCap) return false;
@@ -573,25 +579,52 @@ export function distributeV3WholeSecondsRoundRobin(input: {
     else if (kind === "sun") sun = Math.min(sun + 1, kindRootCap);
     else fertilizer = Math.min(fertilizer + 1, kindRootCap);
   };
+  const pickKind = (): RootKind | null => {
+    const eligible: RootKind[] = [];
+    for (const kind of V3_ROOT_KINDS) {
+      if (canTake(kind)) eligible.push(kind);
+    }
+    if (eligible.length === 0) return null;
+    let minLoad = loadOf(eligible[0]);
+    for (let i = 1; i < eligible.length; i++) {
+      const load = loadOf(eligible[i]);
+      if (load < minLoad) minLoad = load;
+    }
+    let maxLoad = loadOf(V3_ROOT_KINDS[0]);
+    for (let i = 1; i < V3_ROOT_KINDS.length; i++) {
+      const load = loadOf(V3_ROOT_KINDS[i]);
+      if (load > maxLoad) maxLoad = load;
+    }
+    // Equal across all three activities → fair RR. Otherwise catch-up the
+    // emptiest (root + button), leftmost on a tie.
+    if (minLoad === maxLoad) {
+      for (let step = 0; step < V3_ROOT_KINDS.length; step++) {
+        const idx = ((cursor + step) % 3) as 0 | 1 | 2;
+        const kind = V3_ROOT_KINDS[idx];
+        if (canTake(kind)) return kind;
+      }
+      return null;
+    }
+    for (const kind of V3_ROOT_KINDS) {
+      if (canTake(kind) && loadOf(kind) === minLoad) return kind;
+    }
+    return null;
+  };
 
   for (let i = 0; i < units; i++) {
-    let placed = false;
-    for (let step = 0; step < V3_ROOT_KINDS.length; step++) {
-      const idx = ((cursor + step) % 3) as 0 | 1 | 2;
-      const kind = V3_ROOT_KINDS[idx];
-      if (!canTake(kind)) continue;
-      addOne(kind);
-      acceptedUnits++;
-      // Advance past the root that received the unit (fair RR continues).
-      cursor = ((idx + 1) % 3) as 0 | 1 | 2;
-      placed = true;
-      break;
-    }
-    if (!placed) {
+    const kind = pickKind();
+    if (!kind) {
       discardedUnits++;
       cursor = ((cursor + 1) % 3) as 0 | 1 | 2;
+      continue;
     }
+    addOne(kind);
+    acceptedUnits++;
+    cursor = ((indexOf(kind) + 1) % 3) as 0 | 1 | 2;
   }
+
+  const nextKind = pickKind();
+  if (nextKind) cursor = indexOf(nextKind);
 
   return {
     rootWaterSeconds: water,
@@ -2041,7 +2074,7 @@ export function buildEconomyV3RootsPublicState(
 }
 
 /**
- * Pure round-robin root settle. One wall-clock window → shared generation;
+ * Pure even-fill root settle. One wall-clock window → shared generation;
  * each whole second is assigned sequentially Water → Sun → Fertilizer → …
  *
  * Excess gate (reserves + shared pool):

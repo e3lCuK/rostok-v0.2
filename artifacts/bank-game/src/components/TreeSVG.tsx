@@ -36,10 +36,12 @@ const LEAF = "#5aab1a";
 const LEAF_DEEP = "#458f12";
 const LEAF_LIGHT = "#6dbf3a";
 const LEAF_EDGE = "#2f5c0e";
-const WOOD_EDGE = "#5c3a1a";
+/** Trunk / wrap-root rim — one token for every stage. */
+export const TREE_WOOD_EDGE = "#5c3a1a";
+export const TREE_WOOD_STROKE = 1.05;
 const BRANCH = "#9a6b40";
 /** Hairline; non-scaling so scale(0.75) stages match bush weight. */
-const STROKE = 1.05;
+const STROKE = TREE_WOOD_STROKE;
 
 function LeafLobe({
   cx,
@@ -86,7 +88,7 @@ function BranchStub({
       height={h}
       rx={h / 2}
       fill={BRANCH}
-      stroke={WOOD_EDGE}
+      stroke={TREE_WOOD_EDGE}
       strokeWidth={STROKE}
       vectorEffect="non-scaling-stroke"
       transform={`rotate(${rotate} ${x} ${y})`}
@@ -106,24 +108,23 @@ function Trunk({
   width,
   height,
   fill,
-  scaled = false,
 }: {
   x: number;
   y: number;
   width: number;
   height: number;
   fill: string;
+  /** Call sites still pass this; hairline is always non-scaling. */
   scaled?: boolean;
 }) {
   const x2 = x + width;
   const y2 = y + height;
-  const ve = scaled ? ("non-scaling-stroke" as const) : undefined;
   const strokeProps = {
     fill: "none" as const,
-    stroke: WOOD_EDGE,
+    stroke: TREE_WOOD_EDGE,
     strokeWidth: STROKE,
     strokeLinecap: "butt" as const,
-    vectorEffect: ve,
+    vectorEffect: "non-scaling-stroke" as const,
   };
   return (
     <g data-tree-trunk-join="open-ends">

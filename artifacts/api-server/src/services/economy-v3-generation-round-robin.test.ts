@@ -102,11 +102,48 @@ describe("distributeV3WholeSecondsRoundRobin", () => {
       transferredRoots: [],
       rootCapacitySeconds: 21,
     });
-    // Water can take at most 21-15=6; other roots share remaining units.
-    expect(d.rootWaterSeconds).toBeLessThanOrEqual(6);
+    // Water can take at most 21-15=6; catch-up fills empty sun/fert first.
+    expect(d.rootWaterSeconds).toBe(0);
+    expect(d.rootSunSeconds).toBe(10);
+    expect(d.rootFertilizerSeconds).toBe(10);
     expect(d.rootWaterSeconds + 15).toBeLessThanOrEqual(21);
     expect(d.rootSunSeconds + 0).toBeLessThanOrEqual(21);
     expect(d.rootFertilizerSeconds + 0).toBeLessThanOrEqual(21);
+  });
+
+  it("water root 2s / others 0 → empty roots fill left-to-right, not more water", () => {
+    const d = distributeV3WholeSecondsRoundRobin({
+      wholeSeconds: 3,
+      generationRrCursor: 0,
+      rootWaterSeconds: 2,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      reservesFull: { water: false, sun: false, fertilizer: false },
+      transferredRoots: [],
+    });
+    expect(d.rootWaterSeconds).toBe(2);
+    expect(d.rootSunSeconds).toBe(2);
+    expect(d.rootFertilizerSeconds).toBe(1);
+    expect(d.acceptedUnits).toBe(3);
+  });
+
+  it("activity-button seconds count toward load (water reserve 2, roots empty)", () => {
+    const d = distributeV3WholeSecondsRoundRobin({
+      wholeSeconds: 3,
+      generationRrCursor: 0,
+      rootWaterSeconds: 0,
+      rootSunSeconds: 0,
+      rootFertilizerSeconds: 0,
+      reserveWaterSeconds: 2,
+      reserveSunSeconds: 0,
+      reserveFertilizerSeconds: 0,
+      reservesFull: { water: false, sun: false, fertilizer: false },
+      transferredRoots: [],
+    });
+    expect(d.rootWaterSeconds).toBe(0);
+    expect(d.rootSunSeconds).toBe(2);
+    expect(d.rootFertilizerSeconds).toBe(1);
+    expect(d.acceptedUnits).toBe(3);
   });
 });
 

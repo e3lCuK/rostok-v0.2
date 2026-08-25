@@ -763,7 +763,7 @@ export const V3_TUTORIAL_CARE_OVERLAY: V3TutorialOverlayConfig = {
 export const V3_TUTORIAL_REWARD_OVERLAY: V3TutorialOverlayConfig = {
   icon: "reward",
   text: "Соберите награду",
-  hint: "Перенесите яблоки и монетки.",
+  hint: "Нажмите на яблоки и монетки.",
   accent: TUTORIAL_PLAN_ICON_COLORS.reward,
 };
 

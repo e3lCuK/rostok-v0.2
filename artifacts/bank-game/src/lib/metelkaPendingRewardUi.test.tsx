@@ -216,7 +216,7 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
     );
   });
 
-  it("API + CSS: Metelka coin reuses Care tree-apple-coin + drag-to-chest", () => {
+  it("API + CSS: Metelka coin reuses Care tree-apple-coin + click-to-claim", () => {
     expect(apiSrc).toContain("/game/v2/excess/metelka/claim");
     expect(apiSrc).toContain("claimMetelkaPendingReward");
     expect(css).toContain(".tree-apple-coin");
@@ -232,11 +232,12 @@ describe("Metelka clear / finish / claim wiring (source)", () => {
     expect(coinSrc).toContain("tree-apple-coin");
     expect(coinSrc).toContain('tone="stone"');
     expect(coinSrc).toContain("tree-apple-pending");
-    expect(coinSrc).toContain("onDragStart");
-    expect(coinSrc).toContain("onDragEnd");
-    expect(coinSrc).toContain("onDragActiveChange");
-    expect(page).toContain("setCoinDropTargetActive(active)");
-    expect(page).toContain("draggingMetelkaCoin");
+    expect(coinSrc).toContain("onClick");
+    expect(coinSrc).toContain("onClaim()");
+    expect(coinSrc).not.toContain("onDragStart");
+    expect(coinSrc).not.toContain("onDragActiveChange");
+    expect(page).toContain('pulseRewardCollect("stone-coin")');
+    expect(page).not.toContain("draggingMetelkaCoin");
     expect(coinSrc).not.toContain("formatMetelkaCoinAmountLabel");
     expect(css).toContain("gold-pulse");
   });

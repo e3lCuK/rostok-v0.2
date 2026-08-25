@@ -1,7 +1,9 @@
 /**
- * Care / Metelka reward collect — drag apple → basket, coins → chest lock.
- * Credit happens on pointer-up (hit or miss); target pulses while dragging.
+ * Care / Metelka reward collect — click apple / coin; token flies to basket or chest.
  */
+
+/** Auto-collect tree apples + Care coin 60s after they appear (tutorial + live). */
+export const TREE_REWARD_AUTO_COLLECT_MS = 60_000;
 
 export const APPLE_BASKET_HOST_SELECTOR = '[data-apple-basket-host="true"]';
 export const APPLE_BASKET_SELECTOR = '[data-apple-basket="true"]';

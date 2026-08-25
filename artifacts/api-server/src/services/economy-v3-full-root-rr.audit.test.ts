@@ -154,11 +154,11 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
     expect(second.rootWaterSeconds).toBe(25);
     expect(second.rootSunSeconds).toBe(1);
     expect(second.rootFertilizerSeconds).toBe(1);
-    expect(second.generationRrCursor).toBe(0);
+    expect(second.generationRrCursor).toBe(1);
     expect(second.excessGenerated).toBe(0);
   });
 
-  it("2. Sun=25, cursor=Sun → reroutes to Fertilizer", () => {
+  it("2. Sun=25 → catch-up fills Water (leftmost empty)", () => {
     const before = {
       water: 0,
       sun: 25,
@@ -173,12 +173,12 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
     console.log(JSON.stringify(report, null, 2));
 
     expect(after.wholeSeconds).toBe(1);
-    expect(after.rootWaterSeconds).toBe(0);
+    expect(after.rootWaterSeconds).toBe(1);
     expect(after.rootSunSeconds).toBe(25);
-    expect(after.rootFertilizerSeconds).toBe(1);
+    expect(after.rootFertilizerSeconds).toBe(0);
     expect(report.deltas.rootSum).toBe(1);
     expect(after.excessGenerated).toBe(0);
-    expect(after.generationRrCursor).toBe(0);
+    expect(after.generationRrCursor).toBe(2);
   });
 
   it("3. Fertilizer=25, cursor=Fertilizer → reroutes to Water", () => {
@@ -227,7 +227,7 @@ describe("AUDIT: full root + one generation cycle (characterization)", () => {
         sun: 25,
         fertilizer: 0,
         cursor: 1,
-        next: 0, // sun full → fert accepts → cursor past fert
+        next: 2, // sun full → water catch-up; next emptiest is fert
       },
       {
         kind: "fertilizer",

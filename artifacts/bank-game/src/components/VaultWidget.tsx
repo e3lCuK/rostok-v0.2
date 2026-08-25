@@ -216,7 +216,7 @@ export default function VaultWidget({
           type="button"
           className="vault-badge vault-badge--help"
           data-testid="vault-capital-help"
-          aria-label="Капитал и энергия — время и элементы"
+          aria-label="Сейф"
           title={`Не в игре ${formatVaultAmount(unused)} / всего ${formatVaultAmount(total)}`}
           onClick={(e) => {
             e.preventDefault();

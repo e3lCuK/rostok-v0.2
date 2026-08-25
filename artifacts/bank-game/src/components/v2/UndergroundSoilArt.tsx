@@ -1,18 +1,8 @@
 /**
- * Artistic soil band under the grass line.
- * Brown starts on a flat lip at/below the join so it cannot poke above
- * the thin grass↔soil stroke (wave lives only on that stroke).
+ * Brown earth band. The grass↔soil join (wavy lip + stroke) is painted in
+ * GameAreaBg's ground SVG — same element as the grass, so it cannot drift
+ * on resize. This band is all brown and peeks behind that lip.
  */
-/** Matches GameAreaBg surface-earth bottom stop. */
-const SURFACE_EARTH = "#a0c250";
-/**
- * Flat lip at the grass↔soil join (not a wave — wave is only the stroke).
- * From soil top: peek 18px + horizon-drop 13px ≈ 31px → 31/318 × 114 ≈ 11.
- * Flush to the join (was 12 — left a hair of green under the stroke).
- */
-const JOIN_Y = 11;
-const SOIL_LIP = `M0,${JOIN_Y} L400,${JOIN_Y}`;
-
 export default function UndergroundSoilArt() {
   return (
     <svg
@@ -30,18 +20,7 @@ export default function UndergroundSoilArt() {
           <stop offset="100%" stopColor="#9a6e48" />
         </linearGradient>
       </defs>
-
-      {/* Peek strip above the join — same green as the surface band */}
-      <path
-        d={`${SOIL_LIP} L400,0 L0,0 Z`}
-        fill={SURFACE_EARTH}
-      />
-
-      {/* Soil body — flat top sealed under the join stroke */}
-      <path
-        d={`${SOIL_LIP} L400,114 L0,114 Z`}
-        fill="url(#v2-soil-body)"
-      />
+      <rect x="0" y="0" width="400" height="114" fill="url(#v2-soil-body)" />
     </svg>
   );
 }

@@ -51,7 +51,7 @@ export default function FlaskIncomeHelpModal({ onClose }: Props) {
       data-flask-income-help="true"
     >
       <motion.div
-        className="help-modal"
+        className="help-modal flask-help-modal"
         initial={{ y: 32, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 32, opacity: 0 }}
@@ -90,21 +90,23 @@ export default function FlaskIncomeHelpModal({ onClose }: Props) {
                 fill={row.fill}
                 label={row.label}
               />
-              <div className="tree-stage-info">
-                <p className="tree-stage-name">{row.title}</p>
+              <div className="tree-stage-info flask-help-copy">
+                <div className="flask-help-head">
+                  <p className="tree-stage-name">{row.title}</p>
+                  <span
+                    className={`tree-stage-badge${
+                      row.tone === "grey"
+                        ? " flask-help-badge--grey"
+                        : row.tone === "red"
+                          ? " flask-help-badge--red"
+                          : ""
+                    }`}
+                  >
+                    {row.badge}
+                  </span>
+                </div>
                 <p className="tree-stage-range flask-help-body">{row.body}</p>
               </div>
-              <span
-                className={`tree-stage-badge${
-                  row.tone === "grey"
-                    ? " flask-help-badge--grey"
-                    : row.tone === "red"
-                      ? " flask-help-badge--red"
-                      : ""
-                }`}
-              >
-                {row.badge}
-              </span>
             </div>
           ))}
         </div>
